@@ -1,0 +1,45 @@
+MIS LUCAS · Web app de finanzas personales (versión beta)
+=========================================================
+
+Qué es
+------
+Una app web que se instala en la pantalla de inicio del celular, sin App Store y sin cuentas.
+Los datos se guardan SOLO en el teléfono o computador de cada persona (no hay servidor).
+
+Cómo publicarla (una sola vez, gratis, ~2 minutos)
+--------------------------------------------------
+Opción A · Netlify Drop (la más fácil)
+  1. Entra a https://app.netlify.com/drop
+  2. Arrastra la carpeta completa "mis-lucas-app" (esta carpeta) a la página.
+  3. Netlify te da un link https://algo.netlify.app  -> ese es el link para compartir.
+  (Crea una cuenta gratis para que el link no expire y puedas cambiarle el nombre.)
+
+Opción B · GitHub Pages
+  Sube estos archivos a un repositorio y activa Pages en Settings > Pages.
+
+Importante: debe abrirse desde un link https. Abrir el archivo index.html directo
+desde "Archivos" del iPhone no sirve para instalarla ni para guardar datos.
+
+Cómo instalarla en el iPhone
+----------------------------
+  1. Abre el link en Safari.
+  2. Botón Compartir (cuadrado con flecha) > "Agregar a pantalla de inicio".
+  3. Abre "Mis Lucas" desde el ícono, toca "Empezar con mis datos", pon tu nombre y (opcional) un PIN.
+
+En Android: abre el link en Chrome > menú ⋮ > "Instalar app" o "Agregar a pantalla principal".
+
+Tus datos
+---------
+- Quedan en ese teléfono. Si borras los datos de Safari o cambias de teléfono, se pierden,
+  así que usa "Fijos y ajustes > Descargar respaldo" de vez en cuando.
+- Para pasar tus datos a otro equipo: "Descargar respaldo" en uno y "Restaurar respaldo" en el otro.
+- El PIN evita que alguien que tome tu teléfono vea tus números; no es cifrado bancario.
+
+Archivos
+--------
+  index.html              la app completa
+  manifest.webmanifest    nombre, ícono y colores al instalarla
+  sw.js                   permite abrirla sin internet
+  icons/                  íconos de la app
+  fonts/                  tipografías (incluidas para que funcione sin internet)
+  vendor/                 lector de cartolas Excel/CSV

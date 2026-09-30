@@ -508,6 +508,32 @@ details.litem[open]{background:var(--surface-2);border-radius:14px;margin-block:
 #lockPin{font-size:28px!important;letter-spacing:.5em;text-align:center;width:180px;padding:12px;border-radius:14px;border:1px solid var(--line-2);background:var(--surface);color:var(--ink)}
 @media (display-mode: standalone){ header.top{padding-top:calc(10px + env(safe-area-inset-top,0px))} body{padding-top:0} }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+/* detalle al tocar un bloque del resumen */
+[data-drill]{cursor:pointer}
+.flowleg [data-drill]{border-radius:10px;padding:4px;margin:-4px;transition:background .15s}
+.flowleg [data-drill]:hover,.catrow[data-drill]:hover{background:var(--surface-2)}
+.flowleg [data-drill] span::after,.catrow[data-drill] .name::after{content:" ›";color:var(--muted)}
+#drillScrim{position:fixed;inset:0;z-index:59;background:rgba(0,0,0,.35);display:none}
+body.drill-open #drillScrim{display:block}
+#drill{position:fixed;z-index:60;background:var(--surface);color:var(--ink);box-shadow:0 -8px 30px rgba(0,0,0,.22);display:flex;flex-direction:column;
+  left:0;right:0;bottom:0;max-height:86vh;border-radius:18px 18px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));transform:translateY(105%);transition:transform .22s ease}
+body.drill-open #drill{transform:none}
+@media (min-width:760px){#drill{left:50%;right:auto;bottom:auto;top:50%;width:560px;max-height:80vh;border-radius:18px;transform:translate(-50%,-40%);opacity:0;pointer-events:none;transition:opacity .18s,transform .18s}
+  body.drill-open #drill{transform:translate(-50%,-50%);opacity:1;pointer-events:auto}}
+#drill .dhead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px}
+#drill .dhead h2{font-size:17px;margin:0}
+#drill .dtot{font-size:24px;font-weight:700;margin-top:2px}
+#drillBody{overflow:auto;-webkit-overflow-scrolling:touch;margin:0 -4px;padding:0 4px}
+.dgrp{margin-top:12px}
+.dgrp-h{display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:600;color:var(--ink-2);padding:6px 0;border-bottom:1px solid var(--line)}
+.ditem{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;padding:9px 2px;border-bottom:1px solid var(--line);cursor:pointer}
+.ditem:hover{background:var(--surface-2)}
+.ditem .t{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ditem .m{font-size:12px;color:var(--muted);grid-column:1}
+.ditem .a{font-weight:600;text-align:right;grid-row:1/3;grid-column:2;align-self:center}
+.dcalc{display:grid;grid-template-columns:1fr auto;gap:6px 12px;font-size:14px;margin-top:6px}
+.dcalc b{text-align:right}
+.dcalc .tot{border-top:1px solid var(--line);padding-top:6px;font-weight:700}
 </style>
 
 </head>
@@ -769,6 +795,11 @@ details.litem[open]{background:var(--surface-2);border-radius:14px;margin-block:
 </div>
 <button id="fab" type="button" aria-label="Registrar movimiento">+</button>
 <div id="scrim"></div>
+<div id="drillScrim"></div>
+<div id="drill" role="dialog" aria-modal="true" aria-labelledby="drillTitle" hidden>
+  <div class="dhead"><div><h2 id="drillTitle"></h2><div class="dtot num" id="drillTot"></div><div class="sub" id="drillSub"></div></div><button class="iconbtn" id="drillClose" type="button" aria-label="Cerrar">✕</button></div>
+  <div id="drillBody"></div>
+</div>
 <div id="lock" hidden><div class="lockbox"><div class="lockic">🔒</div><h2 id="lockHi">Mis Lucas</h2><p>Ingresa tu PIN</p><input id="lockPin" type="password" inputmode="numeric" maxlength="4" autocomplete="off" aria-label="PIN"><p class="muted" id="lockMsg" style="min-height:1.2em"></p></div></div>
 <div id="updBar" class="updbar" hidden><span>✨ Hay una versión nueva de Mis Lucas</span><button class="btn primary sm" type="button" onclick="location.reload()">Actualizar</button></div>
 <div id="tip" role="tooltip"></div>
@@ -1078,7 +1109,7 @@ function renderResumen(){
   $("#catSub").textContent=cats.length?`${cats.length} categorías · ${money(s.exp)} en total`:"Gasto del mes contra presupuesto";
   $("#catBars").innerHTML=cats.length?cats.map(c=>{const v=s.byCat[c]||0,b=+bud[c]||0,over=b&&v>b;
     const tip=`<b>${esc(c)}</b><br>Gastado ${money(v)}${s.exp?` (${(v/s.exp*100).toFixed(1)}% del total)`:""}${b?`<br>Presupuesto ${money(b)}<br>${over?"Excedido en "+money(v-b):"Disponible "+money(b-v)}`:"<br>Sin presupuesto"}`;
-    return `<div class="catrow" data-tip="${esc(tip)}">${ico(c)}<span class="name">${esc(c)}${over?' <span class="pill crit" style="margin-left:4px;padding:0 7px">▲ Excedido</span>':""}</span><div class="track"><div class="fill${over?" over":""}" style="width:${v/max*100}%"></div>${b?`<div class="tick" style="left:calc(${b/max*100}% - 1px)"></div>`:""}</div><span class="amt num">${compact(v)}<small>${b?Math.round(v/b*100)+"% de "+compact(b):s.exp?(v/s.exp*100).toFixed(0)+"% del total":""}</small></span></div>`}).join(""):`<div class="empty"><span class="ei">🌱</span>Aún no hay gastos este mes.</div>`;
+    return `<div class="catrow" data-drill="cat:${esc(c)}" role="button" tabindex="0" data-tip="${esc(tip)}">${ico(c)}<span class="name">${esc(c)}${over?' <span class="pill crit" style="margin-left:4px;padding:0 7px">▲ Excedido</span>':""}</span><div class="track"><div class="fill${over?" over":""}" style="width:${v/max*100}%"></div>${b?`<div class="tick" style="left:calc(${b/max*100}% - 1px)"></div>`:""}</div><span class="amt num">${compact(v)}<small>${b?Math.round(v/b*100)+"% de "+compact(b):s.exp?(v/s.exp*100).toFixed(0)+"% del total":""}</small></span></div>`}).join(""):`<div class="empty"><span class="ei">🌱</span>Aún no hay gastos este mes.</div>`;
 
   // office
   const reembMes=s.offIn;
@@ -1103,7 +1134,7 @@ function renderResumen(){
 
   // accounts
   const acc=Object.entries(s.byAcct).sort((a,b)=>b[1]-a[1]); const amax=Math.max(1,...acc.map(a=>a[1]));
-  $("#acctBars").innerHTML=acc.length?acc.map(([a,v])=>`<div class="catrow acctrow" data-tip="<b>${esc(a)}</b><br>${esc(money(v))} · ${(v/s.exp*100).toFixed(1)}%"><span class="cico" aria-hidden="true">${ACCT_ICON[a]||"💳"}</span><span class="name">${esc(a)}</span><div class="track"><div class="fill" style="width:${v/amax*100}%;background:var(--inc)"></div></div><span class="amt num">${compact(v)}<small>${(v/s.exp*100).toFixed(0)}%</small></span></div>`).join(""):`<div class="empty">Sin gastos.</div>`;
+  $("#acctBars").innerHTML=acc.length?acc.map(([a,v])=>`<div class="catrow acctrow" data-drill="acct:${esc(a)}" role="button" tabindex="0" data-tip="<b>${esc(a)}</b><br>${esc(money(v))} · ${(v/s.exp*100).toFixed(1)}%"><span class="cico" aria-hidden="true">${ACCT_ICON[a]||"💳"}</span><span class="name">${esc(a)}</span><div class="track"><div class="fill" style="width:${v/amax*100}%;background:var(--inc)"></div></div><span class="amt num">${compact(v)}<small>${(v/s.exp*100).toFixed(0)}%</small></span></div>`).join(""):`<div class="empty">Sin gastos.</div>`;
 
   // recon
   const pct=s.n?s.checked/s.n:0;
@@ -1182,6 +1213,37 @@ function renderFixed(){
 }
 
 /* ---------- flujo del mes ---------- */
+const DRILL_KEY={"Gastos fijos":"fijo","Gastos variables":"variable","Ahorro e inversión":"ahorro","Te queda":"queda"};
+function openDrill(key){
+  const tx=monthTx(state.ym), s=summarize(tx);
+  const personal=t=>!isOffice(t)&&t.type==="gasto"&&t.cat!==SAVINGS;
+  let title="",sub="",list=[],neg=[],calc="",group=true;
+  if(key==="fijo"||key==="variable"){ title=key==="fijo"?"Gastos fijos":"Gastos variables"; list=tx.filter(t=>personal(t)&&(t.nature==="fijo")===(key==="fijo"));
+    sub=key==="fijo"?"Lo que se repite todos los meses: dividendo, seguros, suscripciones, créditos.":"Lo que cambia mes a mes.";
+    if(key==="variable"&&s.refund){ neg=tx.filter(t=>!isOffice(t)&&t.type==="ingreso"&&t.cat==="Reembolsos"); } }
+  else if(key==="ahorro"){ title="Ahorro e inversión"; sub="Plata que moviste a ahorro o inversiones este mes."; list=tx.filter(t=>t.cat===SAVINGS&&!isOffice(t)); neg=tx.filter(t=>t.cat===RESCUE); group=false; }
+  else if(key==="queda"){ title=s.inc-s.exp-Math.max(s.netSav,0)>=0?"Te queda":"Resultado del mes"; sub="Lo que entró menos lo que gastaste y ahorraste."; list=tx.filter(t=>!isOffice(t)&&t.type==="ingreso"&&t.cat!==RESCUE&&t.cat!=="Reembolsos");
+    calc=`<div class="dcalc"><span>Entró</span><b class="num">${money(s.inc)}</b><span>− Gastos fijos</span><b class="num">${money(s.expFix)}</b><span>− Gastos variables</span><b class="num">${money(s.expVar)}</b><span>− Ahorro e inversión</span><b class="num">${money(Math.max(s.netSav,0))}</b><span class="tot">= Resultado</span><b class="tot num">${(s.inc-s.exp-Math.max(s.netSav,0))<0?"−":""}${money(Math.abs(s.inc-s.exp-Math.max(s.netSav,0)))}</b></div><div class="dgrp-h" style="margin-top:14px"><span>De dónde vino lo que entró</span></div>`; }
+  else if(key.startsWith("cat:")){ const c=key.slice(4); title=c; sub="Gastos de esta categoría en el mes."; list=tx.filter(t=>personal(t)&&t.cat===c); group=false; }
+  else if(key.startsWith("acct:")){ const a=key.slice(5); title=a; sub="Gastos personales pagados con este medio."; list=tx.filter(t=>personal(t)&&(t.account||"Sin cuenta")===a); }
+  const tot=list.reduce((x,t)=>x+t.amount,0)-neg.reduce((x,t)=>x+t.amount,0);
+  const item=(t,minus)=>`<div class="ditem" data-go="${t.id}"><div class="t">${ICON[t.cat]||"•"} ${esc(t.desc)}</div><div class="m num">${dmy(t.date)} · ${esc(t.cat)}${t.account?" · "+esc(t.account):""}</div><div class="a num"${minus?' style="color:var(--good-text)"':""}>${minus?"−":""}${money(t.amount)}</div></div>`;
+  let html=calc;
+  if(!list.length&&!neg.length) html+=`<div class="empty" style="padding:24px 0">No hay movimientos en este bloque este mes.</div>`;
+  else if(group){ const g={}; list.forEach(t=>(g[t.cat]=g[t.cat]||[]).push(t));
+    html+=Object.entries(g).sort((a,b)=>b[1].reduce((x,t)=>x+t.amount,0)-a[1].reduce((x,t)=>x+t.amount,0)).map(([c,a])=>`<div class="dgrp"><div class="dgrp-h"><span>${ICON[c]||"•"} ${esc(c)} · ${a.length}</span><span class="num">${money(a.reduce((x,t)=>x+t.amount,0))}</span></div>${a.sort((x,y)=>y.amount-x.amount).map(t=>item(t)).join("")}</div>`).join(""); }
+  else html+=list.slice().sort((x,y)=>y.amount-x.amount).map(t=>item(t)).join("");
+  if(neg.length) html+=`<div class="dgrp"><div class="dgrp-h"><span>${key==="ahorro"?"Rescates (se restan)":"Te devolvieron (se resta)"}</span><span class="num">−${money(neg.reduce((x,t)=>x+t.amount,0))}</span></div>${neg.map(t=>item(t,true)).join("")}</div>`;
+  $("#drillTitle").textContent=title; const shown=key==="queda"?s.inc-s.exp-Math.max(s.netSav,0):tot; $("#drillTot").textContent=(shown<0?"−":"")+money(Math.abs(shown));
+  $("#drillSub").textContent=`${sub} ${list.length+neg.length} movimiento${list.length+neg.length===1?"":"s"} · ${ymLabel(state.ym)}. Toca uno para editarlo.`;
+  $("#drillBody").innerHTML=html; $("#drill").hidden=false; requestAnimationFrame(()=>document.body.classList.add("drill-open")); $("#drillBody").scrollTop=0;
+}
+function closeDrill(){ document.body.classList.remove("drill-open"); setTimeout(()=>{ if(!document.body.classList.contains("drill-open")) $("#drill").hidden=true },230); }
+function goToTx(id){
+  closeDrill(); ["#qText","#qType","#qCat","#qAcct"].forEach(k=>{const e=$(k); if(e)e.value=""}); setTab("movs");
+  setTimeout(()=>{ const d=document.querySelector(`#movList details[data-id="${id}"]`); const r=document.querySelector(`#movBody tr[data-id="${id}"]`);
+    const el=(d&&d.offsetParent)?d:(r&&r.offsetParent)?r:d||r; if(!el)return; if(el.tagName==="DETAILS")el.open=true; el.scrollIntoView({behavior:"smooth",block:"center"}); el.style.outline="2px solid var(--accent)"; setTimeout(()=>el.style.outline="",1800); },80);
+}
 function flowCard(s){
   if(!s.inc&&!s.exp)return "";
   const base=Math.max(s.inc,s.expFix+s.expVar+Math.max(s.netSav,0));
@@ -1189,9 +1251,9 @@ function flowCard(s){
   const over=s.inc-s.exp-Math.max(s.netSav,0);
   const pct=v=>s.inc?Math.round(v/s.inc*100)+"%":"—";
   return `<div class="card" style="margin-top:16px"><div class="card-head"><div><h2>¿A dónde se fue lo que entró?</h2><div class="sub">De cada $100 que ganaste este mes</div></div></div>
-    <div class="flow">${seg.map(([n,v,c])=>`<div style="flex:${v};background:${c}" data-tip="<b>${esc(n)}</b><br>${esc(money(v))} · ${pct(v)} de tus ingresos"></div>`).join("")}</div>
-    <div class="flowleg">${seg.map(([n,v,c])=>`<div><i style="background:${c}"></i><span>${esc(n)}</span><b class="num">${money(v)}</b><small class="num">${pct(v)}</small></div>`).join("")}</div>
-    ${over<0?(s.inc>=s.exp?`<p class="note" style="margin:10px 0 0">Ahorraste ${money(Math.max(s.netSav,0))}, más de lo que te sobró (${money(s.inc-s.exp)}). Los ${money(-over)} de diferencia salieron de tus saldos o de la tarjeta.</p>`:`<p class="note" style="margin:10px 0 0;color:var(--crit)">▲ Gastaste ${money(-over)} más de lo que entró este mes.</p>`):""}
+    <div class="flow">${seg.map(([n,v,c])=>`<div style="flex:${v};background:${c}" data-drill="${DRILL_KEY[n]}" data-tip="<b>${esc(n)}</b><br>${esc(money(v))} · ${pct(v)} de tus ingresos"></div>`).join("")}</div>
+    <div class="flowleg">${seg.map(([n,v,c])=>`<div data-drill="${DRILL_KEY[n]}" role="button" tabindex="0"><i style="background:${c}"></i><span>${esc(n)}</span><b class="num">${money(v)}</b><small class="num">${pct(v)}</small></div>`).join("")}</div>
+    ${over<0?(s.inc>=s.exp?`<p class="note" data-drill="queda" role="button" tabindex="0" style="margin:10px 0 0">Ahorraste ${money(Math.max(s.netSav,0))}, más de lo que te sobró (${money(s.inc-s.exp)}). Los ${money(-over)} de diferencia salieron de tus saldos o de la tarjeta. Ver detalle ›</p>`:`<p class="note" data-drill="queda" role="button" tabindex="0" style="margin:10px 0 0;color:var(--crit)">▲ Gastaste ${money(-over)} más de lo que entró este mes. Ver detalle ›</p>`):""}
     ${s.refund?`<p class="note" style="margin:10px 0 0">Te devolvieron ${money(s.refund)} (amigos, seguros, etc.): ya está descontado de tu gasto.</p>`:""}
     ${s.offOut||s.offIn?`<p class="note" style="margin:10px 0 0">Aparte, por la oficina: adelantaste ${money(s.offOut)}${s.offIn?` y te reembolsaron ${money(s.offIn)}`:""}. Eso no se mezcla con tus números personales.</p>`:""}</div>`;
 }
@@ -1500,7 +1562,9 @@ function bindUI(){
   const closeSheet=()=>document.body.classList.remove("sheet-open");
   $("#fab").addEventListener("click",()=>{ if(state.tab!=="movs")setTab("movs"); openSheet(); });
   $("#closeSheet").addEventListener("click",closeSheet); $("#scrim").addEventListener("click",closeSheet);
-  document.addEventListener("keydown",e=>{if(e.key==="Escape")closeSheet()});
+  document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeSheet();closeDrill()} if((e.key==="Enter"||e.key===" ")&&e.target.dataset&&e.target.dataset.drill){e.preventDefault();openDrill(e.target.dataset.drill)}});
+document.addEventListener("click",e=>{ const g=e.target.closest("[data-go]"); if(g){goToTx(g.dataset.go);return} const d=e.target.closest("[data-drill]"); if(d&&d.dataset.drill&&d.dataset.drill!=="undefined"){openDrill(d.dataset.drill)} });
+$("#drillClose").addEventListener("click",closeDrill); $("#drillScrim").addEventListener("click",closeDrill);
   $("#segs").addEventListener("click",e=>{const b=e.target.closest("[data-seg]"); if(!b)return; $("#fType").value=b.dataset.seg; $("#fType").dispatchEvent(new Event("change")); document.querySelectorAll("#segs button").forEach(x=>x.setAttribute("aria-pressed",x===b)); });
   $("#addForm").addEventListener("submit",()=>{ if(matchMedia('(max-width:640px)').matches) setTimeout(closeSheet,50); });
   matchMedia('(max-width:640px)').addEventListener("change",()=>{closeSheet(); render()});

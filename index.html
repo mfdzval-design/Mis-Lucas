@@ -177,6 +177,14 @@ td select,td input{padding:4px 6px;border:1px solid var(--line);border-radius:6p
 #tip.show{opacity:1}
 #toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:9px;font-size:13px;z-index:60;opacity:0;transition:opacity .15s;pointer-events:none;max-width:calc(100% - 32px)}
 #toast.show{opacity:1}
+#toast.ok{background:var(--good-text);color:#fff}
+@media (max-width:640px){#toast{bottom:calc(96px + env(safe-area-inset-bottom,0px))}}
+.btn.saved,.btn.saved:hover{background:var(--good-text)!important;border-color:var(--good-text)!important;color:#fff!important;transition:background .2s}
+.btn.dirty{box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 30%,transparent)}
+@keyframes okflash{0%{background:color-mix(in srgb,var(--good) 28%,var(--surface))}100%{background:transparent}}
+.flash-ok,.flash-ok>summary{animation:okflash 1.8s ease-out}
+input.flash-ok,select.flash-ok{animation:none;border-color:var(--good-text)!important;box-shadow:0 0 0 3px color-mix(in srgb,var(--good) 25%,transparent)}
+.okmark{color:var(--good-text);font-weight:700;margin-left:6px}
 .confirm{display:inline-flex;gap:6px;align-items:center}
 
 /* lists (mobile-friendly rows) */
@@ -226,7 +234,7 @@ details.litem[open] summary{padding-bottom:6px}
   .month-nav{order:3;width:100%;justify-content:space-between}
   .month-nav .label{min-width:0;font-size:13.5px;padding-inline:2px}
   .month-nav button{width:38px;height:38px}
-  nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;margin:0;background:var(--surface);border-top:1px solid var(--line);padding:4px 4px calc(4px + env(safe-area-inset-bottom,0px));display:grid;grid-template-columns:repeat(6,1fr);gap:0;overflow:visible}
+  nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;margin:0;background:var(--surface);border-top:1px solid var(--line);padding:4px 4px calc(4px + env(safe-area-inset-bottom,0px));display:grid;grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:0;overflow:visible}
   nav.tabs button{display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 0 5px;border-bottom:0;font-size:10.5px;border-radius:10px;min-height:52px}
   nav.tabs button[aria-selected="true"]{color:var(--accent);background:var(--accent-soft)}
   .tabs .ic{display:block;width:22px;height:22px}
@@ -397,8 +405,8 @@ details.litem[open]{background:var(--surface-2);border-radius:14px;margin-block:
   .hero .st .d{display:none}
   .card{padding:16px}
   nav.tabs{left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom,0px));padding:6px;border-radius:22px;border:1px solid var(--card-border);box-shadow:0 8px 30px rgba(0,0,0,.14)}
-  nav.tabs{grid-template-columns:repeat(7,minmax(0,1fr))}
-  nav.tabs button{border-radius:14px;font-size:9.5px;min-width:0;padding-inline:0}
+  nav.tabs{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr)}
+  nav.tabs button{border-radius:14px;font-size:11px;min-width:0;padding-inline:0}
   .tabs .ic{width:21px;height:21px}
   nav.tabs button[aria-selected="true"]{background:var(--accent-soft);color:var(--accent)}
   body{padding-bottom:calc(100px + env(safe-area-inset-bottom,0px))}
@@ -917,7 +925,12 @@ function parseDate(v,fallbackYear){
   if((m=s.toLowerCase().match(/(\d{1,2})\s*(?:de\s*)?([a-z]{3})[a-z]*\.?\s*(?:de\s*)?(\d{4})?/))&&MES[m[2]]) return (m[3]||fallbackYear)+"-"+pad(MES[m[2]])+"-"+pad(m[1]);
   return null;
 }
-function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove("show"),2600)}
+function toast(msg,ok){const t=$("#toast");t.textContent=(ok?"✓ ":"")+msg;t.classList.toggle("ok",!!ok);t.classList.add("show");clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove("show"),2600)}
+const okToast=m=>toast(m,true);
+function markSaved(btn,label){ if(!btn)return; if(!btn.dataset.orig)btn.dataset.orig=btn.innerHTML; btn.classList.remove("dirty"); btn.classList.add("saved"); btn.innerHTML="✓ "+(label||"Guardado"); clearTimeout(btn._t); btn._t=setTimeout(()=>{btn.classList.remove("saved"); btn.innerHTML=btn.dataset.orig; delete btn.dataset.orig},1800); }
+function flashEl(el){ if(!el)return; el.classList.remove("flash-ok"); void el.offsetWidth; el.classList.add("flash-ok"); setTimeout(()=>el.classList.remove("flash-ok"),1900); }
+function markDirty(btn){ if(btn&&!btn.classList.contains("saved"))btn.classList.add("dirty"); }
+const afterSave=(btn,label,close)=>{ markSaved(btn,label); if(close)setTimeout(close,700); };
 
 /* ---------- state ---------- */
 const state = { db:null, dl:null, config:null, months:{}, example:true, ym:todayYM(), tab:"resumen", loaded:false, imp:null };
@@ -1059,21 +1072,22 @@ function bindAccount(){
   document.addEventListener("keydown",e=>{ if(e.key==="Escape"){ closeUMenu(); hideSheet("#acct"); } });
   addEventListener("resize",closeUMenu);
   $("#acctClose").addEventListener("click",()=>hideSheet("#acct")); $("#drillScrim").addEventListener("click",()=>hideSheet("#acct"));
-  $("#pfSave").addEventListener("click",()=>{ const n=$("#pfName").value.trim(); if(!n){toast("Escribe tu nombre.");return} state.name=n; saveProfile({nick:$("#pfNick").value.trim()}); render(); hideSheet("#acct"); toast("Perfil guardado"); });
-  $("#acSave").addEventListener("click",()=>{ const m=$("#acEmail").value.trim(); if(m&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(m)){toast("Ese correo no parece válido.");return} saveProfile({email:m}); hideSheet("#acct"); toast(m?"Correo guardado":"Correo quitado"); });
+  $("#pfSave").addEventListener("click",()=>{ const n=$("#pfName").value.trim(); if(!n){toast("Escribe tu nombre.");return} state.name=n; saveProfile({nick:$("#pfNick").value.trim()}); render(); afterSave($("#pfSave"),"Guardado",()=>hideSheet("#acct")); okToast("Perfil guardado"); });
+  $("#acSave").addEventListener("click",()=>{ const m=$("#acEmail").value.trim(); if(m&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(m)){toast("Ese correo no parece válido.");return} saveProfile({email:m}); afterSave($("#acSave"),m?"Correo guardado":"Correo quitado",()=>hideSheet("#acct")); okToast(m?"Correo guardado":"Correo quitado"); });
+  ["#pfName","#pfNick"].forEach(k=>$(k).addEventListener("input",()=>markDirty($("#pfSave")))); $("#acEmail").addEventListener("input",()=>markDirty($("#acSave"))); ["#secCur","#secNew","#secNew2"].forEach(k=>$(k).addEventListener("input",()=>markDirty($("#secSave"))));
   $("#secType").addEventListener("click",e=>{ const b=e.target.closest("[data-st]"); if(!b)return; state.secType=b.dataset.st; renderSec(); });
-  $("#secAuto").addEventListener("change",()=>{ saveProfile({autoLock:+$("#secAuto").value}); toast("Bloqueo automático guardado"); });
+  $("#secAuto").addEventListener("change",()=>{ saveProfile({autoLock:+$("#secAuto").value}); flashEl($("#secAuto")); okToast("Bloqueo automático guardado"); });
   $("#secSave").addEventListener("click",async()=>{ const P=state.prof||{}; const nw=$("#secNew").value, nw2=$("#secNew2").value;
     if(state.pinHash&&await sha($("#secCur").value)!==state.pinHash){toast("El código actual no es correcto.");return}
-    if(!nw){ saveProfile({autoLock:+$("#secAuto").value}); hideSheet("#acct"); toast("Guardado"); return }
+    if(!nw){ saveProfile({autoLock:+$("#secAuto").value}); afterSave($("#secSave"),"Guardado",()=>hideSheet("#acct")); okToast("Guardado"); return }
     if(state.secType==="pin"&&!/^\d{4}$/.test(nw)){toast("El PIN debe tener 4 números.");return}
     if(state.secType==="pass"&&nw.length<6){toast("La contraseña debe tener al menos 6 caracteres.");return}
     if(nw!==nw2){toast("Los códigos nuevos no coinciden.");return}
-    state.pinHash=await sha(nw); saveProfile({mode:state.secType,autoLock:+$("#secAuto").value}); hideSheet("#acct"); toast(state.secType==="pass"?"Contraseña guardada":"PIN guardado"); });
+    state.pinHash=await sha(nw); saveProfile({mode:state.secType,autoLock:+$("#secAuto").value}); afterSave($("#secSave"),state.secType==="pass"?"Contraseña guardada":"PIN guardado",()=>hideSheet("#acct")); okToast(state.secType==="pass"?"Contraseña guardada":"PIN guardado"); });
   $("#secDel").addEventListener("click",async e=>{ const b=e.currentTarget; if(await sha($("#secCur").value)!==state.pinHash){toast("Escribe tu código actual para quitarlo.");return}
     if(!b.dataset.armed){b.dataset.armed="1";b.textContent="¿Seguro? Toca de nuevo";setTimeout(()=>{if(b.isConnected){delete b.dataset.armed;b.textContent="Quitar código"}},3000);return}
-    delete b.dataset.armed; b.textContent="Quitar código"; state.pinHash=""; saveProfile({mode:"pin"}); hideSheet("#acct"); toast("Código quitado: la app ya no pide PIN"); });
-  $("#thSeg").addEventListener("click",e=>{ const b=e.target.closest("[data-th]"); if(!b)return; saveProfile({theme:b.dataset.th}); applyTheme(); document.querySelectorAll("#thSeg [data-th]").forEach(x=>x.setAttribute("aria-pressed",x===b)); });
+    delete b.dataset.armed; b.textContent="Quitar código"; state.pinHash=""; saveProfile({mode:"pin"}); afterSave(b,"Código quitado",()=>hideSheet("#acct")); okToast("Código quitado: la app ya no pide PIN"); });
+  $("#thSeg").addEventListener("click",e=>{ const b=e.target.closest("[data-th]"); if(!b)return; saveProfile({theme:b.dataset.th}); applyTheme(); document.querySelectorAll("#thSeg [data-th]").forEach(x=>x.setAttribute("aria-pressed",x===b)); okToast("Tema: "+THEME_LBL[b.dataset.th]); });
   $("#abUpd").addEventListener("click",async()=>{ $("#abMsg").textContent="Buscando…"; try{ const r=navigator.serviceWorker&&await navigator.serviceWorker.getRegistration(); if(r){ await r.update(); } const h=await (await fetch("index.html",{cache:"no-store"})).text(); const v=(h.match(/APP_VERSION = "([^"]*)"/)||[])[1]; $("#abMsg").textContent=v&&v!==APP_VERSION?`Hay una versión nueva (${v}). Cierra y vuelve a abrir la app para actualizar.`:"Tienes la última versión."; }catch(err){ $("#abMsg").textContent="No pude revisar ahora. ¿Tienes internet?"; } });
   $("#lockPass").addEventListener("submit",async e=>{ e.preventDefault(); if(await sha($("#lockPassIn").value)===state.pinHash){ $("#lock").hidden=true; } else { $("#lockMsg").textContent="Contraseña incorrecta"; $("#lockPassIn").value=""; } });
 }
@@ -1094,10 +1108,10 @@ function bindLocal(){
     state.example=false; state.config=defaultConfig(); state.months={}; state.ym=todayYM(); persist(); showWho(); render(); toast("Listo "+(firstName()||"")+". Parte subiendo tu cartola en Movimientos."); });
   $("#lockPin").addEventListener("input",async e=>{ const v=e.target.value; if(v.length<4)return; if(await sha(v)===state.pinHash){ $("#lock").hidden=true; } else { $("#lockMsg").textContent="PIN incorrecto"; e.target.value=""; } });
   document.addEventListener("visibilitychange",()=>{ const al=(state.prof||{}).autoLock==null?5:(state.prof||{}).autoLock; if(document.hidden&&state.pinHash){ state._hiddenAt=Date.now() } else if(!document.hidden&&state.pinHash&&al>=0&&state._hiddenAt&&Date.now()-state._hiddenAt>=al*60*1000){ lockNow() } });
-  $("#bkExport").addEventListener("click",()=>{ if(state.example){toast("Aún no tienes datos propios que respaldar.");return} const d=new Date(); saveFile(`mis-lucas-respaldo-${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}.json`,JSON.stringify({app:"mis-lucas",v:1,exportedAt:d.toISOString(),profile:{name:state.name,email:(state.prof||{}).email||""},config:state.config,months:state.months}),"application/json"); saveProfile({lastBackup:new Date().toISOString()}); renderData(); });
+  $("#bkExport").addEventListener("click",()=>{ if(state.example){toast("Aún no tienes datos propios que respaldar.");return} const d=new Date(); saveFile(`mis-lucas-respaldo-${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}.json`,JSON.stringify({app:"mis-lucas",v:1,exportedAt:d.toISOString(),profile:{name:state.name,email:(state.prof||{}).email||""},config:state.config,months:state.months}),"application/json"); saveProfile({lastBackup:new Date().toISOString()}); renderData(); markSaved($("#bkExport"),"Respaldo descargado"); });
   $("#bkFile").addEventListener("change",e=>{ const f=e.target.files[0]; e.target.value=""; if(!f)return; const fr=new FileReader(); fr.onload=()=>{ try{ const d=JSON.parse(fr.result); if(d.app!=="mis-lucas"||!d.config)throw 0;
       state.config=normalizeConfig(d.config); state.config.started=true; state.months={}; Object.entries(d.months||{}).forEach(([k,m])=>state.months[k]=normalizeMonth(m)); state.example=false; if(d.profile&&d.profile.name&&!state.name){state.name=d.profile.name} if(d.profile&&d.profile.email&&!(state.prof||{}).email){state.prof=Object.assign({},state.prof,{email:d.profile.email})} saveProfile({});
-      persist(); pickInitialMonth(); showWho(); render(); toast("Respaldo restaurado"); }catch(err){ toast("Ese archivo no es un respaldo de Mis Lucas."); } }; fr.readAsText(f); });
+      persist(); pickInitialMonth(); showWho(); render(); okToast("Respaldo restaurado"); }catch(err){ toast("Ese archivo no es un respaldo de Mis Lucas."); } }; fr.readAsText(f); });
   $("#bkWipe").addEventListener("click",e=>{ const b=e.currentTarget; if(!b.dataset.armed){b.dataset.armed="1";b.textContent="¿Borrar todo? Toca de nuevo";setTimeout(()=>{if(b.isConnected){delete b.dataset.armed;b.textContent="Borrar todo"}},3500);return}
     try{localStorage.removeItem(LS_DATA);localStorage.removeItem(LS_PROFILE)}catch(err){} location.reload(); });
 }
@@ -1191,6 +1205,7 @@ function renderMovs(){
   const nRev=tx.filter(needsReview).length;
   $("#movList").innerHTML=(nRev&&qt!=="revisar"?`<div class="revbar"><span>🏷️ <b>${nRev}</b> movimiento${nRev===1?"":"s"} sin categoría clara este mes</span><button class="btn" type="button" data-review="1">Revisar</button></div>`:"")+(rows.length?rows.map(t=>{let h=""; if(t.date!==lastDay){lastDay=t.date;h=`<div class="dayhead">${esc(dayLabel(t.date))}</div>`} return h+item(t)}).join(""):`<div class="empty"><span class="ei">${tx.length?"🔍":"📝"}</span>${tx.length?"Ningún movimiento coincide con el filtro.":"No hay movimientos este mes. Toca + para agregar uno o importa tu cartola."}</div>`);
   openIds.forEach(id=>{const d=document.querySelector(`#movList details[data-id="${id}"]`); if(d)d.open=true});
+  if(state.flashId){ flashEl(document.querySelector(`#movList details[data-id="${state.flashId}"]`)); state.flashId=null; }
 }
 
 let budPending=false;
@@ -1300,7 +1315,7 @@ function saveEdit(){
   readEditInputs(); const v=ed.v; const newYm=ymOf(v.date);
   if(ed.isNew){ if(!v.amount){toast("Ingresa el monto.");return} if(!v.desc){toast("Ponle un nombre.");return} if(!v.bankDesc)v.bankDesc=""; delete v.bankDesc;
     if(!(CATS[v.type]||[]).includes(v.cat)) v.cat=v.type==="ingreso"?"Otros ingresos":v.type==="traspaso"?"Traspaso / pago TC":"Otros gastos";
-    const nt=clone(v); applyEdit(nt,v,true); state.lastAcct=v.account; mutateMonth(newYm,cur=>cur.tx.push(nt)); hideSheet("#edit"); toast("Movimiento agregado"); if(state.ym!==newYm){state.ym=newYm;render()} ed=null; return }
+    const nt=clone(v); applyEdit(nt,v,true); state.lastAcct=v.account; state.flashId=nt.id; mutateMonth(newYm,cur=>cur.tx.push(nt)); afterSave($("#eSave"),"Agregado",()=>{ hideSheet("#edit"); flashEl(document.querySelector(`#movList details[data-id="${nt.id}"]`)); }); okToast("Movimiento agregado"); if(state.ym!==newYm){state.ym=newYm;render()} ed=null; return }
   if(!(CATS[v.type]||[]).includes(v.cat)){ v.cat=v.type==="ingreso"?"Otros ingresos":v.type==="traspaso"?"Traspaso / pago TC":"Otros gastos"; }
   const doSim=$("#eSim")&&$("#eSim").checked, doRule=$("#eRule")&&$("#eRule").checked;
   const sim=doSim?similarTx(ed.key,ed.id):[];
@@ -1310,8 +1325,8 @@ function saveEdit(){
   const byYm={}; sim.forEach(r=>(byYm[r.ym]=byYm[r.ym]||[]).push(r.t.id));
   Object.entries(byYm).forEach(([ym,ids])=>mutateMonth(ym,cur=>cur.tx.forEach(t=>{ if(ids.includes(t.id)) applyEdit(t,v,false) })));
   if(doRule&&norm(ed.key).length>=3){ mutateConfig(c=>{ c.rules=(c.rules||[]).filter(r=>norm(r.kw)!==norm(ed.key)); c.rules.push({kw:ed.key.toUpperCase(),cat:v.cat}); }); }
-  hideSheet("#edit");
-  toast(`Guardado${sim.length?` · también en ${sim.length} parecido${sim.length===1?"":"s"}`:""}${doRule&&norm(ed.key).length>=3?" · regla recordada":""}`);
+  const savedId=ed.id; state.flashId=savedId; afterSave($("#eSave"),"Guardado",()=>{ hideSheet("#edit"); flashEl(document.querySelector(`#movList details[data-id="${savedId}"]`)); });
+  okToast(`Guardado${sim.length?` · también en ${sim.length} parecido${sim.length===1?"":"s"}`:""}${doRule&&norm(ed.key).length>=3?" · regla recordada":""}`);
   ed=null;
 }
 function bindEdit(){
@@ -1326,9 +1341,9 @@ function bindEdit(){
     else if(b.dataset.ec){ v.cat=b.dataset.ec; v.nature=FIXED_CATS.has(v.cat)?"fijo":"variable"; ed.touched=!ed.isNew; }
     else if(b.dataset.en){ v.nature=b.dataset.en; }
     else return;
-    const st=$("#editBody").scrollTop; renderEdit(); $("#editBody").scrollTop=st;
+    const st=$("#editBody").scrollTop; renderEdit(); $("#editBody").scrollTop=st; markDirty($("#eSave"));
   });
-  $("#editBody").addEventListener("input",e=>{ if(e.target.id==="eKey"&&ed){ ed.key=e.target.value; const n=similarTx(ed.key,ed.id).length; $("#eSimN").textContent=n; $("#eSim").disabled=!n; if(!n)$("#eSim").checked=false; } });
+  $("#editBody").addEventListener("input",e=>{ markDirty($("#eSave")); if(e.target.id==="eKey"&&ed){ ed.key=e.target.value; const n=similarTx(ed.key,ed.id).length; $("#eSimN").textContent=n; $("#eSim").disabled=!n; if(!n)$("#eSim").checked=false; } });
 }
 function flowCard(s){
   if(!s.inc&&!s.exp)return "";
@@ -1534,7 +1549,7 @@ function doImport(){
     (matchByYm[ym]||[]).forEach(p=>{const t=cur.tx.find(x=>x.id===p.matchId); if(t){t.checked=true;t.bankDesc=p.desc;t.account=t.account||p.account;recon++}});
     (byYm[ym]||[]).filter(p=>p.status!=="match").forEach(p=>{const nt={id:p.id,date:p.date,desc:p.desc,bankDesc:p.desc,amount:p.amount,type:p.type,cat:p.cat,account:p.account,nature:p.nature,source:"cartola",checked:true}; cur.tx.push(nt);added++});
   }));
-  toast(`${added} movimientos importados · ${recon} conciliados`);
+  okToast(`${added} movimientos importados · ${recon} conciliados`);
   const latest=[...Object.keys(byYm)].sort().pop(); if(latest)state.ym=latest;
   state.imp=null; $("#mapCard").hidden=true; $("#prevCard").hidden=true; setTab("resumen");
 }
@@ -1589,13 +1604,13 @@ $("#drillClose").addEventListener("click",closeDrill); $("#drillScrim").addEvent
   $("#showMap").addEventListener("click",()=>{ $("#mapCard").hidden=!$("#mapCard").hidden; });
 
   // budget
-  $("#budBody").addEventListener("change",e=>{const i=e.target.closest("[data-bud]"); if(!i)return; const v=Math.round(Math.abs(parseAmount(i.value))); mutateConfig(c=>{c.budgets=c.budgets||{}; if(v)c.budgets[i.dataset.bud]=v; else delete c.budgets[i.dataset.bud]}); });
+  $("#budBody").addEventListener("change",e=>{const i=e.target.closest("[data-bud]"); if(!i)return; const v=Math.round(Math.abs(parseAmount(i.value))); mutateConfig(c=>{c.budgets=c.budgets||{}; if(v)c.budgets[i.dataset.bud]=v; else delete c.budgets[i.dataset.bud]}); setTimeout(()=>flashEl(document.querySelector(`[data-bud="${i.dataset.bud}"]`)),30); okToast(v?`Tope de ${i.dataset.bud}: ${money(v)}`:`Sin tope para ${i.dataset.bud}`); });
   $("#budBody").addEventListener("focusout",()=>{ if(budPending){budPending=false; setTimeout(renderBudget,0)} });
-  $("#budBody").addEventListener("click",e=>{const b=e.target.closest("[data-sug]"); if(!b)return; mutateConfig(c=>{c.budgets=c.budgets||{}; c.budgets[b.dataset.sug]=+b.dataset.v}); });
+  $("#budBody").addEventListener("click",e=>{const b=e.target.closest("[data-sug]"); if(!b)return; mutateConfig(c=>{c.budgets=c.budgets||{}; c.budgets[b.dataset.sug]=+b.dataset.v}); setTimeout(()=>flashEl(document.querySelector(`[data-bud="${b.dataset.sug}"]`)),30); okToast(`Tope de ${b.dataset.sug}: ${money(+b.dataset.v)}`); });
 
   // reglas
   $("#ruleQ").addEventListener("input",renderFixed);
-  $("#ruleBody").addEventListener("click",e=>{const b=e.target.closest("[data-delrule]"); if(!b)return; mutateConfig(c=>{c.rules=(c.rules||[]).filter(r=>r.kw!==b.dataset.delrule)}); });
+  $("#ruleBody").addEventListener("click",e=>{const b=e.target.closest("[data-delrule]"); if(!b)return; mutateConfig(c=>{c.rules=(c.rules||[]).filter(r=>r.kw!==b.dataset.delrule)}); okToast("Regla eliminada"); });
 
   // tooltip
   const tip=$("#tip");

@@ -2,6 +2,11 @@
 
 Cada versión publicada queda anotada aquí. El número de versión se ve al pie de la app.
 
+## 1.5.0 beta · (sin publicar)
+- La barra de pestañas del celular ocupa todo el ancho (sin espacio vacío) y el texto es más grande.
+- Confirmación visual al guardar: el botón se pone verde con "✓ Guardado", el aviso sale en verde y el movimiento o tope editado se ilumina. Mientras tienes cambios sin guardar, el botón "Guardar" queda resaltado.
+- El aviso ya no queda tapado por la barra de abajo en el celular.
+
 ## 1.4.0 beta · 30-sep-2026
 - Oficina deja de ser un sistema aparte: es la categoría de gasto "Oficina (te la devuelven)" y el reembolso de la empresa se resta de tus gastos, igual que las devoluciones de amigos. Se elimina la pestaña Rendir; tus gastos y reembolsos de oficina se convierten solos.
 - Un solo formulario para agregar y editar movimientos (el "+" abre la misma ficha).

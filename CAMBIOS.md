@@ -2,6 +2,12 @@
 
 Cada versión publicada queda anotada aquí. El número de versión se ve al pie de la app.
 
+## 1.2.0 beta · 29-sep-2026
+- Toca cualquier bloque del resumen (gastos fijos, variables, ahorro, resultado del mes, una categoría o una cuenta) y ves los movimientos que lo componen; tocando uno vas directo a editarlo.
+- Las devoluciones (amigos que te pagan su parte, reembolsos de seguros) se restan del gasto en vez de sumarse como ingreso.
+- Nueva categoría de ingreso "Arriendos".
+- Mensaje más claro cuando ahorraste más de lo que te sobró en el mes.
+
 ## 1.1.0 beta · 29-sep-2026
 - Lee directo el PDF del estado de cuenta de tarjeta y de la cartola de cuenta (Santander e Itaú), incluso con clave. Detecta sola la cuenta y el período. El PDF se procesa en el teléfono, no se sube a ningún lado.
 - Opción de recordar la clave del PDF en el teléfono.

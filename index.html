@@ -629,12 +629,19 @@ details.litem[open]{background:var(--surface-2);border-radius:14px;margin-block:
     <!-- IMPORT -->
     <section class="panel" data-panel="import" hidden>
       <div class="card">
-        <div class="card-head"><div><h2>Importar cartola</h2><div class="sub">Excel (.xls, .xlsx) o CSV descargado desde Santander o Itaú. Se lee en tu navegador.</div></div></div>
+        <div class="card-head"><div><h2>Importar cartola</h2><div class="sub">PDF del estado de cuenta o cartola (Santander o Itaú), o Excel/CSV del banco. Se lee solo en tu teléfono: nada se sube a internet.</div></div></div>
         <div class="toolbar" style="margin-bottom:12px">
           <label class="field">¿De qué cuenta es la cartola?<select id="impAcct"></select></label>
         </div>
-        <label class="drop" id="drop" for="fileIn"><strong>Arrastra la cartola aquí</strong> o haz clic para elegir el archivo<br><span class="muted" style="font-size:12px">Formatos: .xlsx · .xls · .csv. Si tu banco solo entrega PDF, descarga la versión Excel desde la web del banco.</span></label>
-        <input type="file" id="fileIn" accept=".xlsx,.xls,.csv,.txt" hidden>
+        <label class="drop" id="drop" for="fileIn"><strong>Arrastra la cartola aquí</strong> o haz clic para elegir el archivo<br><span class="muted" style="font-size:12px">Formatos: .pdf · .xlsx · .xls · .csv. El PDF que te llega por correo sirve tal cual.</span></label>
+        <form id="pdfPw" class="card" hidden style="margin-top:12px;box-shadow:none;border:1px solid var(--line,#e3e7ee)">
+          <div style="font-weight:600;margin-bottom:4px">🔒 Este PDF tiene clave</div>
+          <div class="muted" style="font-size:13px;margin-bottom:10px">Los bancos usan tu RUT sin puntos, sin guion y sin dígito verificador (ej: 12345678).</div>
+          <div class="toolbar"><label class="field" style="flex:1">Clave del PDF<input id="pdfPwIn" type="password" inputmode="numeric" autocomplete="off"></label><button class="btn primary" type="submit">Abrir</button></div>
+          <label style="display:flex;gap:8px;align-items:center;font-size:13px;margin-top:8px"><input type="checkbox" id="pdfPwRem"> Recordar la clave en este teléfono</label>
+          <div id="pdfPwMsg" class="muted" style="font-size:13px;margin-top:6px"></div>
+        </form>
+        <input type="file" id="fileIn" accept=".pdf,application/pdf,.xlsx,.xls,.csv,.txt" hidden>
       </div>
       <div class="card" id="mapCard" hidden>
         <div class="card-head"><div><h2>Columnas detectadas</h2><div class="sub" id="mapSub"></div></div></div>
@@ -825,7 +832,10 @@ const RULES_V2 = [
  ...R_("Seguros","SEGURO","METLIFE","SURA","CONSORCIO"),
  ...R_("Panoramas y ocio","TICKETPLUS","BOLETERIA","PASSLINE"),
  ...R_("Compras varias","PAPELERIA","LIBRERIA"),
- ...R_("Comisiones e intereses","COMISION ADMINISTRACION","INTERESES"),
+ ...R_("Comisiones e intereses","COMISION ADMINISTRACION","INTERESES","IMP/SOBREG"),
+ ...R_("Vivienda","HIPOTECARIO","PREST HIPOT"),
+ ...R_(SAVINGS,"FINTUAL","FONDO MUTUO","FONDOS MUTUOS","DEPOSITO A PLAZO"),
+ ...R_("Traspaso / pago TC","MONTO CANCELADO","ABONO DESDE LINEA","TRASPASO LC","PAGO AUTOMATICO DE LINEA","PAGO LINEA"),
 ];
 DEFAULT_RULES.push(...RULES_V2);
 function normalizeMonth(m){ ((m&&m.tx)||[]).forEach(t=>{ t.cat=normCat(t.cat); if(t.cat===OFFICE){t.cat="Otros gastos";t.scope="oficina"} if(t.cat===OFFICE_IN)t.scope="oficina"; }); return m; }
@@ -1317,7 +1327,7 @@ function typeOfCat(cat){ for(const t in CATS) if(CATS[t].includes(cat)) return t
 /* ---------- import ---------- */
 function handleFile(file){
   if(!file)return;
-  if(/\.pdf$/i.test(file.name)){toast("Los PDF no se pueden leer. Descarga la cartola en Excel desde la web del banco.");return}
+  if(/\.pdf$/i.test(file.name)||file.type==="application/pdf"){handlePdf(file);return}
   if(typeof XLSX==="undefined"){toast("No se pudo cargar el lector de Excel. Recarga la página.");return}
   const fr=new FileReader();
   fr.onload=()=>{ try{
@@ -1328,6 +1338,30 @@ function handleFile(file){
       setupMapping(rows,file.name);
     }catch(e){console.error(e);toast("No pude leer ese archivo. Prueba con la versión Excel de la cartola.")} };
   fr.readAsArrayBuffer(file);
+}
+/* ---------- PDF de bancos ---------- */
+const LS_PDFPW="mislucas.pdfpw.v1";
+function loadScript(src){ return new Promise((ok,ko)=>{ if(document.querySelector(`script[src="${src}"]`))return ok(); const s=document.createElement("script"); s.src=src; s.onload=ok; s.onerror=ko; document.head.appendChild(s); }); }
+async function pdfReady(){ if(!window.pdfjsLib) await loadScript("vendor/pdf.min.js"); if(!window.BankPDF) await loadScript("lector-pdf.js"); window.pdfjsLib.GlobalWorkerOptions.workerSrc="vendor/pdf.worker.min.js"; }
+let pendingPdf=null;
+async function handlePdf(file,pw){
+  pendingPdf=file; $("#pdfPwMsg").textContent="";
+  try{ await pdfReady() }catch(e){ toast("No pude cargar el lector de PDF. Revisa tu conexión y vuelve a intentar."); return }
+  const saved=pw!=null?pw:(lsGet(LS_PDFPW)||"");
+  let pages;
+  try{ pages=await BankPDF.pdfToPages(window.pdfjsLib,new Uint8Array(await file.arrayBuffer()),saved||undefined); }
+  catch(e){
+    if(e&&e.name==="PasswordException"){ $("#pdfPw").hidden=false; $("#pdfPwMsg").textContent=(pw||saved)?"Esa clave no abrió el PDF. Revisa que sea tu RUT sin dígito verificador.":""; setTimeout(()=>$("#pdfPwIn").focus(),50); return }
+    console.error(e); toast("No pude leer ese PDF."); return }
+  $("#pdfPw").hidden=true;
+  if(pw!=null&&$("#pdfPwRem").checked) lsSet(LS_PDFPW,pw);
+  let r; try{ r=BankPDF.parseStatement(pages) }catch(e){ console.error(e); r={rows:[]} }
+  if(!r.rows.length){ toast("No encontré movimientos en ese PDF. Si es una cartola sin movimientos, no hay nada que importar."); return }
+  if(ACCOUNTS.includes(r.account)) $("#impAcct").value=r.account;
+  const per=r.period&&r.period.start&&r.period.end?` (${dmy(r.period.start)} al ${dmy(r.period.end)})`:"";
+  toast(`Leí ${r.rows.length} movimientos de ${r.account}${per}. Revísalos antes de importar.`);
+  setupMapping([["Fecha","Descripción","Cargos","Abonos"],...r.rows],file.name);
+  $("#mapCard").hidden=true;
 }
 function setupMapping(rows,name){
   let h=0; for(let i=0;i<Math.min(60,rows.length);i++){ const cells=rows[i].map(c=>norm(c)); if(cells.some(c=>/^FECHA/.test(c))&&rows[i].filter(c=>String(c).trim()).length>=3){h=i;break} }
@@ -1473,6 +1507,7 @@ function bindUI(){
   ["dragleave","drop"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove("on")}));
   drop.addEventListener("drop",e=>handleFile(e.dataTransfer.files[0]));
   $("#fileIn").addEventListener("change",e=>{handleFile(e.target.files[0]);e.target.value=""});
+  $("#pdfPw").addEventListener("submit",e=>{ e.preventDefault(); const v=$("#pdfPwIn").value.replace(/[^\dkK]/g,""); if(!v||!pendingPdf)return; $("#pdfPwIn").value=""; handlePdf(pendingPdf,v); });
   $("#impAcct").addEventListener("change",()=>{ if(state.imp){state.imp.acct=$("#impAcct").value; buildPreview()} });
   $("#mapFields").addEventListener("change",e=>{ if(!state.imp)return; if(e.target.dataset.map){state.imp.map[e.target.dataset.map]=+e.target.value} if(e.target.id==="signSel")state.imp.sign=e.target.value; buildPreview(); });
   $("#prevBody").addEventListener("change",e=>{const tr=e.target.closest("[data-i]"); if(!tr)return; const p=state.imp.preview[+tr.dataset.i];

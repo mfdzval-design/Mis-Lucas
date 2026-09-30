@@ -9,6 +9,7 @@ Cada versión publicada queda anotada aquí. El número de versión se ve al pie
 - Resumen sin tarjetas repetidas (fijo vs variable, gastos más grandes, oficina aparte, conciliación).
 - 5 pestañas: Inicio, Movimientos, Presupuesto, Ahorro y Ajustes. Ajustes sin la lista de fijos ni la tarjeta de conexión bancaria; reglas con buscador.
 - Arreglo: los botones que llevaban a otra pestaña no respondían.
+- Menú de cuenta al tocar tu inicial (arriba a la derecha): perfil personal, cuenta y correo de ingreso, PIN o contraseña (crear, cambiar, quitar), bloqueo automático, apariencia (claro/oscuro), reglas, respaldo y datos, acerca de, y cerrar sesión. Ajustes sale de la barra de abajo: quedan 4 pestañas.
 
 ## 1.3.0 beta · 30-sep-2026
 - Toca un movimiento para editarlo completo: nombre, monto, fecha, tipo, categoría, personal u oficina, cuenta y fijo/variable.

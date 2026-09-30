@@ -551,6 +551,30 @@ body.bs-open #drillScrim{display:block}
 .efactions{display:flex;gap:8px;justify-content:space-between;margin-top:14px;padding:12px 0 2px;border-top:1px solid var(--line);position:sticky;bottom:-4px;background:var(--surface)}
 .revbar{display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px dashed var(--accent);border-radius:12px;padding:10px 12px;margin-bottom:12px;font-size:13.5px}
 .linkbtn{background:none;border:0;padding:0;font:inherit;font-size:13px;color:var(--accent);cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+/* menú de cuenta */
+.who{position:relative}
+.who .caret{font-size:10px;color:var(--muted);margin-left:2px}
+.umenu{position:fixed;z-index:70;width:300px;max-width:calc(100vw - 24px);background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.2);padding:8px;display:grid;gap:2px}
+.umenu .uhead{display:grid;grid-template-columns:44px minmax(0,1fr);gap:4px 12px;align-items:center;padding:10px 10px 12px;border-bottom:1px solid var(--line);margin-bottom:4px}
+.umenu .uav{grid-row:1/4;width:44px;height:44px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-weight:800;font-size:18px}
+.umenu .uname{font-weight:700;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.umenu .umail{font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.umenu .ubadge{font-size:11.5px;color:var(--ink-2)}
+.umenu button{display:flex;gap:12px;align-items:center;width:100%;text-align:left;background:none;border:0;border-radius:10px;padding:11px 10px;font:inherit;font-size:14px;color:var(--ink);cursor:pointer}
+.umenu button:hover,.umenu button:focus-visible{background:var(--surface-2);outline:none}
+.umenu button .ui{width:22px;text-align:center;font-size:16px}
+.umenu button small{margin-left:auto;color:var(--muted);font-size:12px}
+.umenu hr{border:0;border-top:1px solid var(--line);margin:4px 0}
+.umenu .danger{color:var(--crit)}
+@media (max-width:640px){.umenu{left:12px!important;right:12px!important;width:auto}}
+#acctBody .field{margin-bottom:12px}
+#acctBody .field input,#acctBody .field select{width:100%}
+.ainfo{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--surface-2);font-size:13.5px;color:var(--ink-2);margin-bottom:12px}
+.arow{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
+.arow b{font-weight:600;text-align:right}
+.abtns{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+#lockPass{display:grid;gap:8px;justify-items:center}
+#lockPass input{min-width:240px}
 </style>
 
 </head>
@@ -560,7 +584,7 @@ body.bs-open #drillScrim{display:block}
     <div class="brand-row">
       <div class="brand"><h1>Mis <span>Lucas</span></h1><span class="chip">CLP</span></div>
       <div class="sync" id="sync"><span class="dot"></span><span id="syncText">Conectando…</span></div>
-      <button class="who" id="who" type="button" hidden data-goto="fixed" aria-label="Tu perfil"><span class="av" id="whoAv"></span><span id="whoName"></span></button>
+      <button class="who" id="who" type="button" hidden aria-haspopup="menu" aria-expanded="false" aria-controls="umenu" aria-label="Tu cuenta y configuración"><span class="av" id="whoAv"></span><span id="whoName"></span><span class="caret" aria-hidden="true">▾</span></button>
       <div class="month-nav" role="group" aria-label="Mes">
         <button id="prevM" aria-label="Mes anterior">‹</button>
         <div class="label" id="monthLabel">—</div>
@@ -574,7 +598,7 @@ body.bs-open #drillScrim{display:block}
       <button role="tab" data-tab="budget" aria-selected="false"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 11-9-9v9z"/><path d="M15 3.5A9 9 0 0120.5 9H15z"/></svg><span class="lg">Presupuesto</span><span class="sm">Presup.</span></button>
       
       <button role="tab" data-tab="ahorro" aria-selected="false"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg><span class="lg">Ahorro e inversiones</span><span class="sm">Ahorro</span></button>
-      <button role="tab" data-tab="fixed" aria-selected="false"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 2l4 4-4 4M3 11V9a3 3 0 013-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 01-3 3H3"/></svg><span class="lg">Ajustes</span><span class="sm">Ajustes</span></button>
+      
     </nav>
   </header>
 
@@ -673,23 +697,9 @@ body.bs-open #drillScrim{display:block}
     <!-- FIXED + RULES -->
     <section class="panel" data-panel="fixed" hidden>
       <div class="card">
-        <div class="card-head"><div><h2>Reglas de categorización</h2><div class="sub">Cuando corriges la categoría de un movimiento y marcas "Recordar", se agrega aquí. Al importar una cartola, si el texto del banco contiene la palabra, se usa esa categoría. Se guardan solo en este teléfono.</div></div></div>
+        <div class="card-head"><div><button class="linkbtn" type="button" data-umenu="1" style="margin-bottom:6px">‹ Volver al menú</button><h2>Reglas de categorización</h2><div class="sub">Cuando corriges la categoría de un movimiento y marcas "Recordar", se agrega aquí. Al importar una cartola, si el texto del banco contiene la palabra, se usa esa categoría. Se guardan solo en este teléfono.</div></div></div>
         <label class="field" style="margin-bottom:10px">Buscar regla<input type="search" id="ruleQ" placeholder="Ej: JUMBO"></label>
         <div class="table-wrap" style="max-height:420px;overflow:auto"><table><thead><tr><th>Contiene</th><th>Categoría</th><th></th></tr></thead><tbody id="ruleBody"></tbody></table></div>
-      </div>
-      <div class="card" id="dataCard">
-        <div class="card-head"><div><h2>Tu perfil y tus datos</h2><div class="sub">Todo se guarda solo en este equipo: no hay cuentas ni servidores. Para pasar tus datos a otro teléfono o tener un respaldo, descarga el archivo y luego ábrelo desde el otro equipo.</div></div></div>
-        <div class="inlineform" style="margin-bottom:12px">
-          <label class="field">Tu nombre<input id="pfName" placeholder="Tu nombre"></label>
-          <label class="field">PIN (4 dígitos, vacío = sin PIN)<input id="pfPin" type="password" inputmode="numeric" maxlength="4" placeholder="••••"></label>
-          <button class="btn" type="button" id="pfSave">Guardar perfil</button>
-        </div>
-        <div class="toolbar">
-          <button class="btn primary" type="button" id="bkExport">Descargar respaldo</button>
-          <label class="btn" for="bkFile" style="display:inline-flex;align-items:center">Restaurar respaldo</label><input type="file" id="bkFile" accept=".json,application/json" hidden>
-          <button class="btn ghost" type="button" id="bkWipe" style="color:var(--crit)">Borrar todo</button>
-        </div>
-        <p class="note" id="bkInfo" style="margin:10px 0 0"></p>
       </div>
       </div>
     </section>
@@ -726,7 +736,72 @@ body.bs-open #drillScrim{display:block}
   <div class="dhead"><div><h2 id="editTitle">Editar movimiento</h2><div class="sub" id="editSub"></div></div><button class="iconbtn" id="editClose" type="button" aria-label="Cerrar">✕</button></div>
   <div id="editBody"></div>
 </div>
-<div id="lock" hidden><div class="lockbox"><div class="lockic">🔒</div><h2 id="lockHi">Mis Lucas</h2><p>Ingresa tu PIN</p><input id="lockPin" type="password" inputmode="numeric" maxlength="4" autocomplete="off" aria-label="PIN"><p class="muted" id="lockMsg" style="min-height:1.2em"></p></div></div>
+<div id="lock" hidden><div class="lockbox"><div class="lockic">🔒</div><h2 id="lockHi">Mis Lucas</h2><p id="lockAsk">Ingresa tu PIN</p><input id="lockPin" type="password" inputmode="numeric" maxlength="4" autocomplete="off" aria-label="PIN">
+  <form id="lockPass" hidden><input id="lockPassIn" type="password" autocomplete="current-password" aria-label="Contraseña"><button class="btn primary" type="submit">Entrar</button></form>
+  <p class="muted" id="lockMsg" style="min-height:1.2em"></p></div></div>
+<div id="umenu" class="umenu" role="menu" aria-label="Cuenta" hidden>
+  <div class="uhead"><div class="uav" id="uAv">•</div><div class="uname" id="uName">Tu perfil</div><div class="umail" id="uMail"></div><div class="ubadge" id="uBadge"></div></div>
+  <button role="menuitem" type="button" data-acct="perfil"><span class="ui">👤</span>Perfil personal</button>
+  <button role="menuitem" type="button" data-acct="cuenta"><span class="ui">📧</span>Cuenta y correo de ingreso</button>
+  <button role="menuitem" type="button" data-acct="seguridad"><span class="ui">🔐</span>PIN y contraseña<small id="uSec"></small></button>
+  <button role="menuitem" type="button" data-acct="apariencia"><span class="ui">🎨</span>Apariencia<small id="uTheme"></small></button>
+  <button role="menuitem" type="button" data-umgoto="fixed"><span class="ui">🏷️</span>Reglas de categorización</button>
+  <button role="menuitem" type="button" data-acct="datos"><span class="ui">💾</span>Respaldo y datos</button>
+  <button role="menuitem" type="button" data-acct="acerca"><span class="ui">ℹ️</span>Acerca de Mis Lucas<small id="uVer"></small></button>
+  <hr>
+  <button role="menuitem" type="button" data-logout="1" class="danger"><span class="ui">🚪</span>Cerrar sesión</button>
+</div>
+<div id="acct" class="bsheet" role="dialog" aria-modal="true" aria-labelledby="acctTitle" hidden>
+  <div class="dhead"><div><button class="linkbtn" type="button" data-umenu="1">‹ Menú</button><h2 id="acctTitle" style="margin-top:4px">Cuenta</h2></div><button class="iconbtn" id="acctClose" type="button" aria-label="Cerrar">✕</button></div>
+  <div id="acctBody" style="overflow:auto;-webkit-overflow-scrolling:touch">
+    <section data-sec="perfil" hidden>
+      <label class="field">Nombre<input id="pfName" autocomplete="name" placeholder="Tu nombre"></label>
+      <label class="field">¿Cómo quieres que te salude la app?<input id="pfNick" placeholder="Ej: Mati (opcional)"></label>
+      <label class="field">Moneda<select id="pfCur" disabled><option>Peso chileno (CLP)</option></select></label>
+      <div class="abtns"><button class="btn primary" type="button" id="pfSave">Guardar</button></div>
+    </section>
+    <section data-sec="cuenta" hidden>
+      <div class="ainfo">Mis Lucas funciona sin cuentas ni servidores: tus datos viven solo en este teléfono y nadie más puede verlos. El correo sirve para identificarte en esta app y en tus respaldos. No se envía a ningún lado.</div>
+      <label class="field">Correo de ingreso<input id="acEmail" type="email" autocomplete="email" inputmode="email" placeholder="tu@correo.com"></label>
+      <div class="arow"><span>Datos guardados</span><b id="acWhere">En este teléfono</b></div>
+      <div class="arow"><span>Movimientos</span><b id="acCount">—</b></div>
+      <div class="arow"><span>Usas la app desde</span><b id="acSince">—</b></div>
+      <div class="arow"><span>Último respaldo</span><b id="acBk">Nunca</b></div>
+      <div class="abtns"><button class="btn primary" type="button" id="acSave">Guardar correo</button></div>
+    </section>
+    <section data-sec="seguridad" hidden>
+      <div class="ainfo" id="secState"></div>
+      <div class="field"><div class="eflabel">Tipo de código</div><div class="seg2" id="secType"><button type="button" data-st="pin" aria-pressed="true">PIN de 4 números</button><button type="button" data-st="pass" aria-pressed="false">Contraseña</button></div></div>
+      <label class="field" id="secCurWrap">Código actual<input id="secCur" type="password" autocomplete="current-password"></label>
+      <label class="field">Nuevo código<input id="secNew" type="password" autocomplete="new-password"></label>
+      <label class="field">Repite el nuevo código<input id="secNew2" type="password" autocomplete="new-password"></label>
+      <label class="field">Bloquear automáticamente<select id="secAuto"><option value="0">Apenas salgo de la app</option><option value="1">Después de 1 minuto</option><option value="5">Después de 5 minutos</option><option value="15">Después de 15 minutos</option><option value="-1">Nunca</option></select></label>
+      <div class="abtns"><button class="btn primary" type="button" id="secSave">Guardar</button><button class="btn" type="button" id="secDel" style="color:var(--crit)">Quitar código</button></div>
+      <p class="note" style="margin-top:10px">Si olvidas tu código no hay forma de recuperarlo, porque no hay servidor. La salida es restaurar un respaldo en la app vacía.</p>
+    </section>
+    <section data-sec="apariencia" hidden>
+      <div class="field"><div class="eflabel">Tema</div><div class="seg3" id="thSeg"><button type="button" data-th="auto">Automático</button><button type="button" data-th="light">Claro</button><button type="button" data-th="dark">Oscuro</button></div></div>
+      <p class="note">Automático sigue el modo claro u oscuro de tu teléfono.</p>
+    </section>
+    <section data-sec="datos" hidden>
+      <div class="ainfo" id="bkInfo"></div>
+      <div class="abtns">
+        <button class="btn primary" type="button" id="bkExport">Descargar respaldo</button>
+        <label class="btn" for="bkFile" style="display:inline-flex;align-items:center">Restaurar respaldo</label><input type="file" id="bkFile" accept=".json,application/json" hidden>
+      </div>
+      <p class="note" style="margin-top:12px">Para pasar tus datos a otro teléfono: descarga el respaldo aquí y restáuralo allá. Restaurar reemplaza lo que haya en este teléfono.</p>
+      <hr style="border:0;border-top:1px solid var(--line);margin:14px 0">
+      <button class="btn ghost" type="button" id="bkWipe" style="color:var(--crit)">Borrar todo de este teléfono</button>
+    </section>
+    <section data-sec="acerca" hidden>
+      <div class="arow"><span>Versión</span><b id="abVer">—</b></div>
+      <div class="arow"><span>Dónde están tus datos</span><b>Solo en este teléfono</b></div>
+      <div class="arow"><span>Funciona sin internet</span><b>Sí</b></div>
+      <div class="abtns"><button class="btn" type="button" id="abUpd">Buscar actualización</button></div>
+      <p class="note" id="abMsg" style="margin-top:10px"></p>
+    </section>
+  </div>
+</div>
 <div id="updBar" class="updbar" hidden><span>✨ Hay una versión nueva de Mis Lucas</span><button class="btn primary sm" type="button" onclick="location.reload()">Actualizar</button></div>
 <div id="tip" role="tooltip"></div>
 <div id="toast" role="status" aria-live="polite"></div>
@@ -931,13 +1006,13 @@ function mutateMonth(ym,fn){ const M=allMonths(); const cur=clone(M[ym]||{tx:[]}
 function mutateConfig(fn){ const c=clone(cfg()); fn(c); if(state.example){EXAMPLE.config=c}else{state.config=c; persist()} render(); }
 async function sha(txt){ try{ const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode("mislucas:"+txt)); return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("") }catch(e){ return "plain:"+txt } }
 function loadLocal(){
-  const prof=lsGet(LS_PROFILE)||{}; state.name=prof.name||""; state.pinHash=prof.pin||"";
+  const prof=lsGet(LS_PROFILE)||{}; state.prof=prof; state.name=prof.name||""; state.pinHash=prof.pin||""; applyTheme();
   const d=lsGet(LS_DATA);
   if(d&&d.config&&d.config.started){ const oldRV=d.config.rulesV||0; state.config=normalizeConfig(d.config); state.months={}; Object.entries(d.months||{}).forEach(([k,m])=>state.months[k]=normalizeMonth(m)); state.example=false; pickInitialMonth(); if(oldRV<2||JSON.stringify(d.months).includes('"scope"')||d.config.batches) persist(); }
   else { state.example=true; }
 }
 function boot(){
-  loadLocal(); bindUI(); bindLocal(); showWho(); setSync(); render();
+  loadLocal(); bindUI(); bindLocal(); bindAccount(); showWho(); setSync(); render();
   if(state.pinHash){ lockNow(); }
   if("serviceWorker" in navigator && location.protocol.startsWith("http")){
     const had=!!navigator.serviceWorker.controller;
@@ -945,8 +1020,64 @@ function boot(){
     navigator.serviceWorker.addEventListener("controllerchange",()=>{ if(had)$("#updBar").hidden=false; });
   }
 }
-function lockNow(){ $("#lock").hidden=false; $("#lockHi").textContent=firstName()?"Hola, "+firstName():"Mis Lucas"; $("#lockPin").value=""; $("#lockMsg").textContent=""; setTimeout(()=>$("#lockPin").focus(),60); }
-function firstName(){ return (state.name||"").trim().split(/\s+/)[0]||""; }
+function lockNow(){ closeUMenu(); const pass=(state.prof||{}).mode==="pass"; $("#lock").hidden=false; $("#lockHi").textContent=firstName()?"Hola, "+firstName():"Mis Lucas";
+  $("#lockAsk").textContent=pass?"Ingresa tu contraseña":"Ingresa tu PIN"; $("#lockPin").hidden=pass; $("#lockPass").hidden=!pass; $("#lockPin").value=""; $("#lockPassIn").value=""; $("#lockMsg").textContent="";
+  setTimeout(()=>(pass?$("#lockPassIn"):$("#lockPin")).focus(),60); }
+function saveProfile(patch){ state.prof=Object.assign({},state.prof||{},patch); state.prof.name=state.name; state.prof.pin=state.pinHash; lsSet(LS_PROFILE,state.prof); showWho(); }
+function applyTheme(){ const t=(state.prof||{}).theme||"auto"; if(t==="auto")delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme=t; }
+const THEME_LBL={auto:"Automático",light:"Claro",dark:"Oscuro"};
+function openUMenu(){ const P=state.prof||{}; const m=$("#umenu"), w=$("#who");
+  $("#uAv").textContent=(firstName()[0]||"•").toUpperCase(); $("#uName").textContent=state.name||"Tu perfil"; $("#uMail").textContent=P.email||"Sin correo registrado";
+  $("#uBadge").textContent=(state.pinHash?(P.mode==="pass"?"🔒 Contraseña activa":"🔒 PIN activo"):"🔓 Sin código de acceso")+" · datos en este teléfono";
+  $("#uSec").textContent=state.pinHash?"Activo":"Crear"; $("#uTheme").textContent=THEME_LBL[P.theme||"auto"]; $("#uVer").textContent=APP_VERSION;
+  m.hidden=false; const r=w.getBoundingClientRect(); m.style.top=(r.bottom+8)+"px"; m.style.left=""; m.style.right=Math.max(12,innerWidth-r.right)+"px";
+  w.setAttribute("aria-expanded","true"); setTimeout(()=>{const f=m.querySelector("button");f&&f.focus()},30); }
+function closeUMenu(){ const m=$("#umenu"); if(!m||m.hidden)return; m.hidden=true; $("#who").setAttribute("aria-expanded","false"); }
+const ACCT_TITLE={perfil:"Perfil personal",cuenta:"Cuenta y correo",seguridad:"PIN y contraseña",apariencia:"Apariencia",datos:"Respaldo y datos",acerca:"Acerca de Mis Lucas"};
+function openAcct(sec){ closeUMenu(); const P=state.prof||{};
+  document.querySelectorAll("#acctBody [data-sec]").forEach(x=>x.hidden=x.dataset.sec!==sec); $("#acctTitle").textContent=ACCT_TITLE[sec]||"Cuenta";
+  if(sec==="perfil"){ $("#pfName").value=state.name||""; $("#pfNick").value=P.nick||""; }
+  if(sec==="cuenta"){ $("#acEmail").value=P.email||""; const n=Object.values(state.example?{}:state.months).reduce((a,m)=>a+((m.tx||[]).length),0); $("#acCount").textContent=n.toLocaleString("es-CL"); const c=cfg().createdAt; $("#acSince").textContent=c?new Date(c).toLocaleDateString("es-CL",{day:"numeric",month:"long",year:"numeric"}):"—"; $("#acBk").textContent=P.lastBackup?new Date(P.lastBackup).toLocaleDateString("es-CL",{day:"numeric",month:"short",year:"numeric"}):"Nunca"; }
+  if(sec==="seguridad"){ state.secType=P.mode==="pass"?"pass":"pin"; renderSec(); ["#secCur","#secNew","#secNew2"].forEach(k=>$(k).value=""); $("#secAuto").value=String(P.autoLock==null?5:P.autoLock); }
+  if(sec==="apariencia"){ document.querySelectorAll("#thSeg [data-th]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.th===(P.theme||"auto"))); }
+  if(sec==="datos"){ renderData(); }
+  if(sec==="acerca"){ $("#abVer").textContent=APP_VERSION; $("#abMsg").textContent=""; }
+  showSheet("#acct"); $("#acctBody").scrollTop=0; }
+function renderSec(){ const P=state.prof||{}, has=!!state.pinHash, pass=state.secType==="pass";
+  $("#secState").textContent=has?`Tienes ${P.mode==="pass"?"una contraseña":"un PIN"}. Se pide al abrir la app y al volver a ella.`:"No tienes código: cualquiera que tome tu teléfono puede ver tus números.";
+  document.querySelectorAll("#secType [data-st]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.st===state.secType));
+  $("#secCurWrap").hidden=!has; $("#secDel").hidden=!has;
+  [["#secNew",1],["#secNew2",1]].forEach(([k])=>{ const i=$(k); i.inputMode=pass?"text":"numeric"; i.maxLength=pass?64:4; i.placeholder=pass?"Mínimo 6 caracteres":"4 números"; });
+  $("#secCur").inputMode=P.mode==="pass"?"text":"numeric"; }
+function bindAccount(){
+  $("#who").addEventListener("click",e=>{ e.stopPropagation(); $("#umenu").hidden?openUMenu():closeUMenu(); });
+  document.addEventListener("click",e=>{ if(!$("#umenu").hidden&&!e.target.closest("#umenu")&&!e.target.closest("#who")) closeUMenu();
+    const um=e.target.closest("[data-umenu]"); if(um){ hideSheet("#acct"); setTimeout(openUMenu,60); return }
+    const a=e.target.closest("[data-acct]"); if(a){ openAcct(a.dataset.acct); return }
+    const g=e.target.closest("[data-umgoto]"); if(g){ closeUMenu(); setTab(g.dataset.umgoto); window.scrollTo({top:0}); return }
+    const lo=e.target.closest("[data-logout]"); if(lo){ closeUMenu(); if(state.pinHash){ lockNow(); } else { toast("Para cerrar sesión primero crea un PIN o contraseña."); openAcct("seguridad"); } } });
+  document.addEventListener("keydown",e=>{ if(e.key==="Escape"){ closeUMenu(); hideSheet("#acct"); } });
+  addEventListener("resize",closeUMenu);
+  $("#acctClose").addEventListener("click",()=>hideSheet("#acct")); $("#drillScrim").addEventListener("click",()=>hideSheet("#acct"));
+  $("#pfSave").addEventListener("click",()=>{ const n=$("#pfName").value.trim(); if(!n){toast("Escribe tu nombre.");return} state.name=n; saveProfile({nick:$("#pfNick").value.trim()}); render(); hideSheet("#acct"); toast("Perfil guardado"); });
+  $("#acSave").addEventListener("click",()=>{ const m=$("#acEmail").value.trim(); if(m&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(m)){toast("Ese correo no parece válido.");return} saveProfile({email:m}); hideSheet("#acct"); toast(m?"Correo guardado":"Correo quitado"); });
+  $("#secType").addEventListener("click",e=>{ const b=e.target.closest("[data-st]"); if(!b)return; state.secType=b.dataset.st; renderSec(); });
+  $("#secAuto").addEventListener("change",()=>{ saveProfile({autoLock:+$("#secAuto").value}); toast("Bloqueo automático guardado"); });
+  $("#secSave").addEventListener("click",async()=>{ const P=state.prof||{}; const nw=$("#secNew").value, nw2=$("#secNew2").value;
+    if(state.pinHash&&await sha($("#secCur").value)!==state.pinHash){toast("El código actual no es correcto.");return}
+    if(!nw){ saveProfile({autoLock:+$("#secAuto").value}); hideSheet("#acct"); toast("Guardado"); return }
+    if(state.secType==="pin"&&!/^\d{4}$/.test(nw)){toast("El PIN debe tener 4 números.");return}
+    if(state.secType==="pass"&&nw.length<6){toast("La contraseña debe tener al menos 6 caracteres.");return}
+    if(nw!==nw2){toast("Los códigos nuevos no coinciden.");return}
+    state.pinHash=await sha(nw); saveProfile({mode:state.secType,autoLock:+$("#secAuto").value}); hideSheet("#acct"); toast(state.secType==="pass"?"Contraseña guardada":"PIN guardado"); });
+  $("#secDel").addEventListener("click",async e=>{ const b=e.currentTarget; if(await sha($("#secCur").value)!==state.pinHash){toast("Escribe tu código actual para quitarlo.");return}
+    if(!b.dataset.armed){b.dataset.armed="1";b.textContent="¿Seguro? Toca de nuevo";setTimeout(()=>{if(b.isConnected){delete b.dataset.armed;b.textContent="Quitar código"}},3000);return}
+    delete b.dataset.armed; b.textContent="Quitar código"; state.pinHash=""; saveProfile({mode:"pin"}); hideSheet("#acct"); toast("Código quitado: la app ya no pide PIN"); });
+  $("#thSeg").addEventListener("click",e=>{ const b=e.target.closest("[data-th]"); if(!b)return; saveProfile({theme:b.dataset.th}); applyTheme(); document.querySelectorAll("#thSeg [data-th]").forEach(x=>x.setAttribute("aria-pressed",x===b)); });
+  $("#abUpd").addEventListener("click",async()=>{ $("#abMsg").textContent="Buscando…"; try{ const r=navigator.serviceWorker&&await navigator.serviceWorker.getRegistration(); if(r){ await r.update(); } const h=await (await fetch("index.html",{cache:"no-store"})).text(); const v=(h.match(/APP_VERSION = "([^"]*)"/)||[])[1]; $("#abMsg").textContent=v&&v!==APP_VERSION?`Hay una versión nueva (${v}). Cierra y vuelve a abrir la app para actualizar.`:"Tienes la última versión."; }catch(err){ $("#abMsg").textContent="No pude revisar ahora. ¿Tienes internet?"; } });
+  $("#lockPass").addEventListener("submit",async e=>{ e.preventDefault(); if(await sha($("#lockPassIn").value)===state.pinHash){ $("#lock").hidden=true; } else { $("#lockMsg").textContent="Contraseña incorrecta"; $("#lockPassIn").value=""; } });
+}
+function firstName(){ const n=(state.prof&&state.prof.nick)||state.name||""; return n.trim().split(/\s+/)[0]||""; }
 function showWho(){ const w=$("#who"); if(state.example&&!state.name){w.hidden=true} else { w.hidden=false; $("#whoName").textContent=firstName()||"Perfil"; $("#whoAv").textContent=(firstName()[0]||"•").toUpperCase(); }
   $("#welcomeName").textContent=firstName()?"Hola "+firstName()+", bienvenido":"Bienvenido"; }
 function pickInitialMonth(){ const now=todayYM(); if(state.months[now]&&state.months[now].tx&&state.months[now].tx.length)return; const keys=Object.keys(state.months).filter(k=>state.months[k].tx&&state.months[k].tx.length).sort(); if(keys.length&&keys[keys.length-1]<now&&!state.months[now]) state.ym=keys[keys.length-1]; }
@@ -959,21 +1090,18 @@ function bindLocal(){
   $("#startBtn").addEventListener("click",()=>{ $("#startBtn").hidden=true; $("#onboard").hidden=false; $("#obName").focus(); });
   $("#onboard").addEventListener("submit",async e=>{ e.preventDefault(); const name=$("#obName").value.trim(); const pin=$("#obPin").value.trim();
     if(pin&&!/^\d{4}$/.test(pin)){toast("El PIN debe tener 4 números, o déjalo vacío.");return}
-    state.name=name; state.pinHash=pin?await sha(pin):""; lsSet(LS_PROFILE,{name,pin:state.pinHash});
-    state.example=false; state.config=defaultConfig(); state.months={}; state.ym=todayYM(); persist(); showWho(); render(); toast("Listo "+(firstName()||"")+". Parte cargando tus fijos o importando una cartola."); });
+    state.name=name; state.pinHash=pin?await sha(pin):""; state.prof={name,pin:state.pinHash,mode:"pin",autoLock:5}; lsSet(LS_PROFILE,state.prof);
+    state.example=false; state.config=defaultConfig(); state.months={}; state.ym=todayYM(); persist(); showWho(); render(); toast("Listo "+(firstName()||"")+". Parte subiendo tu cartola en Movimientos."); });
   $("#lockPin").addEventListener("input",async e=>{ const v=e.target.value; if(v.length<4)return; if(await sha(v)===state.pinHash){ $("#lock").hidden=true; } else { $("#lockMsg").textContent="PIN incorrecto"; e.target.value=""; } });
-  document.addEventListener("visibilitychange",()=>{ if(document.hidden&&state.pinHash){ state._hiddenAt=Date.now() } else if(!document.hidden&&state.pinHash&&state._hiddenAt&&Date.now()-state._hiddenAt>5*60*1000){ lockNow() } });
-  $("#pfSave").addEventListener("click",async()=>{ const name=$("#pfName").value.trim(); const pin=$("#pfPin").value.trim(); if(pin&&!/^\d{4}$/.test(pin)){toast("El PIN debe tener 4 números.");return}
-    state.name=name; if(pin)state.pinHash=await sha(pin); else if($("#pfPin").dataset.touched)state.pinHash=""; lsSet(LS_PROFILE,{name,pin:state.pinHash}); $("#pfPin").value=""; delete $("#pfPin").dataset.touched; showWho(); render(); toast(state.pinHash?"Perfil guardado · PIN activo":"Perfil guardado · sin PIN"); });
-  $("#pfPin").addEventListener("input",e=>{e.target.dataset.touched="1"});
-  $("#bkExport").addEventListener("click",()=>{ if(state.example){toast("Aún no tienes datos propios que respaldar.");return} const d=new Date(); saveFile(`mis-lucas-respaldo-${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}.json`,JSON.stringify({app:"mis-lucas",v:1,exportedAt:d.toISOString(),profile:{name:state.name},config:state.config,months:state.months}),"application/json"); });
+  document.addEventListener("visibilitychange",()=>{ const al=(state.prof||{}).autoLock==null?5:(state.prof||{}).autoLock; if(document.hidden&&state.pinHash){ state._hiddenAt=Date.now() } else if(!document.hidden&&state.pinHash&&al>=0&&state._hiddenAt&&Date.now()-state._hiddenAt>=al*60*1000){ lockNow() } });
+  $("#bkExport").addEventListener("click",()=>{ if(state.example){toast("Aún no tienes datos propios que respaldar.");return} const d=new Date(); saveFile(`mis-lucas-respaldo-${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}.json`,JSON.stringify({app:"mis-lucas",v:1,exportedAt:d.toISOString(),profile:{name:state.name,email:(state.prof||{}).email||""},config:state.config,months:state.months}),"application/json"); saveProfile({lastBackup:new Date().toISOString()}); renderData(); });
   $("#bkFile").addEventListener("change",e=>{ const f=e.target.files[0]; e.target.value=""; if(!f)return; const fr=new FileReader(); fr.onload=()=>{ try{ const d=JSON.parse(fr.result); if(d.app!=="mis-lucas"||!d.config)throw 0;
-      state.config=normalizeConfig(d.config); state.config.started=true; state.months={}; Object.entries(d.months||{}).forEach(([k,m])=>state.months[k]=normalizeMonth(m)); state.example=false; if(d.profile&&d.profile.name&&!state.name){state.name=d.profile.name; lsSet(LS_PROFILE,{name:state.name,pin:state.pinHash})}
+      state.config=normalizeConfig(d.config); state.config.started=true; state.months={}; Object.entries(d.months||{}).forEach(([k,m])=>state.months[k]=normalizeMonth(m)); state.example=false; if(d.profile&&d.profile.name&&!state.name){state.name=d.profile.name} if(d.profile&&d.profile.email&&!(state.prof||{}).email){state.prof=Object.assign({},state.prof,{email:d.profile.email})} saveProfile({});
       persist(); pickInitialMonth(); showWho(); render(); toast("Respaldo restaurado"); }catch(err){ toast("Ese archivo no es un respaldo de Mis Lucas."); } }; fr.readAsText(f); });
   $("#bkWipe").addEventListener("click",e=>{ const b=e.currentTarget; if(!b.dataset.armed){b.dataset.armed="1";b.textContent="¿Borrar todo? Toca de nuevo";setTimeout(()=>{if(b.isConnected){delete b.dataset.armed;b.textContent="Borrar todo"}},3500);return}
     try{localStorage.removeItem(LS_DATA);localStorage.removeItem(LS_PROFILE)}catch(err){} location.reload(); });
 }
-function renderData(){ if(!$("#pfName"))return; if(document.activeElement!==$("#pfName"))$("#pfName").value=state.name||""; const n=Object.values(state.example?{}:state.months).reduce((a,m)=>a+((m.tx||[]).length),0); let kb=0; try{kb=Math.round(((localStorage.getItem(LS_DATA)||"").length)/1024)}catch(e){} $("#bkInfo").textContent=state.example?"Estás en modo ejemplo: empieza con tus datos para poder respaldarlos.":`${n} movimientos guardados en este equipo · ${kb} KB. Descarga un respaldo cada cierto tiempo por si cambias de teléfono o borras el navegador.`; }
+function renderData(){ if(!$("#bkInfo"))return; const n=Object.values(state.example?{}:state.months).reduce((a,m)=>a+((m.tx||[]).length),0); let kb=0; try{kb=Math.round(((localStorage.getItem(LS_DATA)||"").length)/1024)}catch(e){} $("#bkInfo").textContent=state.example?"Estás en modo ejemplo: empieza con tus datos para poder respaldarlos.":`${n} movimientos guardados en este teléfono · ${kb} KB.${(state.prof||{}).lastBackup?` Último respaldo: ${new Date(state.prof.lastBackup).toLocaleDateString("es-CL")}.`:" Aún no descargas un respaldo."} Descarga uno cada cierto tiempo por si cambias de teléfono o borras el navegador.`; }
 
 /* ---------- rendering ---------- */
 function catOptions(type,sel){ return (sel&&!(CATS[type]||[]).includes(sel)?`<option selected>${esc(sel)}</option>`:"")+(CATS[type]||[]).map(c=>`<option${c===sel?" selected":""}>${esc(c)}</option>`).join(""); }

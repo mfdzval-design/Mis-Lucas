@@ -782,16 +782,16 @@ const APP_VERSION = "1.1.0 beta";
 const OFFICE = "Oficina (se rinde)", OFFICE_IN = "Reembolso oficina", SAVINGS = "Ahorro e inversión", RESCUE = "Rescate de ahorro";
 const CATS = {
   gasto:["Vivienda","Cuentas básicas","Supermercado","Restaurantes y bares","Delivery","Café y snacks","Auto y bencina","Transporte","Ropa y calzado","Cuidado personal","Salud","Deporte","Salidas y carrete","Amigos y regalos","Panoramas y ocio","Suscripciones","Tecnología","Hogar","Caprichos","Educación","Viajes","Mascotas","Seguros","Créditos y deudas","Comisiones e intereses","Compras varias",SAVINGS,"Otros gastos"],
-  ingreso:["Sueldo","Bonos y comisiones","Emprendimiento","Honorarios","Intereses y dividendos","Venta de cosas","Regalos recibidos","Reembolsos",OFFICE_IN,RESCUE,"Otros ingresos"],
+  ingreso:["Sueldo","Bonos y comisiones","Arriendos","Emprendimiento","Honorarios","Intereses y dividendos","Venta de cosas","Regalos recibidos","Reembolsos",OFFICE_IN,RESCUE,"Otros ingresos"],
   traspaso:["Traspaso / pago TC"]
 };
 const LEGACY = {"Comida fuera":"Restaurantes y bares","Ocio":"Panoramas y ocio","Regalos":"Amigos y regalos","Compras":"Compras varias"};
 const normCat = c=>LEGACY[c]||c;
 const ICON = {"Vivienda":"🏠","Cuentas básicas":"💡","Supermercado":"🛒","Restaurantes y bares":"🍽️","Delivery":"🛵","Café y snacks":"☕","Auto y bencina":"🚗","Transporte":"🚇","Ropa y calzado":"👕","Cuidado personal":"💈","Salud":"💊","Deporte":"🏋️","Salidas y carrete":"🍻","Amigos y regalos":"🎁","Panoramas y ocio":"🎟️","Suscripciones":"📺","Tecnología":"📱","Hogar":"🛋️","Caprichos":"🍭","Educación":"📚","Viajes":"✈️","Mascotas":"🐾","Seguros":"🛡️","Créditos y deudas":"💳","Comisiones e intereses":"🏦","Compras varias":"🛍️",[SAVINGS]:"🐷","Otros gastos":"📦",
-  "Sueldo":"💼","Bonos y comisiones":"⭐","Emprendimiento":"🚀","Honorarios":"📝","Intereses y dividendos":"📈","Venta de cosas":"🏷️","Regalos recibidos":"🎀","Reembolsos":"↩️",[OFFICE_IN]:"🏢",[RESCUE]:"🔓","Otros ingresos":"💰","Traspaso / pago TC":"🔁",[OFFICE]:"🧾","Comida fuera":"🍽️","Ocio":"🎟️","Regalos":"🎁","Compras":"🛍️"};
+  "Sueldo":"💼","Arriendos":"🏘️","Bonos y comisiones":"⭐","Emprendimiento":"🚀","Honorarios":"📝","Intereses y dividendos":"📈","Venta de cosas":"🏷️","Regalos recibidos":"🎀","Reembolsos":"↩️",[OFFICE_IN]:"🏢",[RESCUE]:"🔓","Otros ingresos":"💰","Traspaso / pago TC":"🔁",[OFFICE]:"🧾","Comida fuera":"🍽️","Ocio":"🎟️","Regalos":"🎁","Compras":"🛍️"};
 const ACCT_ICON = {"Santander Cta. Cte.":"🏦","Santander TC":"💳","Itaú Cta. Cte.":"🏦","Itaú TC":"💳","Efectivo":"💵"};
 const ico = c=>`<span class="cico" aria-hidden="true">${ICON[c]||"•"}</span>`;
-const FIXED_CATS = new Set(["Vivienda","Cuentas básicas","Suscripciones","Seguros","Créditos y deudas","Educación","Sueldo"]);
+const FIXED_CATS = new Set(["Vivienda","Cuentas básicas","Suscripciones","Seguros","Créditos y deudas","Educación","Sueldo","Arriendos"]);
 const ACCOUNTS = ["Santander Cta. Cte.","Santander TC","Itaú Cta. Cte.","Itaú TC","Efectivo"];
 const INV_TYPES = {"Cuenta de ahorro":"🏦","Fondo de emergencia":"🛟","Depósito a plazo":"📄","Fondo mutuo":"📊","APV":"🧓","Acciones / ETF":"📈","Cripto":"🪙","Otro":"💼"};
 const isOffice = t=>t.scope==="oficina"||t.cat===OFFICE||t.cat===OFFICE_IN;
@@ -937,17 +937,18 @@ const EXAMPLE = (function(){
 
 /* ---------- aggregation ---------- */
 function summarize(tx){
-  const r={inc:0,incFix:0,incVar:0,exp:0,expFix:0,expVar:0,sav:0,resc:0,offOut:0,offIn:0,byCat:{},byAcct:{},n:tx.length,checked:0};
+  const r={refund:0,inc:0,incFix:0,incVar:0,exp:0,expFix:0,expVar:0,sav:0,resc:0,offOut:0,offIn:0,byCat:{},byAcct:{},n:tx.length,checked:0};
   tx.forEach(t=>{
     if(t.checked)r.checked++;
     if(isOffice(t)){ if(t.type==="gasto")r.offOut+=t.amount; else if(t.type==="ingreso")r.offIn+=t.amount; return }
-    if(t.type==="ingreso"){ if(t.cat===RESCUE){r.resc+=t.amount;return} r.inc+=t.amount; t.nature==="fijo"?r.incFix+=t.amount:r.incVar+=t.amount }
+    if(t.type==="ingreso"){ if(t.cat===RESCUE){r.resc+=t.amount;return} if(t.cat==="Reembolsos"){r.refund+=t.amount;return} r.inc+=t.amount; t.nature==="fijo"?r.incFix+=t.amount:r.incVar+=t.amount }
     else if(t.type==="gasto"){
       if(t.cat===SAVINGS){r.sav+=t.amount;return}
       r.exp+=t.amount; t.nature==="fijo"?r.expFix+=t.amount:r.expVar+=t.amount;
       r.byCat[t.cat]=(r.byCat[t.cat]||0)+t.amount; r.byAcct[t.account||"Sin cuenta"]=(r.byAcct[t.account||"Sin cuenta"]||0)+t.amount;
     }
   });
+  if(r.refund){ const cut=Math.min(r.refund,r.expVar); r.expVar-=cut; r.exp-=cut; }
   r.netSav=r.sav-r.resc; r.bal=r.inc-r.exp-r.netSav; r.saveRate=r.inc?(r.inc-r.exp)/r.inc:null; return r;
 }
 function avgPrev(cat,ym,n=3){ const M=allMonths(); let tot=0,c=0; for(let k=1;k<=12&&c<n;k++){const p=shiftYM(ym,-k); if(M[p]&&M[p].tx&&M[p].tx.length){c++; tot+=summarize(M[p].tx).byCat[cat]||0}} return c?tot/c:null; }
@@ -1056,11 +1057,13 @@ function renderResumen(){
   else if(budTot&&usedB>1) msg=`Ojo: ya pasaste tu presupuesto por ${money(s.exp-budTot)}.`;
   else if(budTot&&daysLeft!=null) msg=`${usedB<.8?"Vas bien":"Vas justo"}: llevas el ${Math.round(usedB*100)}% del presupuesto y ${daysLeft===0?"hoy termina el mes":`${daysLeft===1?"queda 1 día":`quedan ${daysLeft} días`}`}.`;
   else if(budTot) msg=`Usaste el ${Math.round(usedB*100)}% de tu presupuesto (${money(budTot)}).`;
-  else msg=left>=0?"Este mes tus ingresos cubren tus gastos. Define topes en Presupuesto para seguirlos.":"Este mes gastaste más de lo que entró.";
+  else if(left>=0) msg="Este mes tus ingresos cubren tus gastos. Define topes en Presupuesto para seguirlos.";
+  else if(s.inc>=s.exp) msg=`Tus ingresos cubrieron tus gastos (te sobraron ${money(s.inc-s.exp)}), pero ahorraste ${money(s.netSav)}: la diferencia salió de tus saldos o de la tarjeta.`;
+  else msg="Este mes gastaste más de lo que entró.";
   const O=office(); const W=wealth();
   const rate=s.saveRate==null?0:Math.max(0,Math.min(1,s.saveRate)); const C=2*Math.PI*44;
   $("#kpis").innerHTML=`<div class="hero">
-    <div style="position:relative;z-index:1;min-width:0"><div class="hi">Hola${firstName()?", "+esc(firstName()):""} · ${esc(ymLabel(state.ym))}</div><div class="hi" style="margin-top:10px">${left>=0?"Te queda este mes":"Te pasaste este mes"}</div><div class="big num">${money(Math.abs(left))}</div><div class="msg">${esc(msg)}</div><div class="chips">${O.owed?`<button class="owe" type="button" data-goto="rend">🧾 La oficina te debe <b class="num">${money(O.owed)}</b> ›</button>`:""}${W.total?`<button class="owe" type="button" data-goto="ahorro">📈 Patrimonio <b class="num">${money(W.total)}</b> ›</button>`:""}</div></div>
+    <div style="position:relative;z-index:1;min-width:0"><div class="hi">Hola${firstName()?", "+esc(firstName()):""} · ${esc(ymLabel(state.ym))}</div><div class="hi" style="margin-top:10px">${left>=0?"Te queda este mes":s.inc>=s.exp?"Ahorraste más de lo que te sobró":"Te pasaste este mes"}</div><div class="big num">${money(Math.abs(left))}</div><div class="msg">${esc(msg)}</div><div class="chips">${O.owed?`<button class="owe" type="button" data-goto="rend">🧾 La oficina te debe <b class="num">${money(O.owed)}</b> ›</button>`:""}${W.total?`<button class="owe" type="button" data-goto="ahorro">📈 Patrimonio <b class="num">${money(W.total)}</b> ›</button>`:""}</div></div>
     <div class="ring" data-tip="Tasa de ahorro: ingresos menos gastos de consumo, sobre ingresos"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="10"/>${rate>0.005?`<circle cx="50" cy="50" r="44" fill="none" stroke="#ffffff" stroke-width="10" stroke-linecap="round" stroke-dasharray="${(C*rate).toFixed(1)} ${C.toFixed(1)}"/>`:""}</svg><div class="lbl"><div><b class="num">${s.saveRate==null?"—":Math.round(s.saveRate*100)+"%"}</b><span>ahorro</span></div></div></div>
     <div class="stats">
       <div class="st"><div class="k"><i>↓</i>Entró</div><div class="v num">${money(s.inc)}</div><div class="d num">Fijo ${compact(s.incFix)} · variable ${compact(s.incVar)}</div></div>
@@ -1188,7 +1191,8 @@ function flowCard(s){
   return `<div class="card" style="margin-top:16px"><div class="card-head"><div><h2>¿A dónde se fue lo que entró?</h2><div class="sub">De cada $100 que ganaste este mes</div></div></div>
     <div class="flow">${seg.map(([n,v,c])=>`<div style="flex:${v};background:${c}" data-tip="<b>${esc(n)}</b><br>${esc(money(v))} · ${pct(v)} de tus ingresos"></div>`).join("")}</div>
     <div class="flowleg">${seg.map(([n,v,c])=>`<div><i style="background:${c}"></i><span>${esc(n)}</span><b class="num">${money(v)}</b><small class="num">${pct(v)}</small></div>`).join("")}</div>
-    ${over<0?`<p class="note" style="margin:10px 0 0;color:var(--crit)">▲ Gastaste ${money(-over)} más de lo que entró este mes.</p>`:""}
+    ${over<0?(s.inc>=s.exp?`<p class="note" style="margin:10px 0 0">Ahorraste ${money(Math.max(s.netSav,0))}, más de lo que te sobró (${money(s.inc-s.exp)}). Los ${money(-over)} de diferencia salieron de tus saldos o de la tarjeta.</p>`:`<p class="note" style="margin:10px 0 0;color:var(--crit)">▲ Gastaste ${money(-over)} más de lo que entró este mes.</p>`):""}
+    ${s.refund?`<p class="note" style="margin:10px 0 0">Te devolvieron ${money(s.refund)} (amigos, seguros, etc.): ya está descontado de tu gasto.</p>`:""}
     ${s.offOut||s.offIn?`<p class="note" style="margin:10px 0 0">Aparte, por la oficina: adelantaste ${money(s.offOut)}${s.offIn?` y te reembolsaron ${money(s.offIn)}`:""}. Eso no se mezcla con tus números personales.</p>`:""}</div>`;
 }
 

@@ -1,5 +1,5 @@
 // Mis Lucas · service worker: funciona sin internet una vez abierta.
-const CACHE = "mislucas-1-0-0-beta";
+const CACHE = "mislucas-1-1-0-beta";
 const CORE = ["./", "./index.html", "./manifest.webmanifest", "./icons/icon-192.png", "./icons/icon-512.png", "./icons/apple-touch-icon.png", "./vendor/xlsx.full.min.js",
   "./fonts/plus-jakarta-sans-400.woff2", "./fonts/plus-jakarta-sans-500.woff2", "./fonts/plus-jakarta-sans-600.woff2", "./fonts/plus-jakarta-sans-700.woff2", "./fonts/plus-jakarta-sans-800.woff2", "./fonts/ibm-plex-mono-400.woff2", "./fonts/ibm-plex-mono-500.woff2"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE)).then(() => self.skipWaiting())); });

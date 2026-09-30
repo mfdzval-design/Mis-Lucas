@@ -2,7 +2,7 @@
 
 Cada versión publicada queda anotada aquí. El número de versión se ve al pie de la app.
 
-## 1.4.0 beta · (sin publicar)
+## 1.4.0 beta · 30-sep-2026
 - Oficina deja de ser un sistema aparte: es la categoría de gasto "Oficina (te la devuelven)" y el reembolso de la empresa se resta de tus gastos, igual que las devoluciones de amigos. Se elimina la pestaña Rendir; tus gastos y reembolsos de oficina se convierten solos.
 - Un solo formulario para agregar y editar movimientos (el "+" abre la misma ficha).
 - Movimientos: una sola lista, un buscador y un selector (Todo, Gastos, Ingresos, Ahorro, Traspasos, Por categorizar). "Subir cartola" queda dentro de Movimientos.

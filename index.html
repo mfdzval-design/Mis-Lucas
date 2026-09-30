@@ -514,15 +514,15 @@ details.litem[open]{background:var(--surface-2);border-radius:14px;margin-block:
 .flowleg [data-drill]:hover,.catrow[data-drill]:hover{background:var(--surface-2)}
 .flowleg [data-drill] span::after,.catrow[data-drill] .name::after{content:" ›";color:var(--muted)}
 #drillScrim{position:fixed;inset:0;z-index:59;background:rgba(0,0,0,.35);display:none}
-body.drill-open #drillScrim{display:block}
-#drill{position:fixed;z-index:60;background:var(--surface);color:var(--ink);box-shadow:0 -8px 30px rgba(0,0,0,.22);display:flex;flex-direction:column;
+body.bs-open #drillScrim{display:block}
+.bsheet{position:fixed;z-index:60;background:var(--surface);color:var(--ink);box-shadow:0 -8px 30px rgba(0,0,0,.22);display:flex;flex-direction:column;
   left:0;right:0;bottom:0;max-height:86vh;border-radius:18px 18px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));transform:translateY(105%);transition:transform .22s ease}
-body.drill-open #drill{transform:none}
-@media (min-width:760px){#drill{left:50%;right:auto;bottom:auto;top:50%;width:560px;max-height:80vh;border-radius:18px;transform:translate(-50%,-40%);opacity:0;pointer-events:none;transition:opacity .18s,transform .18s}
-  body.drill-open #drill{transform:translate(-50%,-50%);opacity:1;pointer-events:auto}}
-#drill .dhead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px}
-#drill .dhead h2{font-size:17px;margin:0}
-#drill .dtot{font-size:24px;font-weight:700;margin-top:2px}
+.bsheet.show{transform:none}
+@media (min-width:760px){.bsheet{left:50%;right:auto;bottom:auto;top:50%;width:560px;max-height:80vh;border-radius:18px;transform:translate(-50%,-40%);opacity:0;pointer-events:none;transition:opacity .18s,transform .18s}
+  .bsheet.show{transform:translate(-50%,-50%);opacity:1;pointer-events:auto}}
+.bsheet .dhead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px}
+.bsheet .dhead h2{font-size:17px;margin:0}
+.bsheet .dtot{font-size:24px;font-weight:700;margin-top:2px}
 #drillBody{overflow:auto;-webkit-overflow-scrolling:touch;margin:0 -4px;padding:0 4px}
 .dgrp{margin-top:12px}
 .dgrp-h{display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:600;color:var(--ink-2);padding:6px 0;border-bottom:1px solid var(--line)}
@@ -534,6 +534,23 @@ body.drill-open #drill{transform:none}
 .dcalc{display:grid;grid-template-columns:1fr auto;gap:6px 12px;font-size:14px;margin-top:6px}
 .dcalc b{text-align:right}
 .dcalc .tot{border-top:1px solid var(--line);padding-top:6px;font-weight:700}
+#editBody{overflow:auto;-webkit-overflow-scrolling:touch;margin:0 -4px;padding:0 4px 4px}
+.ef{display:grid;gap:12px}
+.ef .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.seg3{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.seg2{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+.seg3 button,.seg2 button{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:9px 6px;font:inherit;font-size:14px;cursor:pointer}
+.seg3 button[aria-pressed="true"],.seg2 button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.chips2{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:6px}
+.chips2 button{display:flex;gap:6px;align-items:center;text-align:left;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:8px;font:inherit;font-size:13px;cursor:pointer;min-width:0}
+.chips2 button span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chips2 button[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 35%,transparent);font-weight:600}
+.eflabel{font-size:12.5px;color:var(--muted);margin-bottom:6px}
+.simbox{border:1px solid var(--line);border-radius:12px;padding:12px;display:grid;gap:8px;background:var(--surface-2)}
+.simbox label{display:flex;gap:8px;align-items:flex-start;font-size:13.5px}
+.simbox input[type=text]{width:100%}
+.efactions{display:flex;gap:8px;justify-content:space-between;margin-top:14px;padding:12px 0 2px;border-top:1px solid var(--line);position:sticky;bottom:-4px;background:var(--surface)}
+.revbar{display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px dashed var(--accent);border-radius:12px;padding:10px 12px;margin-bottom:12px;font-size:13.5px}
 </style>
 
 </head>
@@ -641,7 +658,7 @@ body.drill-open #drill{transform:none}
           <div><h2>Movimientos del mes</h2><div class="sub" id="movSub"></div></div>
           <div class="toolbar">
             <label class="field">Buscar<input type="search" id="qText" placeholder="Descripción…"></label>
-            <label class="field">Tipo<select id="qType"><option value="">Todos</option><option value="personal">Gastos personales</option><option value="oficina">Oficina (rendibles)</option><option value="ahorro">Ahorro e inversión</option><option value="gasto">Todos los gastos</option><option value="ingreso">Ingresos</option><option value="traspaso">Traspasos</option></select></label>
+            <label class="field">Tipo<select id="qType"><option value="">Todos</option><option value="personal">Gastos personales</option><option value="oficina">Oficina (rendibles)</option><option value="ahorro">Ahorro e inversión</option><option value="gasto">Todos los gastos</option><option value="ingreso">Ingresos</option><option value="traspaso">Traspasos</option><option value="revisar">🏷️ Por categorizar</option></select></label>
             <label class="field">Categoría<select id="qCat"><option value="">Todas</option></select></label>
             <label class="field">Cuenta<select id="qAcct"><option value="">Todas</option></select></label>
             <button class="btn" id="exportBtn" type="button">Descargar CSV</button>
@@ -796,9 +813,13 @@ body.drill-open #drill{transform:none}
 <button id="fab" type="button" aria-label="Registrar movimiento">+</button>
 <div id="scrim"></div>
 <div id="drillScrim"></div>
-<div id="drill" role="dialog" aria-modal="true" aria-labelledby="drillTitle" hidden>
+<div id="drill" class="bsheet" role="dialog" aria-modal="true" aria-labelledby="drillTitle" hidden>
   <div class="dhead"><div><h2 id="drillTitle"></h2><div class="dtot num" id="drillTot"></div><div class="sub" id="drillSub"></div></div><button class="iconbtn" id="drillClose" type="button" aria-label="Cerrar">✕</button></div>
   <div id="drillBody"></div>
+</div>
+<div id="edit" class="bsheet" role="dialog" aria-modal="true" aria-labelledby="editTitle" hidden>
+  <div class="dhead"><div><h2 id="editTitle">Editar movimiento</h2><div class="sub" id="editSub"></div></div><button class="iconbtn" id="editClose" type="button" aria-label="Cerrar">✕</button></div>
+  <div id="editBody"></div>
 </div>
 <div id="lock" hidden><div class="lockbox"><div class="lockic">🔒</div><h2 id="lockHi">Mis Lucas</h2><p>Ingresa tu PIN</p><input id="lockPin" type="password" inputmode="numeric" maxlength="4" autocomplete="off" aria-label="PIN"><p class="muted" id="lockMsg" style="min-height:1.2em"></p></div></div>
 <div id="updBar" class="updbar" hidden><span>✨ Hay una versión nueva de Mis Lucas</span><button class="btn primary sm" type="button" onclick="location.reload()">Actualizar</button></div>
@@ -1094,7 +1115,7 @@ function renderResumen(){
   const O=office(); const W=wealth();
   const rate=s.saveRate==null?0:Math.max(0,Math.min(1,s.saveRate)); const C=2*Math.PI*44;
   $("#kpis").innerHTML=`<div class="hero">
-    <div style="position:relative;z-index:1;min-width:0"><div class="hi">Hola${firstName()?", "+esc(firstName()):""} · ${esc(ymLabel(state.ym))}</div><div class="hi" style="margin-top:10px">${left>=0?"Te queda este mes":s.inc>=s.exp?"Ahorraste más de lo que te sobró":"Te pasaste este mes"}</div><div class="big num">${money(Math.abs(left))}</div><div class="msg">${esc(msg)}</div><div class="chips">${O.owed?`<button class="owe" type="button" data-goto="rend">🧾 La oficina te debe <b class="num">${money(O.owed)}</b> ›</button>`:""}${W.total?`<button class="owe" type="button" data-goto="ahorro">📈 Patrimonio <b class="num">${money(W.total)}</b> ›</button>`:""}</div></div>
+    <div style="position:relative;z-index:1;min-width:0"><div class="hi">Hola${firstName()?", "+esc(firstName()):""} · ${esc(ymLabel(state.ym))}</div><div class="hi" style="margin-top:10px">${left>=0?"Te queda este mes":s.inc>=s.exp?"Ahorraste más de lo que te sobró":"Te pasaste este mes"}</div><div class="big num">${money(Math.abs(left))}</div><div class="msg">${esc(msg)}</div><div class="chips">${(()=>{const n=tx.filter(needsReview).length; return n?`<button class="owe" type="button" data-review="1">🏷️ ${n} por categorizar ›</button>`:""})()}${O.owed?`<button class="owe" type="button" data-goto="rend">🧾 La oficina te debe <b class="num">${money(O.owed)}</b> ›</button>`:""}${W.total?`<button class="owe" type="button" data-goto="ahorro">📈 Patrimonio <b class="num">${money(W.total)}</b> ›</button>`:""}</div></div>
     <div class="ring" data-tip="Tasa de ahorro: ingresos menos gastos de consumo, sobre ingresos"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="10"/>${rate>0.005?`<circle cx="50" cy="50" r="44" fill="none" stroke="#ffffff" stroke-width="10" stroke-linecap="round" stroke-dasharray="${(C*rate).toFixed(1)} ${C.toFixed(1)}"/>`:""}</svg><div class="lbl"><div><b class="num">${s.saveRate==null?"—":Math.round(s.saveRate*100)+"%"}</b><span>ahorro</span></div></div></div>
     <div class="stats">
       <div class="st"><div class="k"><i>↓</i>Entró</div><div class="v num">${money(s.inc)}</div><div class="d num">Fijo ${compact(s.incFix)} · variable ${compact(s.incVar)}</div></div>
@@ -1168,7 +1189,7 @@ function renderMovs(){
   const openIds=new Set([...document.querySelectorAll('#movList details[open]')].map(d=>d.dataset.id));
   const q=norm($("#qText").value), qt=$("#qType").value, qc=$("#qCat").value, qa=$("#qAcct").value;
   const tx=monthTx(state.ym);
-  const rows=tx.filter(t=>(!q||norm(t.desc).includes(q))&&(!qt||(qt==="oficina"?isOffice(t):qt==="personal"?(!isOffice(t)&&t.type==="gasto"&&t.cat!==SAVINGS):qt==="ahorro"?(t.cat===SAVINGS||t.cat===RESCUE):t.type===qt))&&(!qc||t.cat===qc)&&(!qa||t.account===qa)).slice().sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:0);
+  const rows=tx.filter(t=>(!q||norm(t.desc).includes(q))&&(!qt||(qt==="revisar"?needsReview(t):qt==="oficina"?isOffice(t):qt==="personal"?(!isOffice(t)&&t.type==="gasto"&&t.cat!==SAVINGS):qt==="ahorro"?(t.cat===SAVINGS||t.cat===RESCUE):t.type===qt))&&(!qc||t.cat===qc)&&(!qa||t.account===qa)).slice().sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:0);
   const s=summarize(rows);
   $("#movSub").textContent=`${rows.length} movimientos · ingresos ${money(s.inc)} · gastos personales ${money(s.exp)}${s.offOut?` · oficina ${money(s.offOut)}`:""}${s.sav?` · ahorro ${money(s.sav)}`:""}`;
   const sign=t=>t.type==="ingreso"?"+":t.type==="traspaso"?"⇄ ":"−";
@@ -1176,11 +1197,12 @@ function renderMovs(){
   const dayLabel=iso=>{const d=new Date(iso+"T12:00:00"),t=new Date();t.setHours(12,0,0,0);const diff=Math.round((t-d)/864e5);if(diff===0)return"Hoy";if(diff===1)return"Ayer";return d.toLocaleDateString("es-CL",{weekday:"long",day:"numeric",month:"short"}).replace(".","")};
   let lastDay=""; const item=t=>`<details class="litem" data-id="${t.id}"><summary>${ico(t.cat)}<span class="t">${esc(t.desc)}</span><span class="a num" style="color:${col(t)}">${sign(t)}${money(t.amount)}</span><span class="m"><span class="sdot${t.checked?" ok":""}" title="${t.checked?"En cartola":"Por conciliar"}"></span>${isOffice(t)&&t.type==="gasto"?`<span class="rtag ${t.rstat==="reembolsado"?"d":t.rstat==="rendido"?"r":"p"}">🧾 ${t.rstat==="reembolsado"?"Reembolsado":t.rstat==="rendido"?"Rendido":"Por rendir"}</span> `:isOffice(t)?'<span class="rtag d">🏢 Reembolso</span> ':""}${(t.cat===SAVINGS||t.cat===RESCUE)&&t.inv?`<span class="rtag r">${esc(invName(t.inv))}</span> `:""}${esc(t.cat)} · ${esc(t.account||"")}</span></summary>
     <div class="editrow"><select data-f="cat" aria-label="Categoría">${allCatOptions(t.cat)}</select>${t.type!=="traspaso"&&t.cat!==SAVINGS&&t.cat!==RESCUE?`<select data-f="scope" aria-label="De quién es"><option value="personal"${!isOffice(t)?" selected":""}>👤 Personal</option><option value="oficina"${isOffice(t)?" selected":""}>🧾 ${t.type==="ingreso"?"Reembolso oficina":"Oficina (se rinde)"}</option></select>`:""}${t.cat===SAVINGS||t.cat===RESCUE?`<select data-f="inv" aria-label="Instrumento">${invOptions(t.inv)}</select>`:""}<select data-f="account" aria-label="Cuenta">${acctOptions(t.account)}</select><select data-f="nature" aria-label="Naturaleza"><option value="variable"${t.nature!=="fijo"?" selected":""}>Variable</option><option value="fijo"${t.nature==="fijo"?" selected":""}>Fijo</option></select><button class="btn" data-del="${t.id}" type="button" style="color:var(--crit)">Eliminar</button></div></details>`;
-  $("#movList").innerHTML=rows.length?rows.map(t=>{let h=""; if(t.date!==lastDay){lastDay=t.date;h=`<div class="dayhead">${esc(dayLabel(t.date))}</div>`} return h+item(t)}).join(""):`<div class="empty"><span class="ei">${tx.length?"🔍":"📝"}</span>${tx.length?"Ningún movimiento coincide con el filtro.":"No hay movimientos este mes. Toca + para agregar uno o importa tu cartola."}</div>`;
+  const nRev=tx.filter(needsReview).length;
+  $("#movList").innerHTML=(nRev&&qt!=="revisar"?`<div class="revbar"><span>🏷️ <b>${nRev}</b> movimiento${nRev===1?"":"s"} sin categoría clara este mes</span><button class="btn" type="button" data-review="1">Revisar</button></div>`:"")+(rows.length?rows.map(t=>{let h=""; if(t.date!==lastDay){lastDay=t.date;h=`<div class="dayhead">${esc(dayLabel(t.date))}</div>`} return h+item(t)}).join(""):`<div class="empty"><span class="ei">${tx.length?"🔍":"📝"}</span>${tx.length?"Ningún movimiento coincide con el filtro.":"No hay movimientos este mes. Toca + para agregar uno o importa tu cartola."}</div>`);
   openIds.forEach(id=>{const d=document.querySelector(`#movList details[data-id="${id}"]`); if(d)d.open=true});
   $("#movBody").innerHTML=rows.length?rows.map(t=>`<tr data-id="${t.id}">
     <td class="num">${dmy(t.date)}</td>
-    <td class="desc">${esc(t.desc)}${t.bankDesc&&t.bankDesc!==t.desc?`<div class="muted" style="font-size:11.5px">Banco: ${esc(t.bankDesc)}</div>`:""}</td>
+    <td class="desc" data-open="${t.id}" style="cursor:pointer" title="Editar">✎ ${esc(t.desc)}${t.bankDesc&&t.bankDesc!==t.desc?`<div class="muted" style="font-size:11.5px">Banco: ${esc(t.bankDesc)}</div>`:""}</td>
     <td><select data-f="cat" aria-label="Categoría">${allCatOptions(t.cat)}</select></td>
     <td><select data-f="account" aria-label="Cuenta">${acctOptions(t.account)}</select></td>
     <td><select data-f="nature" aria-label="Naturaleza"><option value="variable"${t.nature!=="fijo"?" selected":""}>Variable</option><option value="fijo"${t.nature==="fijo"?" selected":""}>Fijo</option></select></td>
@@ -1236,13 +1258,98 @@ function openDrill(key){
   if(neg.length) html+=`<div class="dgrp"><div class="dgrp-h"><span>${key==="ahorro"?"Rescates (se restan)":"Te devolvieron (se resta)"}</span><span class="num">−${money(neg.reduce((x,t)=>x+t.amount,0))}</span></div>${neg.map(t=>item(t,true)).join("")}</div>`;
   $("#drillTitle").textContent=title; const shown=key==="queda"?s.inc-s.exp-Math.max(s.netSav,0):tot; $("#drillTot").textContent=(shown<0?"−":"")+money(Math.abs(shown));
   $("#drillSub").textContent=`${sub} ${list.length+neg.length} movimiento${list.length+neg.length===1?"":"s"} · ${ymLabel(state.ym)}. Toca uno para editarlo.`;
-  $("#drillBody").innerHTML=html; $("#drill").hidden=false; requestAnimationFrame(()=>document.body.classList.add("drill-open")); $("#drillBody").scrollTop=0;
+  $("#drillBody").innerHTML=html; showSheet("#drill"); $("#drillBody").scrollTop=0;
 }
-function closeDrill(){ document.body.classList.remove("drill-open"); setTimeout(()=>{ if(!document.body.classList.contains("drill-open")) $("#drill").hidden=true },230); }
-function goToTx(id){
+function showSheet(sel){ const el=$(sel); el.hidden=false; document.body.classList.add("bs-open"); requestAnimationFrame(()=>requestAnimationFrame(()=>el.classList.add("show"))); }
+function hideSheet(sel){ const el=$(sel); el.classList.remove("show"); if(!document.querySelector(".bsheet.show"))document.body.classList.remove("bs-open"); setTimeout(()=>{ if(!el.classList.contains("show")) el.hidden=true },230); }
+function closeDrill(){ hideSheet("#drill"); }
+function goToTx(id){ closeDrill(); setTimeout(()=>openEdit(id),120); }
+function goToTxList(id){
   closeDrill(); ["#qText","#qType","#qCat","#qAcct"].forEach(k=>{const e=$(k); if(e)e.value=""}); setTab("movs");
   setTimeout(()=>{ const d=document.querySelector(`#movList details[data-id="${id}"]`); const r=document.querySelector(`#movBody tr[data-id="${id}"]`);
     const el=(d&&d.offsetParent)?d:(r&&r.offsetParent)?r:d||r; if(!el)return; if(el.tagName==="DETAILS")el.open=true; el.scrollIntoView({behavior:"smooth",block:"center"}); el.style.outline="2px solid var(--accent)"; setTimeout(()=>el.style.outline="",1800); },80);
+}
+/* ---------- editar un movimiento ---------- */
+const REVIEW_CATS=new Set(["Otros gastos","Otros ingresos"]);
+const needsReview=t=>!isOffice(t)&&REVIEW_CATS.has(t.cat);
+function findTx(id){ const M=allMonths(); for(const ym in M){ const t=(M[ym].tx||[]).find(x=>x.id===id); if(t) return {ym,t}; } return null; }
+function merchantKey(desc){
+  let d=norm(desc).replace(/^\*\//,"").replace(/^\d{6,}[\dK]?\s+/,"");
+  d=d.replace(/\b(MERCADOPAGO|MERPAGO|MP|TUU|PAYU|KUSHKI|FINTOC|SUMUP|GETNET|TRANSBANK)\s*\*\s*/g,"").replace(/\*/g," ");
+  if(/^(TRANSF(ERENCIA)?\.?|TRASPASO)\b/.test(d)){ d=d.replace(/^(TRANSF(ERENCIA)?\.?|TRASPASO)\s+((A|DE)\s+)?/,""); return d.split(" ").filter(w=>w.length>1).slice(0,2).join(" "); }
+  const STOP=new Set(["SANTIAGO","LAS","CONDES","VITACURA","PROVIDENCIA","NUNOA","MAIPU","LA","EL","LOS","DE","DEL","Y","CL","SPA","LTDA","SA","CHILE","APP"]);
+  const w=d.split(" ").filter(x=>x&&!/^\d+$/.test(x)&&!/\d{3,}/.test(x));
+  const key=[]; for(const x of w){ if(key.length&&STOP.has(x))break; if(!key.length&&STOP.has(x))continue; key.push(x); if(key.length>=2||(key.length===1&&x.length>=8))break; }
+  return key.join(" ")||w.slice(0,2).join(" ");
+}
+function similarTx(key,exceptId){ const k=norm(key); if(k.length<3)return []; const out=[]; const M=allMonths(); for(const ym in M)(M[ym].tx||[]).forEach(t=>{ if(t.id!==exceptId&&norm(t.bankDesc||t.desc).includes(k)) out.push({ym,t}); }); return out; }
+let ed=null;
+function openEdit(id){
+  const f=findTx(id); if(!f){toast("No encontré ese movimiento.");return}
+  const t=f.t; ed={id,ym:f.ym,orig:clone(t),v:clone(t),key:merchantKey(t.bankDesc||t.desc),touched:false};
+  if(!ed.v.scope)ed.v.scope=isOffice(t)?"oficina":"personal";
+  renderEdit(); showSheet("#edit"); $("#editBody").scrollTop=0;
+}
+function renderEdit(){
+  const v=ed.v, sim=similarTx(ed.key,ed.id);
+  const catList=(CATS[v.type]||[]).filter(c=>c!==OFFICE);
+  const canScope=v.type!=="traspaso"&&v.cat!==SAVINGS&&v.cat!==RESCUE;
+  $("#editSub").textContent=(v.bankDesc&&v.bankDesc!==v.desc?"Banco: "+v.bankDesc+" · ":"")+(v.checked?"En cartola":"Anotado a mano");
+  $("#editBody").innerHTML=`<div class="ef">
+    <label class="field">Nombre<input id="eDesc" type="text" value="${esc(v.desc)}" autocomplete="off"></label>
+    <div class="row2"><label class="field">Monto<input id="eAmt" type="text" inputmode="numeric" value="${esc(String(v.amount))}"></label><label class="field">Fecha<input id="eDate" type="date" value="${esc(v.date)}"></label></div>
+    <div><div class="eflabel">Tipo</div><div class="seg3">${["gasto","ingreso","traspaso"].map(x=>`<button type="button" data-et="${x}" aria-pressed="${v.type===x}">${x==="gasto"?"− Gasto":x==="ingreso"?"+ Ingreso":"⇄ Traspaso"}</button>`).join("")}</div></div>
+    <div><div class="eflabel">Categoría</div><div class="chips2">${catList.map(c=>`<button type="button" data-ec="${esc(c)}" aria-pressed="${v.cat===c}">${ICON[c]||"•"} <span>${esc(c)}</span></button>`).join("")}</div></div>
+    ${canScope?`<div><div class="eflabel">¿De quién es?</div><div class="seg2"><button type="button" data-es="personal" aria-pressed="${v.scope!=="oficina"}">👤 Personal</button><button type="button" data-es="oficina" aria-pressed="${v.scope==="oficina"}">🧾 ${v.type==="ingreso"?"Reembolso oficina":"Oficina (se rinde)"}</button></div></div>`:""}
+    <div class="row2"><label class="field">Cuenta<select id="eAcct">${acctOptions(v.account)}</select></label><div><div class="eflabel">Se repite</div><div class="seg2"><button type="button" data-en="variable" aria-pressed="${v.nature!=="fijo"}">Variable</button><button type="button" data-en="fijo" aria-pressed="${v.nature==="fijo"}">Fijo</button></div></div></div>
+    <div class="simbox">
+      <label><input type="checkbox" id="eSim" ${sim.length&&ed.touched?"checked":""} ${sim.length?"":"disabled"}> <span>Aplicar también a <b id="eSimN">${sim.length}</b> movimiento${sim.length===1?"":"s"} parecido${sim.length===1?"":"s"}</span></label>
+      <label><input type="checkbox" id="eRule" ${ed.touched?"checked":""}> <span>Recordar para las próximas cartolas</span></label>
+      <label class="field" style="display:grid;gap:4px;font-size:12.5px;color:var(--muted)">Se reconocen por el texto<input id="eKey" type="text" value="${esc(ed.key)}" autocomplete="off"></label>
+    </div>
+  </div>
+  <div class="efactions"><button class="btn" id="eDel" type="button" style="color:var(--crit)">Eliminar</button><div style="display:flex;gap:8px"><button class="btn" id="eCancel" type="button">Cancelar</button><button class="btn primary" id="eSave" type="button">Guardar</button></div></div>`;
+}
+function readEditInputs(){ const v=ed.v; v.desc=$("#eDesc").value.trim()||v.bankDesc||v.desc; const a=Math.abs(Math.round(parseAmount($("#eAmt").value))); if(a)v.amount=a; if($("#eDate").value)v.date=$("#eDate").value; v.account=$("#eAcct").value; ed.key=$("#eKey").value.trim(); }
+function applyEdit(t,v,keepOwn){
+  if(keepOwn){ t.desc=v.desc; t.amount=v.amount; t.date=v.date; t.account=v.account; }
+  t.type=v.type; t.cat=v.cat; t.nature=v.nature;
+  const canScope=v.type!=="traspaso"&&v.cat!==SAVINGS&&v.cat!==RESCUE;
+  if(canScope&&v.scope==="oficina"){ t.scope="oficina"; if(t.type==="gasto")t.rstat=t.rstat||"pendiente"; if(t.type==="ingreso")t.cat=OFFICE_IN; }
+  else { t.scope="personal"; delete t.rstat; delete t.rbatch; if(t.cat===OFFICE_IN)t.cat="Reembolsos"; }
+  if(t.cat!==SAVINGS&&t.cat!==RESCUE) delete t.inv;
+}
+function saveEdit(){
+  readEditInputs(); const v=ed.v; const newYm=ymOf(v.date);
+  if(!(CATS[v.type]||[]).includes(v.cat)&&v.cat!==OFFICE_IN){ v.cat=v.type==="ingreso"?"Otros ingresos":v.type==="traspaso"?"Traspaso / pago TC":"Otros gastos"; }
+  const doSim=$("#eSim")&&$("#eSim").checked, doRule=$("#eRule")&&$("#eRule").checked;
+  const sim=doSim?similarTx(ed.key,ed.id):[];
+  // el movimiento editado (puede cambiar de mes)
+  if(newYm!==ed.ym){ let moved=null; mutateMonth(ed.ym,cur=>{const i=cur.tx.findIndex(x=>x.id===ed.id); if(i>=0){moved=cur.tx.splice(i,1)[0]}}); if(moved){applyEdit(moved,v,true); mutateMonth(newYm,cur=>cur.tx.push(moved));} }
+  else mutateMonth(ed.ym,cur=>{const t=cur.tx.find(x=>x.id===ed.id); if(t)applyEdit(t,v,true)});
+  const byYm={}; sim.forEach(r=>(byYm[r.ym]=byYm[r.ym]||[]).push(r.t.id));
+  Object.entries(byYm).forEach(([ym,ids])=>mutateMonth(ym,cur=>cur.tx.forEach(t=>{ if(ids.includes(t.id)) applyEdit(t,v,false) })));
+  if(doRule&&norm(ed.key).length>=3){ mutateConfig(c=>{ c.rules=(c.rules||[]).filter(r=>norm(r.kw)!==norm(ed.key)); const r={kw:ed.key.toUpperCase(),cat:v.scope==="oficina"&&v.type==="gasto"?OFFICE:v.cat}; if(v.scope==="oficina"&&v.type==="ingreso")r.cat=OFFICE_IN; c.rules.push(r); }); }
+  hideSheet("#edit");
+  toast(`Guardado${sim.length?` · también en ${sim.length} parecido${sim.length===1?"":"s"}`:""}${doRule&&norm(ed.key).length>=3?" · regla recordada":""}`);
+  ed=null;
+}
+function bindEdit(){
+  $("#editClose").addEventListener("click",()=>hideSheet("#edit"));
+  $("#editBody").addEventListener("click",e=>{
+    const b=e.target.closest("button"); if(!b||!ed)return;
+    if(b.id==="eCancel"){hideSheet("#edit");return}
+    if(b.id==="eSave"){saveEdit();return}
+    if(b.id==="eDel"){ if(b.dataset.armed){ mutateMonth(ed.ym,cur=>{cur.tx=cur.tx.filter(x=>x.id!==ed.id)}); hideSheet("#edit"); toast("Movimiento eliminado"); ed=null; } else { b.dataset.armed="1"; b.textContent="¿Seguro? Toca de nuevo"; setTimeout(()=>{if(b.isConnected){delete b.dataset.armed;b.textContent="Eliminar"}},3000);} return }
+    readEditInputs(); const v=ed.v;
+    if(b.dataset.et){ v.type=b.dataset.et; if(!(CATS[v.type]||[]).includes(v.cat)) v.cat=v.type==="ingreso"?"Otros ingresos":v.type==="traspaso"?"Traspaso / pago TC":"Otros gastos"; ed.touched=true; }
+    else if(b.dataset.ec){ v.cat=b.dataset.ec; v.nature=FIXED_CATS.has(v.cat)?"fijo":"variable"; ed.touched=true; }
+    else if(b.dataset.es){ v.scope=b.dataset.es; ed.touched=true; }
+    else if(b.dataset.en){ v.nature=b.dataset.en; }
+    else return;
+    const st=$("#editBody").scrollTop; renderEdit(); $("#editBody").scrollTop=st;
+  });
+  $("#editBody").addEventListener("input",e=>{ if(e.target.id==="eKey"&&ed){ ed.key=e.target.value; const n=similarTx(ed.key,ed.id).length; $("#eSimN").textContent=n; $("#eSim").disabled=!n; if(!n)$("#eSim").checked=false; } });
 }
 function flowCard(s){
   if(!s.inc&&!s.exp)return "";
@@ -1562,9 +1669,12 @@ function bindUI(){
   const closeSheet=()=>document.body.classList.remove("sheet-open");
   $("#fab").addEventListener("click",()=>{ if(state.tab!=="movs")setTab("movs"); openSheet(); });
   $("#closeSheet").addEventListener("click",closeSheet); $("#scrim").addEventListener("click",closeSheet);
-  document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeSheet();closeDrill()} if((e.key==="Enter"||e.key===" ")&&e.target.dataset&&e.target.dataset.drill){e.preventDefault();openDrill(e.target.dataset.drill)}});
-document.addEventListener("click",e=>{ const g=e.target.closest("[data-go]"); if(g){goToTx(g.dataset.go);return} const d=e.target.closest("[data-drill]"); if(d&&d.dataset.drill&&d.dataset.drill!=="undefined"){openDrill(d.dataset.drill)} });
-$("#drillClose").addEventListener("click",closeDrill); $("#drillScrim").addEventListener("click",closeDrill);
+  document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeSheet();closeDrill();hideSheet("#edit")} if((e.key==="Enter"||e.key===" ")&&e.target.dataset&&e.target.dataset.drill){e.preventDefault();openDrill(e.target.dataset.drill)}});
+document.addEventListener("click",e=>{ const rv=e.target.closest("[data-review]"); if(rv){ setTab("movs"); $("#qType").value="revisar"; renderMovs(); return }
+  const op=e.target.closest("[data-open]"); if(op){ openEdit(op.dataset.open); return }
+  const sm=e.target.closest("#movList details > summary"); if(sm){ e.preventDefault(); openEdit(sm.parentElement.dataset.id); return }
+  const g=e.target.closest("[data-go]"); if(g){goToTx(g.dataset.go);return} const d=e.target.closest("[data-drill]"); if(d&&d.dataset.drill&&d.dataset.drill!=="undefined"){openDrill(d.dataset.drill)} });
+$("#drillClose").addEventListener("click",closeDrill); $("#drillScrim").addEventListener("click",()=>{closeDrill();hideSheet("#edit")}); bindEdit();
   $("#segs").addEventListener("click",e=>{const b=e.target.closest("[data-seg]"); if(!b)return; $("#fType").value=b.dataset.seg; $("#fType").dispatchEvent(new Event("change")); document.querySelectorAll("#segs button").forEach(x=>x.setAttribute("aria-pressed",x===b)); });
   $("#addForm").addEventListener("submit",()=>{ if(matchMedia('(max-width:640px)').matches) setTimeout(closeSheet,50); });
   matchMedia('(max-width:640px)').addEventListener("change",()=>{closeSheet(); render()});

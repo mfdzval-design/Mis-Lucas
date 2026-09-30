@@ -507,7 +507,45 @@ details.litem[open]{background:var(--surface-2);border-radius:14px;margin-block:
 .appfoot{text-align:center;color:var(--muted);font-size:12px;padding:28px 0 8px}
 .who{cursor:pointer;color:var(--ink)}
 .who .av{width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-weight:800;font-size:13px}
-#lock{position:fixed;inset:0;z-index:100;background:var(--bg);display:grid;place-items:center;padding:24px}
+#lock{position:fixed;inset:0;z-index:100;background:var(--bg);display:grid;place-items:center;padding:24px calc(24px + env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px))}
+.lockav{width:72px;height:72px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-weight:800;font-size:30px;box-shadow:0 8px 24px color-mix(in srgb,var(--accent) 35%,transparent)}
+.dots{display:flex;gap:16px;justify-content:center;margin:14px 0 6px}
+.dots i{width:14px;height:14px;border-radius:50%;border:2px solid var(--line-2);transition:background .12s,border-color .12s}
+.dots i.on{background:var(--accent);border-color:var(--accent)}
+.dots.err{animation:shake .38s}
+@keyframes shake{20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+.keypad{display:grid;grid-template-columns:repeat(3,72px);gap:14px 22px;justify-content:center;margin-top:10px}
+.keypad button{width:72px;height:72px;border-radius:50%;border:0;background:var(--surface);box-shadow:var(--shadow);font-size:26px;font-weight:600;color:var(--ink);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.keypad button:active{background:var(--accent-soft)}
+.keypad button.ghost{background:transparent;box-shadow:none;font-size:15px;color:var(--ink-2)}
+.keypad button:disabled{opacity:.35}
+.lockfoot{margin-top:18px}
+.lockhelp{max-width:340px;text-align:left;border:1px solid var(--line);border-radius:14px;padding:14px;background:var(--surface);font-size:13.5px;color:var(--ink-2);display:grid;gap:10px}
+/* bienvenida y configuración inicial */
+.onb{position:fixed;inset:0;z-index:95;background:var(--bg);overflow:auto;-webkit-overflow-scrolling:touch;padding:calc(20px + env(safe-area-inset-top,0px)) 20px calc(24px + env(safe-area-inset-bottom,0px))}
+.onb .in{max-width:440px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;gap:16px}
+.onb .logo{display:flex;align-items:center;gap:12px;margin-top:10px}
+.onb .logo img{width:52px;height:52px;border-radius:14px}
+.onb .logo b{font-size:26px;font-weight:800;letter-spacing:-.02em}.onb .logo b span{color:var(--accent)}
+.onb h1{font-size:28px;line-height:1.15;letter-spacing:-.02em}
+.onb .lead{color:var(--ink-2);font-size:15.5px;margin:0}
+.onb .pts{display:grid;gap:12px;margin:6px 0}
+.onb .pts div{display:grid;grid-template-columns:40px 1fr;gap:12px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px;font-size:14px}
+.onb .pts i{font-style:normal;font-size:22px;width:40px;height:40px;border-radius:12px;background:var(--accent-soft);display:grid;place-items:center}
+.onb .acts{display:grid;gap:10px;margin-top:auto;padding-top:10px}
+.onb .acts .btn{width:100%;justify-content:center;padding:14px;font-size:15.5px;border-radius:14px}
+.onb .prog{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.onb .prog i{height:5px;border-radius:9px;background:var(--line)}
+.onb .prog i.on{background:var(--accent)}
+.onb .sustep{font-size:13px;color:var(--muted);font-weight:600}
+.onb .field input{width:100%;font-size:17px;padding:13px 14px}
+.onb .opts{display:grid;gap:10px}
+.onb .opt{display:grid;grid-template-columns:40px 1fr;gap:12px;align-items:center;text-align:left;border:1.5px solid var(--line);background:var(--surface);border-radius:14px;padding:13px;font:inherit;color:var(--ink);cursor:pointer}
+.onb .opt b{display:block;font-size:15px}.onb .opt small{color:var(--muted);font-size:12.5px}
+.onb .opt i{font-style:normal;font-size:22px;width:40px;height:40px;border-radius:12px;background:var(--surface-2);display:grid;place-items:center}
+.onb .opt[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 22%,transparent)}
+.onb .err{color:var(--crit);font-size:13px;min-height:1.2em}
+.onb .back{align-self:flex-start}
 .lockbox{text-align:center;display:grid;gap:8px;justify-items:center}
 .lockbox .lockic{font-size:40px}
 .lockbox h2{font-size:22px}
@@ -620,12 +658,7 @@ body.bs-open #drillScrim{display:block}
 
   <div class="banner" id="exampleBanner" hidden>
     <p><strong><span id="welcomeName">Bienvenido</span> a Mis Lucas.</strong> Estás viendo datos de ejemplo: nada de esto es tuyo ni se guarda. Cuando empieces, la app queda vacía y todo lo que registres se guarda solo en este teléfono o computador.</p>
-    <button class="btn primary" id="startBtn">Empezar con mis datos</button>
-    <form class="inlineform" id="onboard" hidden style="width:100%">
-      <label class="field">¿Cómo te llamas?<input id="obName" autocomplete="given-name" required placeholder="Tu nombre"></label>
-      <label class="field">PIN de 4 dígitos (opcional)<input id="obPin" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="••••"></label>
-      <button class="btn primary" type="submit">Crear mi espacio</button>
-    </form>
+    <button class="btn primary" id="startBtn">Crear mi espacio</button>
   </div>
 
   <main>
@@ -752,9 +785,71 @@ body.bs-open #drillScrim{display:block}
   <div class="dhead"><div><h2 id="editTitle">Editar movimiento</h2><div class="sub" id="editSub"></div></div><button class="iconbtn" id="editClose" type="button" aria-label="Cerrar">✕</button></div>
   <div id="editBody"></div>
 </div>
-<div id="lock" hidden><div class="lockbox"><div class="lockic">🔒</div><h2 id="lockHi">Mis Lucas</h2><p id="lockAsk">Ingresa tu PIN</p><input id="lockPin" type="password" inputmode="numeric" maxlength="4" autocomplete="off" aria-label="PIN">
-  <form id="lockPass" hidden><input id="lockPassIn" type="password" autocomplete="current-password" aria-label="Contraseña"><button class="btn primary" type="submit">Entrar</button></form>
-  <p class="muted" id="lockMsg" style="min-height:1.2em"></p></div></div>
+<div id="lock" hidden><div class="lockbox">
+  <div class="lockav" id="lockAv">•</div><h2 id="lockHi">Mis Lucas</h2><p id="lockAsk">Ingresa tu PIN</p>
+  <div id="lockPinBox"><div class="dots" id="lockDots" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+    <input id="lockPin" type="password" inputmode="numeric" maxlength="4" autocomplete="off" aria-label="PIN" style="position:absolute;opacity:0;pointer-events:none;width:1px;height:1px">
+    <div class="keypad" id="keypad"><button type="button" data-k="1">1</button><button type="button" data-k="2">2</button><button type="button" data-k="3">3</button><button type="button" data-k="4">4</button><button type="button" data-k="5">5</button><button type="button" data-k="6">6</button><button type="button" data-k="7">7</button><button type="button" data-k="8">8</button><button type="button" data-k="9">9</button><span></span><button type="button" data-k="0">0</button><button type="button" class="ghost" data-k="del" aria-label="Borrar">⌫</button></div></div>
+  <form id="lockPass" hidden><input id="lockPassIn" type="password" autocomplete="current-password" aria-label="Contraseña" placeholder="Contraseña"><button class="btn primary" type="submit">Entrar</button></form>
+  <p class="muted" id="lockMsg" style="min-height:1.2em;margin-top:6px"></p>
+  <button class="linkbtn lockfoot" type="button" id="lockForgot">¿Olvidaste tu código?</button>
+  <div class="lockhelp" id="lockHelp" hidden>
+    <div><b>Mis Lucas no tiene servidor</b>, así que nadie puede recuperar tu código: es lo que mantiene tus datos privados.</div>
+    <div>Si tienes un <b>respaldo</b>, puedes borrar los datos de este teléfono y restaurarlo: quedas con tus datos y sin código.</div>
+    <button class="btn" type="button" id="lockWipe" style="color:var(--crit)">Borrar los datos de este teléfono</button>
+    <button class="linkbtn" type="button" id="lockHelpClose">Volver a intentar</button>
+  </div>
+</div></div>
+<div id="welcome" class="onb" hidden><div class="in">
+  <div class="logo"><img src="icons/icon-192.png" alt=""><b>Mis <span>Lucas</span></b></div>
+  <h1>Tus lucas, claras y en orden.</h1>
+  <p class="lead">Sube la cartola de tu banco y en un minuto ves en qué se va tu plata, cuánto ahorras y dónde ajustar.</p>
+  <div class="pts">
+    <div><i>📄</i><span><b>Lee tus cartolas</b> de Santander e Itaú, en PDF o Excel, y ordena todo solo.</span></div>
+    <div><i>📊</i><span><b>Te muestra el mes</b>: lo que entró, lo que gastaste y cuánto ahorraste.</span></div>
+    <div><i>🔒</i><span><b>Privado de verdad</b>: tus datos quedan solo en este teléfono, sin cuentas ni servidores.</span></div>
+  </div>
+  <div class="acts">
+    <button class="btn primary" type="button" id="wStart">Crear mi espacio</button>
+    <button class="btn" type="button" id="wDemo">Ver con datos de ejemplo</button>
+    <button class="linkbtn" type="button" id="wRestore" style="justify-self:center">Tengo un respaldo</button>
+  </div>
+</div></div>
+<div id="setup" class="onb" hidden><div class="in">
+  <button class="linkbtn back" type="button" id="suBack">‹ Atrás</button>
+  <div class="prog" id="suProg"><i></i><i></i><i></i></div>
+  <div class="sustep" id="suStep"></div>
+  <section data-su="1">
+    <h1>¿Cómo te llamas?</h1>
+    <p class="lead" style="margin:8px 0 16px">Así te saluda la app. El correo es opcional: sirve para identificarte en tus respaldos.</p>
+    <label class="field">Nombre<input id="suName" autocomplete="given-name" placeholder="Tu nombre"></label>
+    <label class="field" style="margin-top:12px">Correo (opcional)<input id="suEmail" type="email" inputmode="email" autocomplete="email" placeholder="tu@correo.com"></label>
+  </section>
+  <section data-su="2" hidden>
+    <h1>Protege tu app</h1>
+    <p class="lead" style="margin:8px 0 16px">Se pide al abrir Mis Lucas. Puedes cambiarlo después en tu menú.</p>
+    <div class="opts" id="suMode">
+      <button class="opt" type="button" data-mode="pin" aria-pressed="true"><i>🔢</i><span><b>PIN de 4 números</b><small>Rápido de escribir</small></span></button>
+      <button class="opt" type="button" data-mode="pass" aria-pressed="false"><i>🔑</i><span><b>Contraseña</b><small>Más segura, mínimo 6 caracteres</small></span></button>
+      <button class="opt" type="button" data-mode="none" aria-pressed="false"><i>🔓</i><span><b>Sin código</b><small>Cualquiera con tu teléfono podrá ver tus números</small></span></button>
+    </div>
+    <div id="suCodes" style="margin-top:14px;display:grid;gap:12px">
+      <label class="field"><span id="suCodeLbl">PIN</span><input id="suCode" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password" placeholder="••••"></label>
+      <label class="field">Repítelo<input id="suCode2" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password" placeholder="••••"></label>
+    </div>
+  </section>
+  <section data-su="3" hidden>
+    <h1>¿Por dónde partimos?</h1>
+    <p class="lead" style="margin:8px 0 16px">Elige una. Lo demás lo encuentras en la app cuando quieras.</p>
+    <div class="opts" id="suGo">
+      <button class="opt" type="button" data-go2="import" aria-pressed="true"><i>📄</i><span><b>Subir mi cartola</b><small>El PDF o Excel que te manda el banco (recomendado)</small></span></button>
+      <button class="opt" type="button" data-go2="add" aria-pressed="false"><i>✍️</i><span><b>Anotar un gasto</b><small>Para partir de a poco o registrar efectivo</small></span></button>
+      <button class="opt" type="button" data-go2="home" aria-pressed="false"><i>👀</i><span><b>Explorar la app</b><small>Empiezo vacío y veo cómo funciona</small></span></button>
+    </div>
+  </section>
+  <div class="err" id="suErr"></div>
+  <div class="acts"><button class="btn primary" type="button" id="suNext">Continuar</button></div>
+</div></div>
 <div id="umenu" class="umenu" role="menu" aria-label="Cuenta" hidden>
   <div class="uhead"><div class="uav" id="uAv">•</div><div class="uname" id="uName">Tu perfil</div><div class="umail" id="uMail"></div><div class="ubadge" id="uBadge"></div></div>
   <button role="menuitem" type="button" data-acct="perfil"><span class="ui">👤</span>Perfil personal</button>
@@ -1035,15 +1130,24 @@ function loadLocal(){
 function boot(){
   loadLocal(); bindUI(); bindLocal(); bindAccount(); showWho(); setSync(); render();
   if(state.pinHash){ lockNow(); }
+  else if(state.example){ let seen=null; try{seen=localStorage.getItem("ml_seen")}catch(e){} if(!seen) showWelcome(); }
   if("serviceWorker" in navigator && location.protocol.startsWith("http")){
     const had=!!navigator.serviceWorker.controller;
     navigator.serviceWorker.register("sw.js").then(reg=>{ document.addEventListener("visibilitychange",()=>{ if(!document.hidden)reg.update().catch(()=>{}) }); }).catch(()=>{});
     navigator.serviceWorker.addEventListener("controllerchange",()=>{ if(had)$("#updBar").hidden=false; });
   }
 }
-function lockNow(){ closeUMenu(); const pass=(state.prof||{}).mode==="pass"; $("#lock").hidden=false; $("#lockHi").textContent=firstName()?"Hola, "+firstName():"Mis Lucas";
-  $("#lockAsk").textContent=pass?"Ingresa tu contraseña":"Ingresa tu PIN"; $("#lockPin").hidden=pass; $("#lockPass").hidden=!pass; $("#lockPin").value=""; $("#lockPassIn").value=""; $("#lockMsg").textContent="";
-  setTimeout(()=>(pass?$("#lockPassIn"):$("#lockPin")).focus(),60); }
+function lockNow(){ closeUMenu(); const pass=(state.prof||{}).mode==="pass"; $("#lock").hidden=false; $("#lockHi").textContent=firstName()?"Hola, "+firstName():"Mis Lucas"; $("#lockAv").textContent=(firstName()[0]||"•").toUpperCase();
+  $("#lockAsk").textContent=pass?"Ingresa tu contraseña":"Ingresa tu PIN"; $("#lockPinBox").hidden=pass; $("#lockPass").hidden=!pass; lockVal=""; drawDots(); $("#lockPassIn").value=""; $("#lockMsg").textContent=""; $("#lockHelp").hidden=true; $("#lockForgot").hidden=false;
+  if(pass) setTimeout(()=>$("#lockPassIn").focus(),60); lockCooldown(); }
+let lockVal="", lockFails=0, lockUntil=0;
+function drawDots(){ document.querySelectorAll("#lockDots i").forEach((d,i)=>d.classList.toggle("on",i<lockVal.length)); }
+function lockCooldown(){ const left=Math.ceil((lockUntil-Date.now())/1000); const off=left>0; document.querySelectorAll("#keypad button").forEach(b=>{ if(b.dataset.k!=="help")b.disabled=off }); const pb=$("#lockPass button"); if(pb)pb.disabled=off;
+  if(off){ $("#lockMsg").textContent=`Demasiados intentos. Espera ${left} s.`; setTimeout(lockCooldown,1000);} else if(/Demasiados/.test($("#lockMsg").textContent)) $("#lockMsg").textContent=""; }
+async function tryUnlock(code){ if(Date.now()<lockUntil)return; if(await sha(code)===state.pinHash){ lockFails=0; $("#lock").hidden=true; lockVal=""; drawDots(); return true }
+  lockFails++; const pass=(state.prof||{}).mode==="pass"; $("#lockMsg").textContent=(pass?"Contraseña incorrecta":"PIN incorrecto")+(lockFails>=3&&lockFails<5?` · te quedan ${5-lockFails} intentos`:"");
+  const d=$("#lockDots"); d.classList.remove("err"); void d.offsetWidth; d.classList.add("err"); lockVal=""; setTimeout(drawDots,250); if(navigator.vibrate)navigator.vibrate(120);
+  if(lockFails>=5){ lockFails=0; lockUntil=Date.now()+30000; lockCooldown(); } return false; }
 function saveProfile(patch){ state.prof=Object.assign({},state.prof||{},patch); state.prof.name=state.name; state.prof.pin=state.pinHash; lsSet(LS_PROFILE,state.prof); showWho(); }
 function applyTheme(){ const t=(state.prof||{}).theme||"auto"; if(t==="auto")delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme=t; }
 const THEME_LBL={auto:"Automático",light:"Claro",dark:"Oscuro"};
@@ -1097,7 +1201,16 @@ function bindAccount(){
     delete b.dataset.armed; b.textContent="Quitar código"; state.pinHash=""; saveProfile({mode:"pin"}); afterSave(b,"Código quitado",()=>hideSheet("#acct")); okToast("Código quitado: la app ya no pide PIN"); });
   $("#thSeg").addEventListener("click",e=>{ const b=e.target.closest("[data-th]"); if(!b)return; saveProfile({theme:b.dataset.th}); applyTheme(); document.querySelectorAll("#thSeg [data-th]").forEach(x=>x.setAttribute("aria-pressed",x===b)); okToast("Tema: "+THEME_LBL[b.dataset.th]); });
   $("#abUpd").addEventListener("click",async()=>{ $("#abMsg").textContent="Buscando…"; try{ const r=navigator.serviceWorker&&await navigator.serviceWorker.getRegistration(); if(r){ await r.update(); } const h=await (await fetch("index.html",{cache:"no-store"})).text(); const v=(h.match(/APP_VERSION = "([^"]*)"/)||[])[1]; $("#abMsg").textContent=v&&v!==APP_VERSION?`Hay una versión nueva (${v}). Cierra y vuelve a abrir la app para actualizar.`:"Tienes la última versión."; }catch(err){ $("#abMsg").textContent="No pude revisar ahora. ¿Tienes internet?"; } });
-  $("#lockPass").addEventListener("submit",async e=>{ e.preventDefault(); if(await sha($("#lockPassIn").value)===state.pinHash){ $("#lock").hidden=true; } else { $("#lockMsg").textContent="Contraseña incorrecta"; $("#lockPassIn").value=""; } });
+  $("#lockPass").addEventListener("submit",async e=>{ e.preventDefault(); const ok=await tryUnlock($("#lockPassIn").value); if(!ok)$("#lockPassIn").value=""; });
+  $("#keypad").addEventListener("click",e=>{ const b=e.target.closest("[data-k]"); if(!b||b.disabled)return; const k=b.dataset.k;
+    if(k==="help"){ $("#lockHelp").hidden=false; $("#lockForgot").hidden=true; return }
+    if(k==="del"){ lockVal=lockVal.slice(0,-1); drawDots(); return }
+    if(lockVal.length<4){ lockVal+=k; drawDots(); if(lockVal.length===4) setTimeout(()=>tryUnlock(lockVal),120); } });
+  document.addEventListener("keydown",e=>{ if($("#lock").hidden||!$("#lockPass").hidden)return; if(/^\d$/.test(e.key)){ const b=document.querySelector(`#keypad [data-k="${e.key}"]`); b&&b.click(); } else if(e.key==="Backspace"){ document.querySelector('#keypad [data-k="del"]').click(); } });
+  $("#lockForgot").addEventListener("click",()=>{ $("#lockHelp").hidden=false; $("#lockForgot").hidden=true; });
+  $("#lockHelpClose").addEventListener("click",()=>{ $("#lockHelp").hidden=true; $("#lockForgot").hidden=false; });
+  $("#lockWipe").addEventListener("click",e=>{ const b=e.currentTarget; if(!b.dataset.armed){ b.dataset.armed="1"; b.textContent="Se borra todo lo de este teléfono. ¿Seguro?"; setTimeout(()=>{ if(b.isConnected){delete b.dataset.armed; b.textContent="Borrar los datos de este teléfono"} },4000); return }
+    try{ localStorage.removeItem(LS_DATA); localStorage.removeItem(LS_PROFILE); localStorage.removeItem("ml_seen"); }catch(err){} location.reload(); });
 }
 function firstName(){ const n=(state.prof&&state.prof.nick)||state.name||""; return n.trim().split(/\s+/)[0]||""; }
 function showWho(){ const w=$("#who"); if(state.example&&!state.name){w.hidden=true} else { w.hidden=false; $("#whoName").textContent=firstName()||"Perfil"; $("#whoAv").textContent=(firstName()[0]||"•").toUpperCase(); }
@@ -1108,18 +1221,36 @@ async function saveFile(filename,data,type){
   try{ const f=new File([blob],filename,{type:blob.type}); if(navigator.canShare&&navigator.canShare({files:[f]})&&/iPhone|iPad|Android/i.test(navigator.userAgent)){ await navigator.share({files:[f],title:filename}); return } }catch(e){ if(e&&e.name==="AbortError")return }
   const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=filename; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500);
 }
+function showWelcome(){ $("#welcome").hidden=false; }
+function openSetup(){ $("#welcome").hidden=true; state.su={step:1,mode:"pin",go:"import"}; $("#suName").value=state.name||""; $("#suEmail").value=((state.prof||{}).email)||""; $("#setup").hidden=false; drawSetup(); setTimeout(()=>$("#suName").focus(),80); }
+function drawSetup(){ const S=state.su; document.querySelectorAll("#setup [data-su]").forEach(x=>x.hidden=+x.dataset.su!==S.step); document.querySelectorAll("#suProg i").forEach((x,i)=>x.classList.toggle("on",i<S.step));
+  $("#suStep").textContent=`Paso ${S.step} de 3`; $("#suErr").textContent=""; $("#suNext").textContent=S.step===3?"Empezar":"Continuar";
+  document.querySelectorAll("#suMode [data-mode]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.mode===S.mode)); document.querySelectorAll("#suGo [data-go2]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.go2===S.go));
+  $("#suCodes").hidden=S.mode==="none"; const pass=S.mode==="pass"; ["#suCode","#suCode2"].forEach(k=>{const i=$(k); i.inputMode=pass?"text":"numeric"; i.maxLength=pass?64:4; i.placeholder=pass?"Mínimo 6 caracteres":"••••"}); $("#suCodeLbl").textContent=pass?"Contraseña":"PIN de 4 números"; }
+async function setupNext(){ const S=state.su;
+  if(S.step===1){ const n=$("#suName").value.trim(), m=$("#suEmail").value.trim(); if(!n){$("#suErr").textContent="Escribe tu nombre para seguir.";return} if(m&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(m)){$("#suErr").textContent="Ese correo no parece válido (o déjalo vacío).";return} S.name=n; S.email=m; S.step=2; drawSetup(); return }
+  if(S.step===2){ if(S.mode!=="none"){ const c=$("#suCode").value, c2=$("#suCode2").value; if(S.mode==="pin"&&!/^\d{4}$/.test(c)){$("#suErr").textContent="El PIN debe tener 4 números.";return} if(S.mode==="pass"&&c.length<6){$("#suErr").textContent="La contraseña debe tener al menos 6 caracteres.";return} if(c!==c2){$("#suErr").textContent="No coinciden. Escríbelo igual las dos veces.";return} S.hash=await sha(c); } else S.hash=""; S.step=3; drawSetup(); return }
+  // paso 3: crear espacio
+  state.name=S.name; state.pinHash=S.hash; state.prof={name:S.name,pin:S.hash,email:S.email||"",mode:S.mode==="pass"?"pass":"pin",autoLock:5,theme:(state.prof||{}).theme||"auto"}; lsSet(LS_PROFILE,state.prof); try{localStorage.setItem("ml_seen","1")}catch(e){}
+  state.example=false; state.config=defaultConfig(); state.months={}; state.ym=todayYM(); persist(); showWho(); $("#setup").hidden=true;
+  if(S.go==="import"){ setTab("import"); } else { setTab("resumen"); render(); if(S.go==="add") setTimeout(()=>openEdit(null),250); }
+  okToast(`Listo, ${firstName()}. Tu espacio está creado.`); }
 function bindLocal(){
-  $("#startBtn").addEventListener("click",()=>{ $("#startBtn").hidden=true; $("#onboard").hidden=false; $("#obName").focus(); });
-  $("#onboard").addEventListener("submit",async e=>{ e.preventDefault(); const name=$("#obName").value.trim(); const pin=$("#obPin").value.trim();
-    if(pin&&!/^\d{4}$/.test(pin)){toast("El PIN debe tener 4 números, o déjalo vacío.");return}
-    state.name=name; state.pinHash=pin?await sha(pin):""; state.prof={name,pin:state.pinHash,mode:"pin",autoLock:5}; lsSet(LS_PROFILE,state.prof);
-    state.example=false; state.config=defaultConfig(); state.months={}; state.ym=todayYM(); persist(); showWho(); render(); toast("Listo "+(firstName()||"")+". Parte subiendo tu cartola en Movimientos."); });
-  $("#lockPin").addEventListener("input",async e=>{ const v=e.target.value; if(v.length<4)return; if(await sha(v)===state.pinHash){ $("#lock").hidden=true; } else { $("#lockMsg").textContent="PIN incorrecto"; e.target.value=""; } });
+  $("#startBtn").addEventListener("click",openSetup);
+  $("#wStart").addEventListener("click",openSetup);
+  $("#wDemo").addEventListener("click",()=>{ $("#welcome").hidden=true; try{localStorage.setItem("ml_seen","1")}catch(e){} okToast("Estos son datos de ejemplo. Toca «Crear mi espacio» cuando quieras empezar."); });
+  $("#wRestore").addEventListener("click",()=>$("#bkFile").click());
+  $("#suBack").addEventListener("click",()=>{ const S=state.su; if(S.step>1){S.step--; drawSetup()} else { $("#setup").hidden=true; if(state.example)showWelcome(); } });
+  $("#suNext").addEventListener("click",setupNext);
+  $("#setup").addEventListener("input",()=>{ $("#suErr").textContent=""; });
+  $("#setup").addEventListener("keydown",e=>{ if(e.key==="Enter"&&e.target.tagName==="INPUT"){e.preventDefault(); setupNext();} });
+  $("#suMode").addEventListener("click",e=>{ const b=e.target.closest("[data-mode]"); if(!b)return; state.su.mode=b.dataset.mode; $("#suCode").value=""; $("#suCode2").value=""; drawSetup(); if(b.dataset.mode!=="none")setTimeout(()=>$("#suCode").focus(),50); });
+  $("#suGo").addEventListener("click",e=>{ const b=e.target.closest("[data-go2]"); if(!b)return; state.su.go=b.dataset.go2; drawSetup(); });
   document.addEventListener("visibilitychange",()=>{ const al=(state.prof||{}).autoLock==null?5:(state.prof||{}).autoLock; if(document.hidden&&state.pinHash){ state._hiddenAt=Date.now() } else if(!document.hidden&&state.pinHash&&al>=0&&state._hiddenAt&&Date.now()-state._hiddenAt>=al*60*1000){ lockNow() } });
   $("#bkExport").addEventListener("click",()=>{ if(state.example){toast("Aún no tienes datos propios que respaldar.");return} const d=new Date(); saveFile(`mis-lucas-respaldo-${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}.json`,JSON.stringify({app:"mis-lucas",v:1,exportedAt:d.toISOString(),profile:{name:state.name,email:(state.prof||{}).email||""},config:state.config,months:state.months}),"application/json"); saveProfile({lastBackup:new Date().toISOString()}); renderData(); markSaved($("#bkExport"),"Respaldo descargado"); });
   $("#bkFile").addEventListener("change",e=>{ const f=e.target.files[0]; e.target.value=""; if(!f)return; const fr=new FileReader(); fr.onload=()=>{ try{ const d=JSON.parse(fr.result); if(d.app!=="mis-lucas"||!d.config)throw 0;
       state.config=normalizeConfig(d.config); state.config.started=true; state.months={}; Object.entries(d.months||{}).forEach(([k,m])=>state.months[k]=normalizeMonth(m)); state.example=false; if(d.profile&&d.profile.name&&!state.name){state.name=d.profile.name} if(d.profile&&d.profile.email&&!(state.prof||{}).email){state.prof=Object.assign({},state.prof,{email:d.profile.email})} saveProfile({});
-      persist(); pickInitialMonth(); showWho(); render(); okToast("Respaldo restaurado"); }catch(err){ toast("Ese archivo no es un respaldo de Mis Lucas."); } }; fr.readAsText(f); });
+      persist(); pickInitialMonth(); showWho(); render(); $("#welcome").hidden=true; try{localStorage.setItem("ml_seen","1")}catch(e){} if(!state.name){ openSetup(); } okToast("Respaldo restaurado"); }catch(err){ toast("Ese archivo no es un respaldo de Mis Lucas."); } }; fr.readAsText(f); });
   $("#bkWipe").addEventListener("click",e=>{ const b=e.currentTarget; if(!b.dataset.armed){b.dataset.armed="1";b.textContent="¿Borrar todo? Toca de nuevo";setTimeout(()=>{if(b.isConnected){delete b.dataset.armed;b.textContent="Borrar todo"}},3500);return}
     try{localStorage.removeItem(LS_DATA);localStorage.removeItem(LS_PROFILE)}catch(err){} location.reload(); });
 }

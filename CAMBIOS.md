@@ -8,6 +8,9 @@ Cada versión publicada queda anotada aquí. El número de versión se ve al pie
 - El aviso ya no queda tapado por la barra de abajo en el celular.
 - Al tocar un movimiento se abre su ficha en modo lectura, con el botón "✎ Editar" (o "Categorizar" si está sin categoría). Al guardar, la ficha queda en verde "✓ Guardado" y el movimiento queda marcado "✓ Revisado por ti", también cuando lo vuelves a abrir y en la lista.
 - Después de categorizar aparece "Siguiente sin categoría ›" para ordenar el mes seguido.
+- Nueva bienvenida a pantalla completa la primera vez: "Crear mi espacio", "Ver con datos de ejemplo" o "Tengo un respaldo".
+- Configuración inicial en 3 pasos con barra de avance: nombre y correo, protección (PIN, contraseña o sin código, confirmando dos veces) y por dónde partir (subir cartola, anotar un gasto o explorar).
+- Nueva pantalla de inicio de sesión: tu inicial, 4 puntos y teclado numérico grande (o campo de contraseña), "¿Olvidaste tu código?" con las salidas posibles, y espera de 30 segundos tras 5 intentos fallidos.
 
 ## 1.4.0 beta · 30-sep-2026
 - Oficina deja de ser un sistema aparte: es la categoría de gasto "Oficina (te la devuelven)" y el reembolso de la empresa se resta de tus gastos, igual que las devoluciones de amigos. Se elimina la pestaña Rendir; tus gastos y reembolsos de oficina se convierten solos.

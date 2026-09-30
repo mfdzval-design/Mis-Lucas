@@ -2,6 +2,11 @@
 
 Cada versión publicada queda anotada aquí. El número de versión se ve al pie de la app.
 
+## 1.3.0 beta · 30-sep-2026
+- Toca un movimiento para editarlo completo: nombre, monto, fecha, tipo, categoría, personal u oficina, cuenta y fijo/variable.
+- Al cambiar la categoría puedes aplicarla a los movimientos parecidos y recordarla como regla para las próximas cartolas.
+- Nuevo filtro "Por categorizar" y aviso en el resumen con los movimientos que quedaron en "Otros".
+
 ## 1.2.0 beta · 29-sep-2026
 - Toca cualquier bloque del resumen (gastos fijos, variables, ahorro, resultado del mes, una categoría o una cuenta) y ves los movimientos que lo componen; tocando uno vas directo a editarlo.
 - Las devoluciones (amigos que te pagan su parte, reembolsos de seguros) se restan del gasto en vez de sumarse como ingreso.

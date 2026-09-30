@@ -2,6 +2,14 @@
 
 Cada versión publicada queda anotada aquí. El número de versión se ve al pie de la app.
 
+## 1.4.0 beta · (sin publicar)
+- Oficina deja de ser un sistema aparte: es la categoría de gasto "Oficina (te la devuelven)" y el reembolso de la empresa se resta de tus gastos, igual que las devoluciones de amigos. Se elimina la pestaña Rendir; tus gastos y reembolsos de oficina se convierten solos.
+- Un solo formulario para agregar y editar movimientos (el "+" abre la misma ficha).
+- Movimientos: una sola lista, un buscador y un selector (Todo, Gastos, Ingresos, Ahorro, Traspasos, Por categorizar). "Subir cartola" queda dentro de Movimientos.
+- Resumen sin tarjetas repetidas (fijo vs variable, gastos más grandes, oficina aparte, conciliación).
+- 5 pestañas: Inicio, Movimientos, Presupuesto, Ahorro y Ajustes. Ajustes sin la lista de fijos ni la tarjeta de conexión bancaria; reglas con buscador.
+- Arreglo: los botones que llevaban a otra pestaña no respondían.
+
 ## 1.3.0 beta · 30-sep-2026
 - Toca un movimiento para editarlo completo: nombre, monto, fecha, tipo, categoría, personal u oficina, cuenta y fijo/variable.
 - Al cambiar la categoría puedes aplicarla a los movimientos parecidos y recordarla como regla para las próximas cartolas.

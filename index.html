@@ -816,8 +816,20 @@ const DEFAULT_RULES = [
  ...R_(OFFICE_IN,"RENDICION","FONDO A RENDIR","REEMBOLSO GASTOS"),
  ...R_(RESCUE,"RESCATE")
 ];
+/* Reglas agregadas en v1.1: se suman una vez a los usuarios que ya tenían sus reglas */
+const RULES_V2 = [
+ ...R_("Supermercado","VERDULERIA","CARNICERIA","FRUTERIA","MINIMARKET"),
+ ...R_("Café y snacks","REPOSTER","PASTELERIA","PANADERIA"),
+ ...R_("Restaurantes y bares","RESTAURANTE","CEVICH","PICADA"),
+ ...R_("Salidas y carrete","LIQUOR","LICORERIA","LICORES"),
+ ...R_("Seguros","SEGURO","METLIFE","SURA","CONSORCIO"),
+ ...R_("Panoramas y ocio","TICKETPLUS","BOLETERIA","PASSLINE"),
+ ...R_("Compras varias","PAPELERIA","LIBRERIA"),
+ ...R_("Comisiones e intereses","COMISION ADMINISTRACION","INTERESES"),
+];
+DEFAULT_RULES.push(...RULES_V2);
 function normalizeMonth(m){ ((m&&m.tx)||[]).forEach(t=>{ t.cat=normCat(t.cat); if(t.cat===OFFICE){t.cat="Otros gastos";t.scope="oficina"} if(t.cat===OFFICE_IN)t.scope="oficina"; }); return m; }
-function normalizeConfig(c){ if(!c)return c; const b={}; Object.entries(c.budgets||{}).forEach(([k,v])=>{b[normCat(k)]=(b[normCat(k)]||0)+(+v||0)}); c.budgets=b; (c.fixed||[]).forEach(f=>f.cat=normCat(f.cat)); c.invest=c.invest||[]; return c; }
+function normalizeConfig(c){ if(!c)return c; const b={}; Object.entries(c.budgets||{}).forEach(([k,v])=>{b[normCat(k)]=(b[normCat(k)]||0)+(+v||0)}); c.budgets=b; (c.fixed||[]).forEach(f=>f.cat=normCat(f.cat)); c.invest=c.invest||[]; if(!c.rulesV||c.rulesV<2){ c.rules=c.rules||[]; const have=new Set(c.rules.map(r=>norm(r.kw))); RULES_V2.forEach(r=>{ if(!have.has(norm(r.kw))) c.rules.push({...r}) }); c.rulesV=2; } return c; }
 
 /* ---------- utils ---------- */
 const $ = s=>document.querySelector(s);
@@ -845,7 +857,7 @@ function parseAmount(v){
   const n=parseFloat(s); if(isNaN(n))return 0; return neg?-n:n;
 }
 function parseDate(v,fallbackYear){
-  if(v instanceof Date && !isNaN(v)) return v.getFullYear()+"-"+pad(v.getMonth()+1)+"-"+pad(v.getDate());
+  if(v instanceof Date && !isNaN(v)){ const t=new Date(v.getTime()+12*3600e3); return t.getFullYear()+"-"+pad(t.getMonth()+1)+"-"+pad(t.getDate()); }
   if(typeof v==="number" && v>20000 && v<80000){const d=new Date(Math.round((v-25569)*864e5));return d.getUTCFullYear()+"-"+pad(d.getUTCMonth()+1)+"-"+pad(d.getUTCDate())}
   const s=String(v??"").trim(); let m;
   if((m=s.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/))) return m[1]+"-"+pad(m[2])+"-"+pad(m[3]);
@@ -863,7 +875,7 @@ function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show"
 
 /* ---------- state ---------- */
 const state = { db:null, dl:null, config:null, months:{}, example:true, ym:todayYM(), tab:"resumen", loaded:false, imp:null };
-function defaultConfig(){ return { started:true, budgets:{}, fixed:[], invest:[], batches:[], rules:clone(DEFAULT_RULES), createdAt:new Date().toISOString() }; }
+function defaultConfig(){ return { started:true, rulesV:2, budgets:{}, fixed:[], invest:[], batches:[], rules:clone(DEFAULT_RULES), createdAt:new Date().toISOString() }; }
 function cfg(){ return state.config || EXAMPLE.config; }
 function monthTx(ym){ return ((state.example?EXAMPLE.months:state.months)[ym]||{tx:[]}).tx||[]; }
 function allMonths(){ return state.example?EXAMPLE.months:state.months; }
@@ -967,7 +979,7 @@ async function sha(txt){ try{ const b=await crypto.subtle.digest("SHA-256",new T
 function loadLocal(){
   const prof=lsGet(LS_PROFILE)||{}; state.name=prof.name||""; state.pinHash=prof.pin||"";
   const d=lsGet(LS_DATA);
-  if(d&&d.config&&d.config.started){ state.config=normalizeConfig(d.config); state.months={}; Object.entries(d.months||{}).forEach(([k,m])=>state.months[k]=normalizeMonth(m)); state.example=false; pickInitialMonth(); }
+  if(d&&d.config&&d.config.started){ const oldRV=d.config.rulesV||0; state.config=normalizeConfig(d.config); state.months={}; Object.entries(d.months||{}).forEach(([k,m])=>state.months[k]=normalizeMonth(m)); state.example=false; pickInitialMonth(); if(oldRV<2) persist(); }
   else { state.example=true; }
 }
 function boot(){
@@ -1310,7 +1322,7 @@ function handleFile(file){
   const fr=new FileReader();
   fr.onload=()=>{ try{
       const bytes=new Uint8Array(fr.result); let wb;
-      if(/\.(csv|txt)$/i.test(file.name)){ let txt; try{ txt=new TextDecoder("utf-8",{fatal:true}).decode(bytes) }catch(e){ txt=new TextDecoder("windows-1252").decode(bytes) } wb=XLSX.read(txt.replace(/^\ufeff/,""),{type:"string",cellDates:true,raw:false}); }
+      if(/\.(csv|txt)$/i.test(file.name)){ let txt; try{ txt=new TextDecoder("utf-8",{fatal:true}).decode(bytes) }catch(e){ txt=new TextDecoder("windows-1252").decode(bytes) } wb=XLSX.read(txt.replace(/^\ufeff/,""),{type:"string",raw:true}); }
       else wb=XLSX.read(bytes,{type:"array",cellDates:true});
       let rows=[]; wb.SheetNames.forEach(n=>{ if(!rows.length||rows.length<5){ const r=XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:true,defval:""}); if(r.length>rows.length) rows=r; } });
       setupMapping(rows,file.name);

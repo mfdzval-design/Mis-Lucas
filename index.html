@@ -583,6 +583,14 @@ body.bs-open #drillScrim{display:block}
 .abtns{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
 #lockPass{display:grid;gap:8px;justify-items:center}
 #lockPass input{min-width:240px}
+.vstat{border-radius:12px;padding:10px 12px;font-size:13.5px;margin-bottom:10px;background:var(--surface-2);color:var(--ink-2)}
+.vstat.ok{background:color-mix(in srgb,var(--good) 16%,var(--surface));color:var(--good-text);font-weight:600}
+.vstat.warn{background:color-mix(in srgb,var(--warn) 20%,var(--surface));color:var(--warn-text);font-weight:600}
+.vamt{font-size:30px;font-weight:800;letter-spacing:-.02em;margin:4px 0 8px}
+.vrows{display:grid}
+.vrows>div{display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid var(--line);font-size:14px}
+.vrows span{color:var(--muted)}
+.vrows b{font-weight:600;text-align:right}
 </style>
 
 </head>
@@ -1197,11 +1205,11 @@ function renderMovs(){
   const tx=monthTx(state.ym);
   const rows=tx.filter(t=>(!q||norm(t.desc).includes(q))&&(!qt||(qt==="revisar"?needsReview(t):qt==="ahorro"?(t.cat===SAVINGS||t.cat===RESCUE):qt==="gasto"?(t.type==="gasto"&&t.cat!==SAVINGS):t.type===qt))).slice().sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:0);
   const s=summarize(rows);
-  $("#movSub").textContent=`${rows.length} movimientos · ${s.checked} en cartola · toca uno para editarlo`;
+  $("#movSub").textContent=`${rows.length} movimientos · ${s.checked} en cartola · ✓ revisados por ti: ${rows.filter(t=>t.editedAt).length} · toca uno para verlo`;
   const sign=t=>t.type==="ingreso"?"+":t.type==="traspaso"?"⇄ ":"−";
   const col=t=>t.type==="ingreso"?"var(--good-text)":t.type==="traspaso"?"var(--muted)":"var(--ink)";
   const dayLabel=iso=>{const d=new Date(iso+"T12:00:00"),t=new Date();t.setHours(12,0,0,0);const diff=Math.round((t-d)/864e5);if(diff===0)return"Hoy";if(diff===1)return"Ayer";return d.toLocaleDateString("es-CL",{weekday:"long",day:"numeric",month:"short"}).replace(".","")};
-  let lastDay=""; const item=t=>`<details class="litem" data-id="${t.id}"><summary>${ico(t.cat)}<span class="t">${esc(t.desc)}</span><span class="a num" style="color:${col(t)}">${sign(t)}${money(t.amount)}</span><span class="m"><span class="sdot${t.checked?" ok":""}" title="${t.checked?"En cartola":"Por conciliar"}"></span>${(t.cat===SAVINGS||t.cat===RESCUE)&&t.inv?`<span class="rtag r">${esc(invName(t.inv))}</span> `:""}${esc(t.cat)} · ${esc(t.account||"")}</span></summary></details>`;
+  let lastDay=""; const item=t=>`<details class="litem" data-id="${t.id}"><summary>${ico(t.cat)}<span class="t">${esc(t.desc)}</span><span class="a num" style="color:${col(t)}">${sign(t)}${money(t.amount)}</span><span class="m"><span class="sdot${t.checked?" ok":""}" title="${t.checked?"En cartola":"Por conciliar"}"></span>${(t.cat===SAVINGS||t.cat===RESCUE)&&t.inv?`<span class="rtag r">${esc(invName(t.inv))}</span> `:""}${t.editedAt?`<span class="okmark" title="Revisado por ti">✓</span> `:""}${esc(t.cat)} · ${esc(t.account||"")}</span></summary></details>`;
   const nRev=tx.filter(needsReview).length;
   $("#movList").innerHTML=(nRev&&qt!=="revisar"?`<div class="revbar"><span>🏷️ <b>${nRev}</b> movimiento${nRev===1?"":"s"} sin categoría clara este mes</span><button class="btn" type="button" data-review="1">Revisar</button></div>`:"")+(rows.length?rows.map(t=>{let h=""; if(t.date!==lastDay){lastDay=t.date;h=`<div class="dayhead">${esc(dayLabel(t.date))}</div>`} return h+item(t)}).join(""):`<div class="empty"><span class="ei">${tx.length?"🔍":"📝"}</span>${tx.length?"Ningún movimiento coincide con el filtro.":"No hay movimientos este mes. Toca + para agregar uno o importa tu cartola."}</div>`);
   openIds.forEach(id=>{const d=document.querySelector(`#movList details[data-id="${id}"]`); if(d)d.open=true});
@@ -1282,10 +1290,34 @@ function openEdit(id){
   if(id){ const f=findTx(id); if(!f){toast("No encontré ese movimiento.");return} t=f.t; ym=f.ym; }
   else { const now=todayYM(); const d=state.ym===now?new Date():new Date(+state.ym.slice(0,4),+state.ym.slice(5,7)-1,1); const iso=d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
     t={id:uid(),date:iso,desc:"",amount:0,type:"gasto",cat:"Otros gastos",account:state.lastAcct||ACCOUNTS[0],nature:"variable",source:"manual",checked:false}; ym=ymOf(iso); }
-  ed={id:t.id,isNew:!id,ym,orig:clone(t),v:clone(t),key:id?merchantKey(t.bankDesc||t.desc):"",touched:false};
+  ed={id:t.id,isNew:!id,mode:id?"view":"edit",ym,orig:clone(t),v:clone(t),key:id?merchantKey(t.bankDesc||t.desc):"",touched:false};
   renderEdit(); showSheet("#edit"); $("#editBody").scrollTop=0; if(!id) setTimeout(()=>$("#eAmt")&&$("#eAmt").focus(),260);
 }
+function reviewNext(){ const cur=ed&&ed.id; const list=monthTx(state.ym).filter(needsReview).filter(t=>t.id!==cur).sort((a,b)=>b.amount-a.amount); return list[0]||null; }
+function renderView(){
+  const f=findTx(ed.id); if(!f){hideSheet("#edit");return} const t=f.t; ed.ym=f.ym; ed.v=clone(t); ed.orig=clone(t);
+  const col=t.type==="ingreso"?"var(--good-text)":t.type==="traspaso"?"var(--muted)":"var(--ink)", sign=t.type==="ingreso"?"+":t.type==="traspaso"?"⇄ ":"−";
+  const review=needsReview(t);
+  const status=ed.justSaved?`<div class="vstat ok">✓ Guardado · ${esc(t.cat)}${ed.justSaved>1?` · también en ${ed.justSaved-1} parecido${ed.justSaved===2?"":"s"}`:""}</div>`
+    :t.editedAt?`<div class="vstat ok">✓ Revisado por ti el ${new Date(t.editedAt).toLocaleDateString("es-CL",{day:"numeric",month:"short"})}</div>`
+    :review?`<div class="vstat warn">🏷️ Sin categoría clara: tócalo en Editar para ordenarlo</div>`
+    :`<div class="vstat">Categorizado automáticamente${t.checked?" desde la cartola":""}</div>`;
+  const nx=ed.justSaved?reviewNext():null;
+  $("#editTitle").textContent=t.desc; $("#editSub").textContent=t.bankDesc&&t.bankDesc!==t.desc?"Banco: "+t.bankDesc:(t.checked?"En cartola":"Anotado a mano");
+  $("#editBody").innerHTML=`${status}
+    <div class="vamt num" style="color:${col}">${sign}${money(t.amount)}</div>
+    <div class="vrows">
+      <div><span>Categoría</span><b>${ICON[t.cat]||"•"} ${esc(t.cat)}</b></div>
+      <div><span>Tipo</span><b>${t.type==="ingreso"?"Ingreso":t.type==="traspaso"?"Traspaso":"Gasto"} · ${t.nature==="fijo"?"fijo":"variable"}</b></div>
+      <div><span>Fecha</span><b class="num">${new Date(t.date+"T12:00:00").toLocaleDateString("es-CL",{weekday:"short",day:"numeric",month:"long",year:"numeric"})}</b></div>
+      <div><span>Cuenta</span><b>${esc(t.account||"—")}</b></div>
+      ${t.origCat?`<div><span>Antes era</span><b>${esc(t.origCat)}</b></div>`:""}
+      ${(t.cat===SAVINGS||t.cat===RESCUE)&&t.inv?`<div><span>Ahorro</span><b>${esc(invName(t.inv))}</b></div>`:""}
+    </div>
+    <div class="efactions"><button class="btn" id="eDel" type="button" style="color:var(--crit)">Eliminar</button><div style="display:flex;gap:8px">${nx?`<button class="btn" id="eNext" type="button" data-next="${nx.id}">Siguiente sin categoría ›</button>`:""}<button class="btn ${review&&!ed.justSaved?"primary":""}" id="eEdit" type="button">✎ ${review&&!ed.justSaved?"Categorizar":"Editar"}</button></div></div>`;
+}
 function renderEdit(){
+  if(ed.mode==="view") return renderView();
   const v=ed.v, sim=similarTx(ed.key,ed.id);
   const catList=(CATS[v.type]||[]);
   $("#editTitle").textContent=ed.isNew?"Nuevo movimiento":"Editar movimiento";
@@ -1308,7 +1340,7 @@ function renderEdit(){
 function readEditInputs(){ const v=ed.v; v.desc=$("#eDesc").value.trim()||v.bankDesc||v.desc; const a=Math.abs(Math.round(parseAmount($("#eAmt").value))); if(a)v.amount=a; if($("#eDate").value)v.date=$("#eDate").value; v.account=$("#eAcct").value; if($("#eInv"))v.inv=$("#eInv").value||undefined; if($("#eKey"))ed.key=$("#eKey").value.trim(); }
 function applyEdit(t,v,keepOwn){
   if(keepOwn){ t.desc=v.desc; t.amount=v.amount; t.date=v.date; t.account=v.account; if(v.inv)t.inv=v.inv; else delete t.inv; }
-  t.type=v.type; t.cat=v.cat; t.nature=v.nature; delete t.scope; delete t.rstat; delete t.rbatch;
+  t.type=v.type; t.cat=v.cat; t.nature=v.nature; t.editedAt=new Date().toISOString(); delete t.scope; delete t.rstat; delete t.rbatch;
   if(t.cat!==SAVINGS&&t.cat!==RESCUE) delete t.inv;
 }
 function saveEdit(){
@@ -1325,16 +1357,19 @@ function saveEdit(){
   const byYm={}; sim.forEach(r=>(byYm[r.ym]=byYm[r.ym]||[]).push(r.t.id));
   Object.entries(byYm).forEach(([ym,ids])=>mutateMonth(ym,cur=>cur.tx.forEach(t=>{ if(ids.includes(t.id)) applyEdit(t,v,false) })));
   if(doRule&&norm(ed.key).length>=3){ mutateConfig(c=>{ c.rules=(c.rules||[]).filter(r=>norm(r.kw)!==norm(ed.key)); c.rules.push({kw:ed.key.toUpperCase(),cat:v.cat}); }); }
-  const savedId=ed.id; state.flashId=savedId; afterSave($("#eSave"),"Guardado",()=>{ hideSheet("#edit"); flashEl(document.querySelector(`#movList details[data-id="${savedId}"]`)); });
-  okToast(`Guardado${sim.length?` · también en ${sim.length} parecido${sim.length===1?"":"s"}`:""}${doRule&&norm(ed.key).length>=3?" · regla recordada":""}`);
-  ed=null;
+  const savedId=ed.id; state.flashId=savedId; markSaved($("#eSave"),"Guardado");
+  if(doRule&&norm(ed.key).length>=3) okToast("Regla recordada para próximas cartolas");
+  setTimeout(()=>{ if(!ed||ed.id!==savedId)return; ed.mode="view"; ed.justSaved=1+sim.length; renderEdit(); $("#editBody").scrollTop=0; },450);
 }
 function bindEdit(){
   $("#editClose").addEventListener("click",()=>hideSheet("#edit"));
   $("#editBody").addEventListener("click",e=>{
     const b=e.target.closest("button"); if(!b||!ed)return;
-    if(b.id==="eCancel"){hideSheet("#edit");return}
+    if(b.id==="eCancel"){ if(ed.isNew){hideSheet("#edit")} else { ed.mode="view"; ed.justSaved=0; ed.touched=false; renderEdit(); } return }
+    if(b.id==="eEdit"){ ed.mode="edit"; ed.justSaved=0; ed.touched=false; ed.key=merchantKey(ed.v.bankDesc||ed.v.desc); renderEdit(); $("#editBody").scrollTop=0; return }
+    if(b.id==="eNext"){ const id=b.dataset.next; openEdit(id); ed.mode="edit"; renderEdit(); return }
     if(b.id==="eSave"){saveEdit();return}
+    if(ed.mode==="view")return;
     if(b.id==="eDel"){ if(b.dataset.armed){ mutateMonth(ed.ym,cur=>{cur.tx=cur.tx.filter(x=>x.id!==ed.id)}); hideSheet("#edit"); toast("Movimiento eliminado"); ed=null; } else { b.dataset.armed="1"; b.textContent="¿Seguro? Toca de nuevo"; setTimeout(()=>{if(b.isConnected){delete b.dataset.armed;b.textContent="Eliminar"}},3000);} return }
     readEditInputs(); const v=ed.v;
     if(b.dataset.et){ v.type=b.dataset.et; if(!(CATS[v.type]||[]).includes(v.cat)) v.cat=v.type==="ingreso"?"Otros ingresos":v.type==="traspaso"?"Traspaso / pago TC":"Otros gastos"; ed.touched=!ed.isNew; }

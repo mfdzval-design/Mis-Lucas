@@ -3,9 +3,10 @@
 Cada versión publicada queda anotada aquí. El número de versión se ve al pie de la app.
 
 ## Próxima versión · (sin publicar)
-- «Revisa antes de importar» rediseñado: arriba un resumen (leídos, con categoría, por categorizar, entre tus cuentas, ya anotados). Lo que la app no supo categorizar aparece agrupado por comercio en tarjetas «¿En qué categoría va?»: un toque en la categoría la aplica a todos los iguales y la app la recuerda para las próximas cartolas.
-- Cuando la app tiene una idea, la propone destacada («¿esta?»); luego tus 3 categorías más usadas y «Otra…» para ver todas, incluida «Entre mis cuentas». «No importar» para saltar un movimiento.
-- Lo que ya está listo (con categoría, entre tus cuentas, ya anotados, repetidos) queda en secciones plegadas para revisarlo solo si quieres. Botón «Importar N movimientos» al final.
+- «Revisa antes de importar» rediseñado: arriba un resumen (leídos, con categoría, por categorizar, entre tus cuentas, ya anotados). Lo que la app no supo categorizar aparece agrupado por comercio, con un botón «Elegir categoría». Si la app tiene una idea, la propone al lado («¿Es Supermercado?») para aceptarla con un toque.
+- Nueva hoja «Elige una categoría»: buscador, pestañas Gastos / Ingresos / Traspaso y todas las categorías con su ícono. Abajo, «Recordar: los movimientos que digan ___ van siempre a esta categoría», con el texto editable; se aplica también a los demás movimientos de la cartola que lo digan.
+- «+ Nueva categoría» desde ahí mismo: nombre, si es gasto o ingreso, si normalmente es fijo o variable, e ícono. «Crear y usar» la deja creada y asignada. También se pueden crear categorías de ingresos.
+- Lo que ya está listo queda en secciones plegadas; cada movimiento muestra su categoría y se cambia con un toque. «No importar» para saltar un comercio. Botón «Importar N movimientos» al final.
 
 ## 1.9.0 beta · 1-oct-2026
 - La franja de indicadores ahora es un carrusel que avanza solo (se detiene al tocarla). El conversor funciona en ambos sentidos y entre cualquier par: pesos, dólares, euros, UF y UTM, con botón para invertir.

@@ -7,6 +7,8 @@ Cada versión publicada queda anotada aquí. El número de versión se ve al pie
 - El formulario de nueva cuenta ya no aparece prellenado con datos de otra cuenta.
 - Categorizar una vez y listo: al cambiar la categoría de un movimiento, se aplica sola a los parecidos y a los próximos con ese texto, con un botón «Deshacer». «Solo este» para excepciones.
 - Recordatorio de respaldo semanal en el Inicio: con un toque lo guardas en Archivos o iCloud.
+- Indicadores económicos arriba en el Inicio: dólar (con variación del día), UF, euro y UTM. Al tocarlos se abre el detalle con IPC, tasa de política monetaria, gráfico del dólar del último año y un conversor a pesos (dólar, euro, UF, UTM). Datos del Banco Central vía mindicador.cl, guardados para verlos sin conexión.
+- Gastos en otra moneda: «gasté 20 dólares en Netflix», «US$ 12,99 spotify», «2 UF de arriendo» o un aviso del banco en US$ se pasan solos a pesos con el valor del día, y el movimiento guarda la conversión.
 - El buscador de Movimientos busca en todos los meses y muestra cuántos resultados y cuánto suman.
 
 ## 1.7.1 beta · 1-oct-2026

@@ -2,7 +2,7 @@
 
 Cada versión publicada queda anotada aquí. El número de versión se ve al pie de la app.
 
-## Próxima versión · (sin publicar)
+## 1.8.0 beta · 1-oct-2026
 - Subir cartola rediseñado: eliges varias cartolas a la vez y la app lee cada una y la asigna sola a su cuenta, una tras otra. Debajo, la lista de tus cuentas con hasta qué mes está cargada cada una y su historial de cartolas (mes, archivo, movimientos y fecha de carga). «+ Nueva cuenta» siempre a mano.
 - El formulario de nueva cuenta ya no aparece prellenado con datos de otra cuenta.
 - Categorizar una vez y listo: al cambiar la categoría de un movimiento, se aplica sola a los parecidos y a los próximos con ese texto, con un botón «Deshacer». «Solo este» para excepciones.

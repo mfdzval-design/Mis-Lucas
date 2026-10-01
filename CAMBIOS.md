@@ -2,7 +2,7 @@
 
 Cada versión publicada queda anotada aquí. El número de versión se ve al pie de la app.
 
-## Próxima versión · (sin publicar)
+## 1.6.1 beta · 1-oct-2026
 - Tocar el logo «Mis Lucas» arriba a la izquierda te lleva al Inicio desde cualquier pestaña.
 
 ## 1.6.0 beta · 1-oct-2026

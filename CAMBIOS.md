@@ -2,7 +2,7 @@
 
 Cada versión publicada queda anotada aquí. El número de versión se ve al pie de la app.
 
-## 1.6.0 beta · (sin publicar)
+## 1.6.0 beta · 1-oct-2026
 - Abierta a cualquier banco: nuevo "Mis cuentas y tarjetas" (en tu menú) para agregar cuentas corrientes, vista/RUT, ahorro, tarjetas de crédito, prepago, billeteras digitales (Tenpo, Mercado Pago, MACH, Prex), efectivo e inversiones de cualquier banco. Tus cuentas actuales se convierten solas.
 - El lector de PDF reconoce los principales bancos y emisores de Chile, distingue tarjeta, cuenta corriente, vista o billetera, y asigna la cartola a tu cuenta; si no la tienes, la crea sola. Para formatos que no conoce usa un modo general y te pide revisar los tipos.
 - "➕ Nueva cuenta…" directo al anotar un movimiento o al subir una cartola.

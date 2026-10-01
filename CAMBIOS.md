@@ -2,9 +2,10 @@
 
 Cada versión publicada queda anotada aquí. El número de versión se ve al pie de la app.
 
-## Próxima versión · (sin publicar)
+## 1.7.1 beta · 1-oct-2026
 - Lector de PDF más robusto: entiende cartolas donde el texto viene con cada letra por separado o con varias columnas juntas.
 - Si un PDF no trae texto legible (escaneado o generado como imagen), la app lo lee como imagen dentro del teléfono.
+- Lee la cartola de cuenta corriente Santander donde la fecha y la sucursal vienen pegadas.
 - Mensaje más claro cuando un PDF no se puede leer, con alternativas (Excel o captura).
 
 ## 1.7.0 beta · 1-oct-2026

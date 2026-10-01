@@ -8,6 +8,13 @@ Cada versión publicada queda anotada aquí. El número de versión se ve al pie
 - "➕ Nueva cuenta…" directo al anotar un movimiento o al subir una cartola.
 - Inicio con "Primeros pasos" (7 tareas con ✓ y barra de avance) y luego "Cierre del mes": qué cartolas faltan por cuenta y si todo está categorizado, hasta marcar "Mes cerrado".
 - Cada cuenta muestra hasta qué mes está cargada.
+- Pagos que se repiten (en Presupuesto): detecta solo tus suscripciones, seguros, arriendos, sueldo y otros pagos fijos, muestra si ya se pagaron este mes y avisa si suben de precio o aparece uno nuevo. Puedes marcar "No es un pago fijo".
+- Proyección a fin de mes: cuánto te quedaría, sumando los ingresos y pagos fijos que faltan, las cuotas del mes y tu gasto variable promedio.
+- Avisos en el inicio: topes al 80 % y excedidos, proyección negativa, alzas de precio, pagos nuevos y respaldo atrasado. Cada aviso se puede descartar.
+- "Lo destacado del mes" e informe mensual con comparación de cada categoría contra tus meses anteriores, y botón para compartir el resumen.
+- Nueva pestaña Patrimonio y metas: patrimonio neto (lo que tienes menos lo que debes) con su evolución mes a mes, metas de ahorro con el monto a apartar cada mes, deudas (créditos, líneas) y compras en cuotas detectadas solas en tus cartolas, intereses pagados en el año y otros bienes (saldos, propiedad, auto).
+- Modo privado: el ojo arriba oculta todos los montos con un toque.
+- Entrar con Face ID o huella (en PIN y contraseña), sin servidor: la verificación la hace tu teléfono.
 
 ## 1.5.0 beta · 1-oct-2026
 - La barra de pestañas del celular ocupa todo el ancho (sin espacio vacío) y el texto es más grande.

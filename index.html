@@ -687,6 +687,7 @@ body.priv [data-tip]{pointer-events:auto}
 .ef>*{min-width:0}.freq{max-width:100%}
 @media (max-width:640px){ #syncText{display:none} }
 .pbrow{display:grid;grid-template-columns:1fr 1fr;gap:8px}.pbrow .pastebtn{display:flex;align-items:center;justify-content:center;cursor:pointer}
+.freebox{display:grid;grid-template-columns:1fr auto;gap:8px}.freebox input{font:inherit;font-size:15px;border:1.5px solid var(--accent);border-radius:12px;padding:12px;background:var(--surface);color:var(--ink);min-width:0}
 </style>
 
 </head>
@@ -1006,7 +1007,7 @@ body.priv [data-tip]{pointer-events:auto}
       <button class="btn ghost" type="button" id="bkWipe" style="color:var(--crit)">Borrar todo de este teléfono</button>
     </section>
     <section data-sec="captura" hidden>
-      <p class="note" style="margin-top:0">Cuatro formas de que tus gastos entren al momento, sin esperar la cartola. A fin de mes, cuando subes la cartola, la app junta cada gasto con su línea y no lo cuenta dos veces.</p>
+      <p class="note" style="margin-top:0">Cinco formas de que tus gastos entren al momento, sin esperar la cartola. A fin de mes, cuando subes la cartola, la app junta cada gasto con su línea y no lo cuenta dos veces.</p>
       <div class="guide"><h3>1 · Avisos del banco <small>cualquier banco</small></h3>
         <ol><li>Activa en la app o web de tu banco los avisos de compra por correo (sección Alertas o Notificaciones).</li>
         <li>Cuando te llegue un aviso, ábrelo, mantén presionado el texto, toca <b>Seleccionar todo</b> y <b>Copiar</b>.</li>
@@ -1026,8 +1027,18 @@ body.priv [data-tip]{pointer-events:auto}
         <b class="gsub">B. El botón para pasarlas a la app</b>
         <ol start="6"><li>En <b>Atajos</b> → <b>+</b>, agrega <b>Obtener archivo</b> (archivo <code>MisLucas.txt</code>, sin mostrar selector) y luego <b>Copiar al portapapeles</b>. Llámalo <b>Pasar a Mis Lucas</b> y agrégalo a tu pantalla de inicio.</li>
         <li>Cuando quieras actualizar: toca <b>Pasar a Mis Lucas</b>, abre la app, toca <b>+</b> → <b>📋 Pegar aviso</b>. Entran todas las compras nuevas; las que ya estaban se ignoran solas, así que nunca tienes que borrar la lista.</li></ol></div>
-      <div class="guide"><h3>4 · A mano en segundos</h3>
-        <p class="note" style="margin:0">Toca <b>+</b>: arriba aparecen tus comercios frecuentes. Toca uno, pon el monto y listo. Al escribir un nombre conocido, la categoría se elige sola.</p></div>
+      <div class="guide"><h3>4 · Con Siri: «Anotar gasto» <small>iPhone</small></h3>
+        <p class="note">Le dices a Siri lo que gastaste, como a una persona, y queda en la misma lista del atajo de Apple Pay.</p>
+        <ol><li>En <b>Atajos</b> → <b>+</b>, agrega la acción <b>Dictar texto</b> (idioma Español).</li>
+        <li>Agrega <b>Formatear fecha</b>: Fecha actual, formato personalizado <code>yyyy-MM-dd HH:mm</code>.</li>
+        <li>Agrega <b>Texto</b> con esta línea: <code>MLV|</code>Fecha formateada<code>|</code>Texto dictado</li>
+        <li>Agrega <b>Añadir a archivo de texto</b>: archivo <code>MisLucas.txt</code>, con <b>Crear nueva línea</b>. Si quieres, suma <b>Mostrar notificación</b> «Anotado».</li>
+        <li>Llámalo <b>Anotar gasto</b>. Úsalo diciendo: «Oye Siri, anotar gasto» → «gasté 20 mil en el Jumbo con la de crédito».</li>
+        <li>Para pasarlo a la app usa el mismo botón <b>Pasar a Mis Lucas</b> → <b>+</b> → <b>📋 Pegar aviso</b>.</li></ol>
+        <p class="note" style="margin:6px 0 0">Entiende «20 mil», «20 lucas», «1,5 palos», «ayer», «con la de débito», «en efectivo», «me pagaron el arriendo 450.000».</p></div>
+      <div class="guide"><h3>5 · A mano en segundos</h3>
+        <p class="note" style="margin:0">Toca <b>+</b> y escribe o dicta con el micrófono del teclado: «almuerzo 12.500 ayer». La app arma el movimiento. También puedes tocar un comercio frecuente y solo poner el monto.</p></div>
+      <p class="note">Aunque anotes un monto aproximado («20 mil»), al subir la cartola la app lo junta con el cobro real (por ejemplo $19.990 en JUMBO), deja el monto exacto del banco y mantiene tu categoría.</p>
     </section>
     <section data-sec="acerca" hidden>
       <div class="arow"><span>Versión</span><b id="abVer">—</b></div>
@@ -1489,19 +1500,67 @@ function importML(list){ const have=new Set(allRefs().map(r=>r.t.extId).filter(B
     (byYm[ymOf(x.date)]=byYm[ymOf(x.date)]||[]).push(t); add++; });
   Object.entries(byYm).forEach(([ym,L])=>mutateMonth(ym,cur=>cur.tx.push(...L)));
   return {add,skip}; }
+function importVoice(list){ const have=new Set(allRefs().map(r=>r.t.extId).filter(Boolean)); let add=0,skip=0; const byYm={};
+  list.forEach(f=>{ if(have.has(f.ext)){skip++;return} have.add(f.ext);
+    const acc=f.account||state.lastAcct||(accList().find(a=>a.type!=="efectivo")||accList()[0]).name;
+    const t={id:uid(),date:f.date,desc:f.desc,amount:f.amount,type:f.type,cat:f.cat,account:acc,nature:FIXED_CATS.has(f.cat)?"fijo":"variable",source:"voz",extId:f.ext,checked:false}; if(f.approx)t.approx=true;
+    (byYm[ymOf(f.date)]=byYm[ymOf(f.date)]||[]).push(t); add++; });
+  Object.entries(byYm).forEach(([ym,L])=>mutateMonth(ym,cur=>cur.tx.push(...L))); return {add,skip}; }
 async function pasteAlert(fromText){
   let txt=fromText;
   if(txt==null){ try{ txt=await navigator.clipboard.readText(); }catch(e){ txt=null; } }
   if(!txt||!txt.trim()){ const w=$("#ePasteWrap"); if(w){ w.hidden=false; setTimeout(()=>$("#ePasteTxt").focus(),50); } toast("Mantén presionado el cuadro y elige «Pegar»"); return; }
-  const ml=parseMLLines(txt);
-  if(ml.length){ const r=importML(ml); hideSheet("#edit"); ed=null; if(r.add){ okToast(`${r.add} ${r.add===1?"compra":"compras"} de Apple Pay agregada${r.add===1?"":"s"}${r.skip?` · ${r.skip} ya estaban`:""}`); setTab("movs"); } else toast(`Nada nuevo: las ${r.skip} compras ya estaban`); return; }
-  const a=parseAlert(txt); if(!a){ toast("No encontré un monto en el texto. Revisa lo que copiaste."); const w=$("#ePasteWrap"); if(w)w.hidden=false; return; }
+  const ml=parseMLLines(txt), vl=parseVoiceLines(txt);
+  if(ml.length||vl.length){ const r1=importML(ml), good=vl.filter(x=>!x.bad), bad=vl.length-good.length, r2=importVoice(good); hideSheet("#edit"); ed=null; const add=r1.add+r2.add, skip=r1.skip+r2.skip;
+    if(add){ okToast(`${add} movimiento${add===1?"":"s"} agregado${add===1?"":"s"}${r1.add&&r2.add?` (${r1.add} de Apple Pay, ${r2.add} de Siri)`:r2.add?" desde Siri":" de Apple Pay"}${skip?` · ${skip} ya estaban`:""}${bad?` · ${bad} sin monto`:""}`); setTab("movs"); } else toast(skip?`Nada nuevo: los ${skip} ya estaban`:"No encontré montos en lo que dictaste"); return; }
+  if(!/\$|US\$|CLP/i.test(txt)&&txt.length<160&&fillFromFree(txt)){ okToast("Lo entendí así: revisa y toca Agregar"); return; }
+  const a=parseAlert(txt); if(!a){ if(fillFromFree(txt)){ okToast("Lo entendí así: revisa y toca Agregar"); return; } toast("No encontré un monto en el texto. Revisa lo que copiaste."); const w=$("#ePasteWrap"); if(w)w.hidden=false; return; }
   if(!ed||!ed.isNew) openEdit(null);
   const v=ed.v; const c=catFor(a.desc,a.type); v.amount=a.amount; v.desc=a.desc; v.date=a.date; v.type=a.transfer&&a.type==="gasto"&&c.cat==="Otros gastos"?"gasto":c.type; v.cat=c.cat; v.nature=FIXED_CATS.has(c.cat)?"fijo":"variable"; v.source="aviso";
   let acc=accForCard(a.last4,txt); if(!acc&&a.transfer){ const x=accList().find(x=>x.type==="cc"||x.type==="vista"); if(x)acc=x.name; } if(acc)v.account=acc; ed.fromAlert={usd:a.usd,last4:a.last4,matched:!!acc}; renderEdit(); markDirty($("#eSave"));
   okToast(a.usd?"Leído: el monto viene en dólares, revisa cuánto fue en pesos":"Leído del aviso: revisa y toca Agregar"); }
 function freqList(){ const cut=shiftYM(todayYM(),-3); const G={}; allRefs().forEach(({t,ym})=>{ if(ym<cut||t.type!=="gasto"||t.cat===SAVINGS)return; const k=merchantKey(t.bankDesc||t.desc); if(k.length<3)return; const g=G[k]||(G[k]={n:0,t}); g.n++; if(t.date>=g.t.date)g.t=t; });
   return Object.values(G).filter(g=>g.n>=2).sort((a,b)=>b.n-a.n).slice(0,8).map(g=>g.t); }
+
+/* ---------- anotar con frases normales ("gasté 20 mil en el Jumbo") ---------- */
+const NL_CATS=[[/\b(SUPER|SUPERMERCADO|JUMBO|LIDER|UNIMARC|TOTTUS|SANTA ISABEL|FERIA|VERDULERIA|MINIMARKET|ALMACEN)\b/,"Supermercado"],[/\b(BENCINA|COPEC|SHELL|PETROBRAS|ARAMCO|ESTACIONAMIENTO|PEAJE|TAG|AUTOPISTA|LAVADO)\b/,"Auto y bencina"],[/\b(UBER|CABIFY|DIDI|TAXI|METRO|MICRO|BIP|BUS|PASAJE)\b/,"Transporte"],[/\b(ALMUERZO|CENA|RESTAURANT|RESTAURANTE|SUSHI|PIZZA|HAMBURGUESA|COMIDA)\b/,"Restaurantes y bares"],[/\b(DELIVERY|RAPPI|PEDIDOSYA|UBER EATS)\b/,"Delivery"],[/\b(CAFE|STARBUCKS|JUAN VALDEZ|SNACK|HELADO|PAN|PANADERIA)\b/,"Café y snacks"],[/\b(CERVEZA|CERVEZAS|CHELAS|COPETE|TRAGOS|BAR|CARRETE|DISCO)\b/,"Salidas y carrete"],[/\b(FARMACIA|REMEDIO|REMEDIOS|DOCTOR|MEDICO|CONSULTA|DENTISTA|EXAMEN|ISAPRE)\b/,"Salud"],[/\b(GIMNASIO|GYM|PADEL|TENIS|FUTBOL|DEPORTE)\b/,"Deporte"],[/\b(CINE|TEATRO|CONCIERTO|ENTRADA|ENTRADAS|PANORAMA)\b/,"Panoramas y ocio"],[/\b(NETFLIX|SPOTIFY|DISNEY|SUSCRIPCION|CHATGPT|ICLOUD)\b/,"Suscripciones"],[/\b(ROPA|ZAPATOS|ZAPATILLAS|POLERA|PANTALON|ZARA|H&M)\b/,"Ropa y calzado"],[/\b(PELUQUERIA|BARBERIA|CORTE DE PELO|MANICURE)\b/,"Cuidado personal"],[/\b(REGALO|CUMPLEANOS)\b/,"Amigos y regalos"],[/\b(LUZ|AGUA|GAS|INTERNET|CELULAR|PLAN|ENEL|AGUAS ANDINAS|METROGAS)\b/,"Cuentas básicas"],[/\b(ARRIENDO|DIVIDENDO|GASTOS COMUNES)\b/,"Vivienda"],[/\b(VETERINARIO|MASCOTA|PERRO|GATO)\b/,"Mascotas"],[/\b(VIAJE|HOTEL|AIRBNB|VUELO|PASAJES)\b/,"Viajes"]];
+const NL_INC=[[/\b(SUELDO|REMUNERACION|LIQUIDACION)\b/,"Sueldo"],[/\b(BONO|COMISION|COMISIONES)\b/,"Bonos y comisiones"],[/\b(ARRIENDO)\b/,"Arriendos"],[/\b(HONORARIO|HONORARIOS|BOLETA)\b/,"Honorarios"],[/\b(DEVOLVIERON|DEVOLUCION|REEMBOLSO|ME PAGARON LO|ME DEVOLVIO)\b/,"Reembolsos"],[/\b(VENDI|VENTA)\b/,"Venta de cosas"],[/\b(REGALO|REGALARON)\b/,"Regalos recibidos"]];
+const NL_STOP=new Set(["GASTE","GASTO","PAGUE","PAGO","COMPRE","COMPRA","COMPRAS","EN","DE","DEL","LA","EL","LOS","LAS","UN","UNA","UNOS","CON","POR","PARA","AL","A","Y","HOY","AYER","ANTEAYER","ANOCHE","LUCAS","LUCA","MIL","PESOS","PALO","PALOS","MILLON","MILLONES","ME","MI","MIS","SE","QUE","FUE","FUERON","TARJETA","CREDITO","DEBITO","EFECTIVO","CUENTA","CORRIENTE","VISTA","RECIBI","PAGARON","DEPOSITARON","TRANSFIRIERON","COBRE","INGRESO","ENTRARON","LLEGO","LLEGARON","CLP","TOTAL","APROX","APROXIMADAMENTE","COMO","ESTE","ESTA","ESO"]);
+function nlAmount(t){ const T=norm(t).replace(/\$\s?/g,"");
+  let m=T.match(/(\d+(?:[.,]\d+)?)\s*(MILLONES|MILLON|PALOS|PALO|M\b)/); if(m) return {v:Math.round(parseFloat(m[1].replace(",","."))*1e6),raw:m[0]};
+  m=T.match(/(\d+(?:[.,]\d+)?)\s*(LUCAS|LUCA|MIL|K)\b/); if(m) return {v:Math.round(parseFloat(m[1].replace(",","."))*1000),raw:m[0]};
+  m=T.match(/\b(UN|UNA)\s+(LUCA|PALO)\b/); if(m) return {v:m[2]==="PALO"?1e6:1000,raw:m[0]};
+  m=T.match(/\b(\d{1,3}(?:\.\d{3})+|\d{3,9})\b/); if(m) return {v:Math.round(Math.abs(parseAmount(m[1]))),raw:m[0]};
+  return null; }
+function parseFree(txt){
+  const raw=String(txt||"").replace(/\s+/g," ").trim(); if(!raw||raw.length>220)return null; const T=norm(raw);
+  const a=nlAmount(raw); if(!a||!a.v)return null;
+  const today=new Date(); const iso=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); let date=iso(today);
+  if(/\bANTEAYER\b/.test(T)){ const d=new Date(today); d.setDate(d.getDate()-2); date=iso(d); } else if(/\b(AYER|ANOCHE)\b/.test(T)){ const d=new Date(today); d.setDate(d.getDate()-1); date=iso(d); }
+  else { const dm=raw.match(/\b(\d{1,2}[\/\-]\d{1,2}(?:[\/\-]\d{2,4})?)\b/)||raw.match(/\b\d{1,2}\s+de\s+[a-záéíóú]{3,}/i); if(dm){ const d=parseDate(dm[0],today.getFullYear()); if(d)date=d; } }
+  const inc=/\b(ME PAGARON|RECIBI|ME DEPOSITARON|ME TRANSFIRIERON|ME LLEGO|ME LLEGARON|COBRE|INGRESO|ENTRARON|ME DEVOLVIERON|VENDI|SUELDO)\b/.test(T)&&!/\b(GASTE|PAGUE|COMPRE)\b/.test(T);
+  let accHint=null; const L=accList();
+  if(/\bEFECTIVO\b/.test(T)) accHint=(L.find(x=>x.type==="efectivo")||{}).name;
+  const bank=L.map(x=>x.bank).filter(Boolean).find(b=>new RegExp("\\b"+norm(b).replace(/[^A-Z ]/g,"")+"\\b").test(T));
+  const wantTc=/\b(CREDITO|TC|TARJETA DE CREDITO)\b/.test(T), wantDeb=/\b(DEBITO|CUENTA CORRIENTE|CUENTA VISTA|CUENTA RUT|TRANSFERENCIA)\b/.test(T);
+  if(!accHint&&(bank||wantTc||wantDeb)){ const c=L.filter(x=>x.type!=="efectivo").filter(x=>!bank||x.bank===bank).filter(x=>wantTc?x.type==="tc":wantDeb?x.type!=="tc":true); if(c.length)accHint=c[0].name; }
+  let words=T.replace(a.raw," ").replace(/\b\d{1,2}[\/\-]\d{1,2}([\/\-]\d{2,4})?\b/g," ").replace(/[^A-Z0-9&Ñ ]/g," ").split(/\s+/).filter(w=>w&&!NL_STOP.has(w)&&!/^\d+$/.test(w));
+  if(bank) words=words.filter(w=>!norm(bank).split(" ").includes(w));
+  const descN=words.join(" "); const keep=new Set(words);
+  const orig=raw.replace(/[^\p{L}\p{N}&ñÑ ]/gu," ").split(/\s+/).filter(w=>w&&keep.has(norm(w))).join(" ");
+  const desc=descN?(orig||descN).toLowerCase().replace(/(^|\s)\S/g,c=>c.toUpperCase()).slice(0,50):(inc?"Ingreso":"Gasto");
+  if(!accHint&&inc){ const x=L.find(x=>x.type==="cc"||x.type==="vista"); if(x)accHint=x.name; }
+  let type=inc?"ingreso":"gasto", cat=null;
+  const r=classifyRule(descN); if(r){ const c=normCat(r.cat), ty=typeOfCat(c); if(ty===type||ty==="traspaso"){cat=c;type=ty} }
+  if(!cat){ const hit=(inc?NL_INC:NL_CATS).find(([re])=>re.test(T)); if(hit)cat=hit[1]; }
+  if(!cat) cat=inc?"Otros ingresos":"Otros gastos";
+  return {amount:a.v,date,desc,type,cat,account:accHint,approx:/\b(LUCAS|LUCA|MIL|K|PALO|PALOS|MILLON|MILLONES|APROX)\b/.test(T)}; }
+function fillFromFree(txt){ const f=parseFree(txt); if(!f)return false; if(!ed||!ed.isNew) openEdit(null);
+  const v=ed.v; v.amount=f.amount; v.desc=f.desc; v.date=f.date; v.type=f.type; v.cat=f.cat; v.nature=FIXED_CATS.has(f.cat)?"fijo":"variable"; v.source="voz"; if(f.approx)v.approx=true; if(f.account)v.account=f.account;
+  ed.fromAlert={matched:!!f.account||true,free:true}; ed.catTouched=true; renderEdit(); markDirty($("#eSave")); return true; }
+function parseVoiceLines(txt){ return String(txt||"").split(/\r?\n/).map(l=>l.trim()).filter(l=>/^MLV\s*\|/.test(l)).map(l=>{ const p=l.split("|").map(x=>x.trim()); const when=p[1]||""; const text=p.slice(2).join(" ");
+  const f=parseFree(text); if(!f)return {bad:text}; const d=parseDate(when.slice(0,10),new Date().getFullYear()); if(d&&!/\b(AYER|ANTEAYER|ANOCHE)\b/.test(norm(text))&&!/\d{1,2}[\/\-]\d{1,2}/.test(text)) f.date=d;
+  f.ext="sv|"+when+"|"+norm(text); return f; }); }
 
 /* ---------- leer capturas de pantalla (OCR en el teléfono) ---------- */
 const OCR_SRC="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
@@ -1963,7 +2022,7 @@ function openEdit(id){
   else { const now=todayYM(); const d=state.ym===now?new Date():new Date(+state.ym.slice(0,4),+state.ym.slice(5,7)-1,1); const iso=d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
     t={id:uid(),date:iso,desc:"",amount:0,type:"gasto",cat:"Otros gastos",account:state.lastAcct||(accList().find(a=>a.type!=="efectivo")||accList()[0]).name,nature:"variable",source:"manual",checked:false}; ym=ymOf(iso); }
   ed={id:t.id,isNew:!id,mode:id?"view":"edit",ym,orig:clone(t),v:clone(t),key:id?merchantKey(t.bankDesc||t.desc):"",touched:false};
-  renderEdit(); showSheet("#edit"); $("#editBody").scrollTop=0; if(!id) setTimeout(()=>$("#eAmt")&&$("#eAmt").focus(),260);
+  renderEdit(); showSheet("#edit"); $("#editBody").scrollTop=0; if(!id) setTimeout(()=>{ const f=$("#eFree")||$("#eAmt"); f&&f.focus(); },260);
 }
 function reviewNext(){ const cur=ed&&ed.id; const list=monthTx(state.ym).filter(needsReview).filter(t=>t.id!==cur).sort((a,b)=>b.amount-a.amount); return list[0]||null; }
 function renderView(){
@@ -1996,9 +2055,9 @@ function renderEdit(){
   $("#editSub").textContent=(v.bankDesc&&v.bankDesc!==v.desc?"Banco: "+v.bankDesc+" · ":"")+(ed.isNew?"Para efectivo o para anotar al día":v.checked?"En cartola":"Anotado a mano");
   const FQ=ed.isNew&&!ed.fromAlert?freqList():[];
   $("#editBody").innerHTML=`<div class="ef">
-    ${ed.isNew?`<div class="pastebox"><div class="pbrow"><button type="button" class="btn pastebtn" id="ePaste">📋 Pegar aviso</button><label class="btn pastebtn" for="eShot">📷 Leer captura</label><input type="file" id="eShot" accept="image/*" multiple hidden></div>
+    ${ed.isNew?`<div class="pastebox"><div class="freebox"><input id="eFree" type="text" autocomplete="off" enterkeyhint="done" placeholder="Ej: gasté 20 mil en el Jumbo"><button type="button" class="btn primary" id="eFreeGo">Listo</button></div><div class="pbrow"><button type="button" class="btn pastebtn" id="ePaste">📋 Pegar aviso</button><label class="btn pastebtn" for="eShot">📷 Leer captura</label><input type="file" id="eShot" accept="image/*" multiple hidden></div>
       <div id="ePasteWrap" hidden><textarea id="ePasteTxt" rows="3" placeholder="Pega aquí el texto del correo o la notificación del banco"></textarea><button type="button" class="btn primary sm" id="ePasteGo">Leer aviso</button></div>
-      ${ed.fromAlert?`<div class="note okn">✓ Leído del aviso${ed.fromAlert.matched?"":" · no reconocí la tarjeta, elige la cuenta"}${ed.fromAlert.usd?" · venía en dólares: corrige el monto en pesos":""}. Revisa y toca <b>Agregar</b>.</div>`:""}</div>`:""}
+      ${ed.fromAlert&&ed.fromAlert.free?`<div class="note okn">✓ Lo entendí así. Revisa y toca <b>Agregar</b>.</div>`:ed.fromAlert?`<div class="note okn">✓ Leído del aviso${ed.fromAlert.matched?"":" · no reconocí la tarjeta, elige la cuenta"}${ed.fromAlert.usd?" · venía en dólares: corrige el monto en pesos":""}. Revisa y toca <b>Agregar</b>.</div>`:""}</div>`:""}
     ${FQ.length?`<div><div class="eflabel">Frecuentes · toca uno y solo pon el monto</div><div class="freq">${FQ.map(t=>`<button type="button" data-fq="${t.id}">${ICON[t.cat]||"•"} ${esc(String(t.desc).slice(0,22))}</button>`).join("")}</div></div>`:""}
     <label class="field">Nombre<input id="eDesc" type="text" value="${esc(v.desc)}" autocomplete="off"></label>
     <div class="row2"><label class="field">Monto<input id="eAmt" type="text" inputmode="numeric" value="${v.amount?esc(String(v.amount)):""}" placeholder="0"></label><label class="field">Fecha<input id="eDate" type="date" value="${esc(v.date)}"></label></div>
@@ -2059,8 +2118,10 @@ function bindEdit(){
   $("#editBody").addEventListener("click",e=>{
     if(e.target.closest("#ePaste")){ readEditInputs(); pasteAlert(); return }
     if(e.target.closest("#ePasteGo")){ pasteAlert($("#ePasteTxt").value); return }
+    if(e.target.closest("#eFreeGo")){ const v=$("#eFree").value; if(!fillFromFree(v)) toast("No encontré el monto. Ej: «gasté 20 mil en el Jumbo»"); return }
     const fq=e.target.closest("[data-fq]"); if(fq){ const f=findTx(fq.dataset.fq); if(!f)return; const t=f.t, v=ed.v; v.desc=t.desc; v.type=t.type; v.cat=t.cat; v.nature=t.nature||"variable"; if(t.account&&accByName(t.account))v.account=t.account; ed.catTouched=true; const amt=$("#eAmt").value; renderEdit(); if(amt&&amt!=="0")$("#eAmt").value=amt; const a=$("#eAmt"); a.focus(); a.select&&a.select(); markDirty($("#eSave")); return }
   });
+  $("#editBody").addEventListener("keydown",e=>{ if(e.target.id==="eFree"&&e.key==="Enter"){ e.preventDefault(); if(!fillFromFree(e.target.value)) toast("No encontré el monto. Ej: «gasté 20 mil en el Jumbo»"); } });
   $("#editBody").addEventListener("input",e=>{ markDirty($("#eSave"));
     if(ed&&ed.isNew&&!ed.catTouched&&e.target.id==="eDesc"){ const r=classifyRule(e.target.value); if(r){ const c=normCat(r.cat), ty=typeOfCat(c); if(ty&&ty===ed.v.type&&c!==ed.v.cat){ ed.v.cat=c; ed.v.nature=FIXED_CATS.has(c)?"fijo":"variable"; document.querySelectorAll("#editBody [data-ec]").forEach(x=>x.setAttribute("aria-pressed",x.dataset.ec===c)); } } } if(e.target.id==="eKey"&&ed){ ed.key=e.target.value; const n=similarTx(ed.key,ed.id).length; $("#eSimN").textContent=n; $("#eSim").disabled=!n; if(!n)$("#eSim").checked=false; } });
 }
@@ -2254,8 +2315,11 @@ function buildPreview(){
     const dupC=im.src==="captura"&&pool.find(t=>["captura","cartola","aviso","applepay"].includes(t.source)&&(t.account===p.account||accType(t.account)===accType(p.account)||norm(t.bankDesc||t.desc)===norm(p.desc))&&t.amount===p.amount&&t.type===p.type&&Math.abs((new Date(t.date)-new Date(p.date))/864e5)<=(t.source==="captura"?0:3));
     if(dup||dupC){p.status="dup";p.include=false;return}
     const dd=(a,b)=>Math.abs((new Date(a)-new Date(b))/864e5);
-    const match=pool.find(t=>!t.checked&&!used.has(t.id)&&t.amount===p.amount&&t.type===p.type&&t.account!=="Efectivo"&&(!t.account||t.account===p.account||((t.source==="aviso"||t.source==="applepay"||t.source==="captura")&&accType(t.account)===accType(p.account)))&&dd(t.date,p.date)<=5);
-    if(match){p.status="match";p.matchId=match.id;p.matchYm=ymOf(match.date);p.matchDesc=match.desc;p.cat=match.cat;used.add(match.id)} else p.status="new";
+    const SOFT=["aviso","applepay","captura","voz"]; const okAcc=t=>t.account!=="Efectivo"&&accType(t.account)!=="efectivo"&&(!t.account||t.account===p.account||(SOFT.includes(t.source)&&accType(t.account)===accType(p.account)));
+    const cand=t=>!t.checked&&!used.has(t.id)&&t.type===p.type&&okAcc(t)&&dd(t.date,p.date)<=5;
+    const near=t=>{ if(!(SOFT.includes(t.source)||t.source==="manual"||!t.source))return false; const tol=Math.max(1000,p.amount*.06); if(Math.abs(t.amount-p.amount)>tol)return false; const wb=norm(p.desc); return norm(t.desc).split(" ").filter(w=>w.length>=4).some(w=>wb.includes(w)); };
+    const match=pool.find(t=>cand(t)&&t.amount===p.amount)||pool.find(t=>cand(t)&&near(t));
+    if(match){p.status="match";p.matchId=match.id;p.matchYm=ymOf(match.date);p.matchDesc=match.desc;p.matchAmt=match.amount;p.cat=match.cat;used.add(match.id)} else p.status="new";
   });
   im.preview=out; renderPreview();
 }
@@ -2265,7 +2329,7 @@ function renderPreview(){
   $("#prevSub").textContent=P.length?`${P.length} movimientos leídos · ${c.new} nuevos · ${c.match} concilian con lo que ya anotaste · ${c.dup} ya estaban importados`:"No encontré movimientos. Revisa que las columnas de fecha y monto estén bien asignadas.";
   $("#doImp").disabled=!P.some(p=>p.include);
   $("#prevBody").innerHTML=P.map((p,i)=>`<div class="pitem${p.include?"":" off"}" data-i="${i}"><input type="checkbox" data-inc ${p.include?"checked":""} aria-label="Incluir">
-    <div style="min-width:0"><div class="t">${esc(p.desc)}</div><div class="m num">${dmy(p.date)} · ${p.status==="dup"?'Ya importado':p.status==="match"?`<span style="color:var(--good-text)">✓ Concilia con “${esc(p.matchDesc.slice(0,26))}”</span>`:'<span style="color:var(--inc)">Nuevo</span>'}</div></div>
+    <div style="min-width:0"><div class="t">${esc(p.desc)}</div><div class="m num">${dmy(p.date)} · ${p.status==="dup"?'Ya importado':p.status==="match"?`<span style="color:var(--good-text)">✓ Concilia con “${esc(p.matchDesc.slice(0,26))}”${p.matchAmt&&p.matchAmt!==p.amount?` (anotaste ${money(p.matchAmt)})`:""}</span>`:'<span style="color:var(--inc)">Nuevo</span>'}</div></div>
     <div class="num" style="font-weight:600;text-align:right;color:${p.type==="ingreso"?"var(--good-text)":p.type==="traspaso"?"var(--muted)":"var(--ink)"}">${p.type==="ingreso"?"+":p.type==="traspaso"?"⇄ ":"−"}${money(p.amount)}</div>
     <div class="ctl"><select data-pt aria-label="Tipo"><option value="gasto"${p.type==="gasto"?" selected":""}>Gasto</option><option value="ingreso"${p.type==="ingreso"?" selected":""}>Ingreso</option><option value="traspaso"${p.type==="traspaso"?" selected":""}>Traspaso</option></select><select data-pc aria-label="Categoría">${catOptions(p.type,p.cat)}</select></div></div>`).join("");
 }
@@ -2276,7 +2340,7 @@ function doImport(){
   const yms=new Set([...Object.keys(byYm),...Object.keys(matchByYm)]);
   let added=0,recon=0;
   yms.forEach(ym=>mutateMonth(ym,cur=>{
-    (matchByYm[ym]||[]).forEach(p=>{const t=cur.tx.find(x=>x.id===p.matchId); if(t){t.checked=true;t.bankDesc=p.desc;t.account=t.account||p.account;recon++}});
+    (matchByYm[ym]||[]).forEach(p=>{const t=cur.tx.find(x=>x.id===p.matchId); if(t){t.checked=true;t.bankDesc=p.desc; if(t.source&&t.source!=="cartola"&&t.source!=="manual"){ t.account=p.account; } else t.account=t.account||p.account; if(t.amount!==p.amount){ t.origAmount=t.amount; t.amount=p.amount; } delete t.approx; recon++}});
     (byYm[ym]||[]).filter(p=>p.status!=="match").forEach(p=>{const nt={id:p.id,date:p.date,desc:p.desc,bankDesc:p.desc,amount:p.amount,type:p.type,cat:p.cat,account:p.account,nature:p.nature,source:src,checked:src==="cartola"}; cur.tx.push(nt);added++});
   }));
   okToast(`${added} movimientos importados · ${recon} conciliados`);

@@ -60,7 +60,7 @@ button,input,select{font:inherit;color:inherit}
 /* header */
 header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);padding-block:14px 0;border-bottom:1px solid var(--line)}
 .brand-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.brand{display:flex;align-items:baseline;gap:8px;margin-right:auto}
+.brand{display:flex;align-items:baseline;gap:8px;margin-right:auto;text-decoration:none;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .brand h1{font-size:22px;font-weight:700;letter-spacing:-.02em}
 .brand .chip{font-family:var(--mono);font-size:11px;color:var(--muted);border:1px solid var(--line-2);border-radius:4px;padding:1px 5px}
 .month-nav{display:flex;align-items:center;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:3px}
@@ -694,7 +694,7 @@ body.priv [data-tip]{pointer-events:auto}
 <div class="wrap">
   <header class="top">
     <div class="brand-row">
-      <div class="brand"><h1>Mis <span>Lucas</span></h1><span class="chip">CLP</span></div>
+      <a class="brand" href="#" id="homeBtn" aria-label="Ir al inicio"><h1>Mis <span>Lucas</span></h1><span class="chip">CLP</span></a>
       <div class="sync" id="sync"><span class="dot"></span><span id="syncText">Conectando…</span></div>
       <button class="iconbtn bellbtn" id="bellBtn" type="button" aria-haspopup="dialog" aria-expanded="false" aria-label="Avisos" title="Avisos"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 1112 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 003.4 0"/></svg><span class="bdg" id="bellN" hidden></span></button>
       <button class="iconbtn privbtn" id="privBtn" type="button" aria-pressed="false" title="Ocultar montos" aria-label="Ocultar o mostrar montos"></button>
@@ -1601,6 +1601,7 @@ function loadLocal(){
 }
 function boot(){
   loadLocal(); bindUI(); bindLocal(); bindAccount(); bindPlan();
+  $("#homeBtn").addEventListener("click",e=>{ e.preventDefault(); closeNotif(); closeUMenu(); document.querySelectorAll(".bsheet.show").forEach(x=>hideSheet("#"+x.id)); setTab("resumen"); window.scrollTo({top:0,behavior:"smooth"}); });
   $("#privBtn").innerHTML=state.priv?EYE_OFF:EYE; $("#privBtn").setAttribute("aria-pressed",!!state.priv); $("#privBtn").addEventListener("click",()=>{ setPriv(!state.priv); okToast(state.priv?"Montos ocultos":"Montos visibles"); }); showWho(); setSync(); render();
   if(state.pinHash){ lockNow(); }
   else if(state.example){ let seen=null; try{seen=localStorage.getItem("ml_seen")}catch(e){} if(!seen) showWelcome(); }

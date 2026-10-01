@@ -693,6 +693,15 @@ body.priv [data-tip]{pointer-events:auto}
 .paychips button[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:700}
 .eflabel.askpay{color:var(--warn-text);font-weight:700}.eflabel.askpay:after{content:" ← falta"}
 .rcpt{display:flex;gap:12px;align-items:center}.rcpt img{width:64px;height:84px;object-fit:cover;border-radius:10px;border:1px solid var(--line);flex:none}
+.imphead{display:flex;justify-content:space-between;align-items:center;margin:18px 0 6px;font-weight:700;font-size:14px}
+.iacc{border-top:1px solid var(--line)}.iarow{display:flex;gap:12px;align-items:center;width:100%;background:none;border:0;padding:12px 2px;text-align:left;font:inherit;color:var(--ink);cursor:pointer}
+.iarow .ai{font-size:20px;width:28px;text-align:center}.iarow .an{flex:1;min-width:0}.iarow .an b{display:block;font-size:14.5px}.iarow .an small{color:var(--muted);font-size:12.5px}.iarow .go{color:var(--accent);font-size:16px}
+.ihist{display:grid;gap:6px;padding:0 2px 14px 42px}.ihist>div{display:flex;justify-content:space-between;gap:10px;font-size:13px}.ihist small{color:var(--muted);text-align:right}.ihist .btn{justify-self:start;margin-top:6px}
+.impacc{margin:10px 0 4px;max-width:360px}
+.autoline{font-size:13px;color:var(--good-text);line-height:1.5}.autoline .linkbtn{font-size:12.5px;margin-left:4px}
+#toast .tbtn{pointer-events:auto;background:rgba(255,255,255,.22);border:0;color:inherit;font:inherit;font-weight:700;border-radius:8px;padding:4px 10px;margin-left:8px;cursor:pointer}
+.bkbar{display:flex;gap:10px;align-items:center;background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent);border-radius:16px;padding:10px 10px 10px 14px;margin-bottom:12px}
+.bkbar>span{flex:1;min-width:0;font-size:13.5px}.bkbar small{display:block;color:var(--ink-2);font-size:12px;margin-top:2px}
 </style>
 
 </head>
@@ -731,6 +740,7 @@ body.priv [data-tip]{pointer-events:auto}
     <!-- RESUMEN -->
     <section class="panel" data-panel="resumen">
       <div class="card todo" id="todo" hidden></div>
+      <div class="bkbar" id="bkbar" hidden><span>💾 <b>Respaldo semanal</b><small id="bkbarSub">Tus datos viven solo en este teléfono. Guárdalos en Archivos o iCloud con un toque.</small></span><button class="btn primary sm" type="button" id="bkbarGo">Guardar</button><button class="iconbtn" type="button" id="bkbarX" aria-label="Recordar mañana">✕</button></div>
       <div class="kpis" id="kpis"></div>
       <div class="card" id="hl" hidden></div>
       <div class="grid-2">
@@ -762,7 +772,7 @@ body.priv [data-tip]{pointer-events:auto}
           <div><h2>Movimientos del mes</h2><div class="sub" id="movSub"></div></div>
           <div class="toolbar"><button class="btn primary" type="button" data-new="1">+ Agregar</button><button class="btn" type="button" data-goto="import">📄 Cartola o capturas</button></div>
           <div class="toolbar">
-            <label class="field">Buscar<input type="search" id="qText" placeholder="Descripción…"></label>
+            <label class="field">Buscar<input type="search" id="qText" placeholder="Busca en todos los meses: uber, jumbo…"></label>
             <label class="field">Mostrar<select id="qType"><option value="">Todo</option><option value="gasto">Gastos</option><option value="ingreso">Ingresos</option><option value="ahorro">Ahorro e inversión</option><option value="traspaso">Traspasos</option><option value="revisar">🏷️ Por categorizar</option></select></label>
             <button class="btn" id="exportBtn" type="button">Descargar CSV</button>
           </div>
@@ -774,11 +784,8 @@ body.priv [data-tip]{pointer-events:auto}
     <!-- IMPORT -->
     <section class="panel" data-panel="import" hidden>
       <div class="card">
-        <div class="card-head"><div><button class="linkbtn" type="button" data-goto="movs" style="margin-bottom:6px">‹ Volver a movimientos</button><h2>Subir cartola</h2><div class="sub">PDF, Excel o CSV de cualquier banco, tarjeta o billetera digital. Se lee solo en tu teléfono: nada se sube a internet.</div></div></div>
-        <div class="toolbar" style="margin-bottom:12px">
-          <label class="field">¿De qué cuenta es? <span class="muted" style="font-weight:400">(con PDF la detecto sola)</span><select id="impAcct"></select></label>
-        </div>
-        <label class="drop" id="drop" for="fileIn"><strong>Toca para elegir la cartola o tus capturas</strong><br><span class="muted" style="font-size:12px">PDF, Excel o CSV de la cartola · o capturas de pantalla de los movimientos en la app de tu banco (puedes elegir varias). Todo se lee en tu teléfono.</span></label>
+        <div class="card-head"><div><button class="linkbtn" type="button" data-goto="movs" style="margin-bottom:6px">‹ Volver a movimientos</button><h2>Subir cartola</h2><div class="sub">De cualquier banco o tarjeta. Se lee solo en tu teléfono.</div></div></div>
+        <label class="drop" id="drop" for="fileIn"><strong>Elige tus cartolas</strong><br><span class="muted" style="font-size:12px">Puedes elegir varias a la vez (PDF, Excel, CSV o capturas). Leo cada una y la asigno sola a su cuenta.</span></label>
         <form id="pdfPw" class="card" hidden style="margin-top:12px;box-shadow:none;border:1px solid var(--line,#e3e7ee)">
           <div style="font-weight:600;margin-bottom:4px">🔒 Este PDF tiene clave</div>
           <div class="muted" style="font-size:13px;margin-bottom:10px">La mayoría de los bancos usa tu RUT sin puntos, sin guion y sin dígito verificador (ej: 12345678). Si no funciona, revisa el correo del banco: ahí dice cuál es la clave.</div>
@@ -787,6 +794,8 @@ body.priv [data-tip]{pointer-events:auto}
           <div id="pdfPwMsg" class="muted" style="font-size:13px;margin-top:6px"></div>
         </form>
         <input type="file" id="fileIn" accept=".pdf,application/pdf,.xlsx,.xls,.csv,.txt,image/*" multiple hidden>
+        <div class="imphead"><span>Tus cuentas</span><button class="linkbtn" type="button" id="impNewAcc">+ Nueva cuenta</button></div>
+        <div id="impAccs"></div>
       </div>
       <div class="card" id="mapCard" hidden>
         <div class="card-head"><div><h2>Columnas detectadas</h2><div class="sub" id="mapSub"></div></div></div>
@@ -794,7 +803,7 @@ body.priv [data-tip]{pointer-events:auto}
       </div>
       <div class="card" id="prevCard" hidden>
         <div class="card-head">
-          <div><h2>Revisa antes de importar</h2><div class="sub" id="prevSub"></div><button class="linkbtn" type="button" id="showMap" style="margin-top:4px">¿Se ve raro? Ajustar columnas</button></div>
+          <div><h2>Revisa antes de importar</h2><div class="sub" id="prevQ"></div><label class="field impacc">Cuenta<select id="impAcct"></select></label><div class="sub" id="prevSub"></div><button class="linkbtn" type="button" id="showMap" style="margin-top:4px">¿Se ve raro? Ajustar columnas</button></div>
           <div class="toolbar"><button class="btn" id="cancelImp" type="button">Descartar</button><button class="btn primary" id="doImp" type="button">Importar</button></div>
         </div>
         <div class="plist" id="prevBody" style="max-height:640px;overflow:auto"></div>
@@ -1334,7 +1343,7 @@ function alertList(){
   if(news.length) out.push({k:"new|"+news.map(r=>r.key).join(","),lvl:"info",i:"🔁",t:news.length===1?`Nuevo pago que se repite: ${news[0].name}`:`${news.length} pagos nuevos que se repiten`,d:news.length===1?`${money(news[0].amount)} al mes${news[0].account?" en "+news[0].account:""}. ¿Lo reconoces?`:news.map(r=>r.name+" "+money(r.amount)).join(" · ")+". ¿Los reconoces?",a:'data-goto="budget"'});
   if(cur&&!state.example&&new Date().getDate()>=3){ const pm=shiftYM(ym,-1); const miss=accList().filter(a=>a.type!=="efectivo").filter(a=>{ const st=accStats(a.name); return st.last&&st.last<pm; });
     if(miss.length) out.push({k:"cart|"+pm+"|"+miss.map(a=>a.name).join(","),lvl:"warn",i:"📄",t:`Falta la cartola de ${ymLabel(pm).split(" ")[0].toLowerCase()}${miss.length===1?` de ${miss[0].name}`:` (${miss.length} cuentas)`}`,d:miss.length===1?"Súbela para cerrar el mes y cuadrar lo que anotaste.":miss.map(a=>a.name).join(" · "),a:`data-goto="import" data-impacc="${esc(miss[0].name)}"`}); }
-  const P=state.prof||{}; if(!state.example&&P.lastBackup&&daysAgo(P.lastBackup.slice(0,10))>30) out.push({k:"bk|"+todayYM(),lvl:"info",i:"💾",t:`Hace ${daysAgo(P.lastBackup.slice(0,10))} días que no descargas un respaldo`,d:"Tus datos viven solo en este teléfono: un respaldo te protege si lo pierdes.",a:'data-acct="datos"'});
+  const P=state.prof||{}; if(!state.example&&P.lastBackup&&daysAgo(P.lastBackup.slice(0,10))>14) out.push({k:"bk|"+todayYM(),lvl:"info",i:"💾",t:`Hace ${daysAgo(P.lastBackup.slice(0,10))} días que no descargas un respaldo`,d:"Tus datos viven solo en este teléfono: un respaldo te protege si lo pierdes.",a:'data-acct="datos"'});
   const off=new Set(P.dismissed||[]); const R={crit:0,warn:1,info:2}; return out.filter(x=>!off.has(x.k)).sort((a,b)=>R[a.lvl]-R[b.lvl]);
 }
 function renderAlerts(){ const L=alertList(); const n=L.length, bn=$("#bellN"), bb=$("#bellBtn"); if(!bb)return;
@@ -1712,6 +1721,8 @@ function loadLocal(){
 }
 function boot(){
   loadLocal(); bindUI(); bindLocal(); bindAccount(); bindPlan();
+  $("#bkbarGo").addEventListener("click",()=>{ $("#bkExport").click(); setTimeout(renderBkBar,300); });
+  $("#bkbarX").addEventListener("click",()=>{ saveProfile({bkSnooze:Date.now()+864e5}); renderBkBar(); });
   $("#homeBtn").addEventListener("click",e=>{ e.preventDefault(); closeNotif(); closeUMenu(); document.querySelectorAll(".bsheet.show").forEach(x=>hideSheet("#"+x.id)); setTab("resumen"); window.scrollTo({top:0,behavior:"smooth"}); });
   $("#privBtn").innerHTML=state.priv?EYE_OFF:EYE; $("#privBtn").setAttribute("aria-pressed",!!state.priv); $("#privBtn").addEventListener("click",()=>{ setPriv(!state.priv); okToast(state.priv?"Montos ocultos":"Montos visibles"); }); showWho(); setSync(); render();
   if(state.pinHash){ lockNow(); }
@@ -1761,12 +1772,12 @@ function accStats(name){ let n=0,last=""; Object.entries(allMonths()).forEach(([
 function renderAccounts(){ const L=accList();
   $("#accListBox").innerHTML=L.map(a=>{ const st=accStats(a.name); const T=ACC_TYPES[a.type]||ACC_TYPES.otra; const upd=st.last&&st.last>=shiftYM(todayYM(),-1);
     return `<button type="button" class="accrow" data-accedit="${esc(a.id)}"><span class="ai">${T[1]}</span><span class="an"><b>${esc(a.name)}</b><small>${esc([a.bank&&a.bank!=="Otro"?a.bank:"",T[0]].filter(Boolean).join(" · "))}</small></span><span class="as">${st.last?`<em class="${upd?"ok":""}">${upd?"✓ ":""}hasta ${esc(ymLabel(st.last,true))}</em>`:a.type==="efectivo"?"":"<em>sin cartola</em>"}<small>${st.n} movs</small></span></button>`; }).join(""); }
-function fillAccSelects(a){ $("#afType").innerHTML=Object.entries(ACC_TYPES).map(([k,v])=>`<option value="${k}"${a&&a.type===k?" selected":""}>${v[1]} ${v[0]}</option>`).join(""); const b=a?a.bank:""; const known=BANKS.includes(b)||!b;
+function fillAccSelects(a){ $("#afType").innerHTML=(a&&a.type?"":`<option value="">Elige el tipo…</option>`)+Object.entries(ACC_TYPES).map(([k,v])=>`<option value="${k}"${a&&a.type===k?" selected":""}>${v[1]} ${v[0]}</option>`).join(""); const b=a?a.bank:""; const known=BANKS.includes(b)||!b;
   $("#afBank").innerHTML=`<option value="">Elige…</option>`+BANKS.map(x=>`<option${(known?b:"Otro")===x?" selected":""}>${x}</option>`).join(""); $("#afOther").value=known?"":b; $("#afOtherWrap").hidden=known||!b; }
-function syncAccForm(){ const t=$("#afType").value; $("#afBankWrap").hidden=t==="efectivo"; $("#afOtherWrap").hidden=$("#afBank").value!=="Otro"||t==="efectivo"; if(!$("#afName").dataset.touched){ const bank=$("#afBank").value==="Otro"?$("#afOther").value.trim():$("#afBank").value; $("#afName").value=accDefaultName(bank,t,$("#afLast4").value.trim()); } }
-function openAccForm(acc,cb){ accFormCb=null; openAcct("cuentas"); accFormCb=cb||null; accEditId=acc?acc.id:null; $("#accFormBox").hidden=false; $("#accAddRow").hidden=true; $("#accFormTitle").textContent=acc?"Editar cuenta":"Nueva cuenta"; fillAccSelects(acc||{type:"tc"}); $("#afLast4").value=acc&&acc.last4||""; $("#afName").value=acc?acc.name:""; if(acc)$("#afName").dataset.touched="1"; else delete $("#afName").dataset.touched; $("#afDel").hidden=!acc; syncAccForm(); setTimeout(()=>$("#afType").focus(),80); }
+function syncAccForm(){ const t=$("#afType").value; $("#afBankWrap").hidden=t==="efectivo"; $("#afOtherWrap").hidden=$("#afBank").value!=="Otro"||t==="efectivo"; if(!$("#afName").dataset.touched){ const bank=$("#afBank").value==="Otro"?$("#afOther").value.trim():$("#afBank").value; $("#afName").value=t?accDefaultName(bank,t,$("#afLast4").value.trim()):""; } }
+function openAccForm(acc,cb){ accFormCb=null; openAcct("cuentas"); accFormCb=cb||null; accEditId=acc?acc.id:null; $("#accFormBox").hidden=false; $("#accAddRow").hidden=true; $("#accFormTitle").textContent=acc?"Editar cuenta":"Nueva cuenta"; fillAccSelects(acc||{type:""}); $("#afLast4").value=acc&&acc.last4||""; $("#afName").value=acc?acc.name:""; if(acc)$("#afName").dataset.touched="1"; else delete $("#afName").dataset.touched; $("#afDel").hidden=!acc; syncAccForm(); setTimeout(()=>$("#afType").focus(),80); }
 function closeAccForm(){ $("#accFormBox").hidden=true; $("#accAddRow").hidden=false; accEditId=null; accFormCb=null; }
-function saveAccForm(){ const type=$("#afType").value; let bank=type==="efectivo"?"":$("#afBank").value==="Otro"?($("#afOther").value.trim()||"Otro"):$("#afBank").value; const last4=$("#afLast4").value.replace(/\D/g,"").slice(0,4); let name=$("#afName").value.trim()||accDefaultName(bank,type,last4);
+function saveAccForm(){ const type=$("#afType").value; if(!type){ toast("Elige el tipo de cuenta."); return } let bank=type==="efectivo"?"":$("#afBank").value==="Otro"?($("#afOther").value.trim()||"Otro"):$("#afBank").value; const last4=$("#afLast4").value.replace(/\D/g,"").slice(0,4); let name=$("#afName").value.trim()||accDefaultName(bank,type,last4);
   if(type!=="efectivo"&&!bank){ toast("Elige el banco o emisor."); return }
   const old=accEditId?accList().find(a=>a.id===accEditId):null;
   if(accList().some(a=>a.name===name&&(!old||a.id!==old.id))){ toast("Ya tienes una cuenta con ese nombre."); return }
@@ -1918,7 +1929,10 @@ function renderTodo(){ const box=$("#todo"); if(!box)return; if(state.example){b
   box.innerHTML=html; box.hidden=false; box.classList.toggle("closed",/Mes cerrado/.test(html));
   const h=$("#todoHide"); if(h)h.onclick=()=>{ saveProfile({todoHidden:true}); renderTodo(); okToast("Lo encuentras de nuevo como «Cierre de mes»"); };
 }
-function renderResumen(){ renderTodo();
+function renderBkBar(){ const b=$("#bkbar"); if(!b)return; const P=state.prof||{}; const n=state.example?0:Object.values(state.months).reduce((a,m)=>a+((m.tx||[]).length),0);
+  const due=n>=5&&(!P.lastBackup||Date.now()-new Date(P.lastBackup)>7*864e5)&&(!P.bkSnooze||Date.now()>P.bkSnooze); b.hidden=!due;
+  if(due) $("#bkbarSub").textContent=P.lastBackup?`El último fue hace ${daysAgo(P.lastBackup.slice(0,10))} días. Guárdalo en Archivos o iCloud con un toque.`:"Tus datos viven solo en este teléfono. Guárdalos en Archivos o iCloud con un toque."; }
+function renderResumen(){ renderTodo(); renderBkBar();
   const tx=monthTx(state.ym), s=summarize(tx), prev=summarize(monthTx(shiftYM(state.ym,-1)));
   const budTot=Object.values(cfg().budgets||{}).reduce((a,b)=>a+(+b||0),0);
   const delta=(a,b)=>{ if(!b)return ""; const p=(a-b)/b; return `${p>=0?"▲":"▼"} ${Math.abs(p*100).toFixed(0)}% vs ${ymLabel(shiftYM(state.ym,-1),true)}` };
@@ -1984,10 +1998,12 @@ function renderTrend(){
 function renderMovs(){
   const openIds=new Set([...document.querySelectorAll('#movList details[open]')].map(d=>d.dataset.id));
   const q=norm($("#qText").value), qt=$("#qType").value;
-  const tx=monthTx(state.ym);
+  const tx=q?allRefs().map(r=>r.t):monthTx(state.ym);
   const rows=tx.filter(t=>(!q||norm(t.desc).includes(q))&&(!qt||(qt==="revisar"?needsReview(t):qt==="ahorro"?(t.cat===SAVINGS||t.cat===RESCUE):qt==="gasto"?(t.type==="gasto"&&t.cat!==SAVINGS):t.type===qt))).slice().sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:0);
   const s=summarize(rows);
-  $("#movSub").textContent=`${rows.length} movimientos · ${s.checked} en cartola · ✓ revisados por ti: ${rows.filter(t=>t.editedAt).length} · toca uno para verlo`;
+  if(q){ const nm=new Set(rows.map(t=>t.date.slice(0,7))).size; const g=rows.filter(t=>t.type==="gasto").reduce((a,t)=>a+t.amount,0), i=rows.filter(t=>t.type==="ingreso").reduce((a,t)=>a+t.amount,0);
+    $("#movSub").innerHTML=`🔎 <b>${rows.length}</b> resultado${rows.length===1?"":"s"} en ${nm} mes${nm===1?"":"es"}${g?` · gastos <b class="num">${esc(money(g))}</b>`:""}${i?` · ingresos <b class="num">${esc(money(i))}</b>`:""}`; }
+  else $("#movSub").textContent=`${rows.length} movimientos · ${s.checked} en cartola · ✓ revisados por ti: ${rows.filter(t=>t.editedAt).length} · toca uno para verlo`;
   const sign=t=>t.type==="ingreso"?"+":t.type==="traspaso"?"⇄ ":"−";
   const col=t=>t.type==="ingreso"?"var(--good-text)":t.type==="traspaso"?"var(--muted)":"var(--ink)";
   const dayLabel=iso=>{const d=new Date(iso+"T12:00:00"),t=new Date();t.setHours(12,0,0,0);const diff=Math.round((t-d)/864e5);if(diff===0)return"Hoy";if(diff===1)return"Ayer";return d.toLocaleDateString("es-CL",{weekday:"long",day:"numeric",month:"short"}).replace(".","")};
@@ -2119,16 +2135,23 @@ function renderEdit0(){
     <div><div class="eflabel">Categoría</div><div class="chips2">${catList.map(c=>`<button type="button" data-ec="${esc(c)}" aria-pressed="${v.cat===c}">${ICON[c]||"•"} <span>${esc(c)}</span></button>`).join("")}</div></div>
     <div class="row2"><label class="field">Cuenta<select id="eAcct">${acctOptions(v.account,true)}</select></label><div><div class="eflabel">Se repite</div><div class="seg2"><button type="button" data-en="variable" aria-pressed="${v.nature!=="fijo"}">Variable</button><button type="button" data-en="fijo" aria-pressed="${v.nature==="fijo"}">Fijo</button></div></div></div>
     ${v.cat===SAVINGS||v.cat===RESCUE?`<label class="field">${v.cat===RESCUE?"¿De qué ahorro sacaste?":"¿A qué ahorro o inversión?"}<select id="eInv">${invOptions(v.inv)}</select></label>`:""}
-    <div class="simbox"${ed.isNew?" hidden":""}>
-      <label><input type="checkbox" id="eSim" ${sim.length&&ed.touched?"checked":""} ${sim.length?"":"disabled"}> <span>Aplicar también a <b id="eSimN">${sim.length}</b> movimiento${sim.length===1?"":"s"} parecido${sim.length===1?"":"s"}</span></label>
-      <label><input type="checkbox" id="eRule" ${ed.touched?"checked":""}> <span>Recordar para las próximas cartolas</span></label>
-      <label class="field" style="display:grid;gap:4px;font-size:12.5px;color:var(--muted)">Se reconocen por el texto<input id="eKey" type="text" value="${esc(ed.key)}" autocomplete="off"></label>
+    <div class="simbox"${ed.isNew||!ed.touched?" hidden":""}>
+      <div class="autoline">${ed.onlyThis?`Solo se cambiará este movimiento.`:`✓ También ${sim.length?`a <b id="eSimN">${sim.length}</b> movimiento${sim.length===1?"":"s"} parecido${sim.length===1?"":"s"} y `:""}a los próximos con «<b>${esc(ed.key)}</b>»`} <button type="button" class="linkbtn" id="eOnly">${ed.onlyThis?"Aplicar a todos":"Solo este"}</button> <button type="button" class="linkbtn" id="eKeyBtn">Cambiar texto</button></div>
+      <input type="checkbox" id="eSim" hidden ${sim.length&&!ed.onlyThis?"checked":""}><input type="checkbox" id="eRule" hidden ${ed.onlyThis?"":"checked"}>
+      <label class="field" id="eKeyWrap" hidden style="display:grid;gap:4px;font-size:12.5px;color:var(--muted)">Se reconocen por el texto<input id="eKey" type="text" value="${esc(ed.key)}" autocomplete="off"></label>
     </div>
   </div>
   <div class="efactions">${ed.isNew?"<span></span>":`<button class="btn" id="eDel" type="button" style="color:var(--crit)">Eliminar</button>`}<div style="display:flex;gap:8px"><button class="btn" id="eCancel" type="button">Cancelar</button><button class="btn primary" id="eSave" type="button">${ed.isNew?"Agregar":"Guardar"}</button></div></div>`;
 }
 function scrollPay(){ const pc=document.querySelector(".paychips [aria-pressed=true]"); if(pc) pc.parentElement.scrollLeft=Math.max(0,pc.offsetLeft-pc.parentElement.offsetLeft-16); }
 function readEditInputs(){ const v=ed.v; v.desc=$("#eDesc").value.trim()||v.bankDesc||v.desc; const a=Math.abs(Math.round(parseAmount($("#eAmt").value))); if(a)v.amount=a; if($("#eDate").value)v.date=$("#eDate").value; if($("#eAcct").value!=="__new")v.account=$("#eAcct").value; if($("#eInv"))v.inv=$("#eInv").value||undefined; if($("#eKey"))ed.key=$("#eKey").value.trim(); }
+function toastAction(msg,label,fn){ const t=$("#toast"); t.innerHTML=`<span>${esc(msg)}</span> <button type="button" class="tbtn">${esc(label)}</button>`; t.classList.add("ok","show"); t.querySelector(".tbtn").onclick=()=>{ t.classList.remove("show"); fn(); }; clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove("show"),6500); }
+function undoCat(u){ const first=u.items[0];
+  if(first.newYm!==first.ym){ let mv=null; mutateMonth(first.newYm,cur=>{ const i=cur.tx.findIndex(x=>x.id===first.id); if(i>=0)mv=cur.tx.splice(i,1)[0]; }); if(mv) mutateMonth(first.ym,cur=>cur.tx.push(Object.assign(mv,first.prev))); }
+  else mutateMonth(first.ym,cur=>{ const t=cur.tx.find(x=>x.id===first.id); if(t){ Object.keys(t).forEach(k=>{ if(!(k in first.prev))delete t[k]; }); Object.assign(t,first.prev); } });
+  const by={}; u.items.slice(1).forEach(x=>(by[x.ym]=by[x.ym]||[]).push(x));
+  Object.entries(by).forEach(([ym,L])=>mutateMonth(ym,cur=>L.forEach(x=>{ const t=cur.tx.find(z=>z.id===x.id); if(t){ t.type=x.prev.type; t.cat=x.prev.cat; t.nature=x.prev.nature; if(x.prev.editedAt)t.editedAt=x.prev.editedAt; else delete t.editedAt; } })));
+  mutateConfig(c=>{ c.rules=u.rules; }); if(ed&&ed.id===first.id){ ed.mode="view"; ed.justSaved=0; renderEdit(); } toast("Cambio deshecho"); }
 function applyEdit(t,v,keepOwn){
   if(keepOwn){ t.desc=v.desc; t.amount=v.amount; t.date=v.date; t.account=v.account; if(v.inv)t.inv=v.inv; else delete t.inv; }
   t.type=v.type; t.cat=v.cat; t.nature=v.nature; t.editedAt=new Date().toISOString(); delete t.scope; delete t.rstat; delete t.rbatch;
@@ -2141,7 +2164,8 @@ function saveEdit(){
     const nt=clone(v); applyEdit(nt,v,true); if(ed.photo){ nt.photo=true; photoPut(nt.id,ed.photo); } state.lastAcct=v.account; state.flashId=nt.id; mutateMonth(newYm,cur=>cur.tx.push(nt)); afterSave($("#eSave"),"Agregado",()=>{ hideSheet("#edit"); flashEl(document.querySelector(`#movList details[data-id="${nt.id}"]`)); }); okToast("Movimiento agregado"); if(state.ym!==newYm){state.ym=newYm;render()} ed=null; return }
   if(!(CATS[v.type]||[]).includes(v.cat)){ v.cat=v.type==="ingreso"?"Otros ingresos":v.type==="traspaso"?"Traspaso / pago TC":"Otros gastos"; }
   const doSim=$("#eSim")&&$("#eSim").checked, doRule=$("#eRule")&&$("#eRule").checked;
-  const sim=doSim?similarTx(ed.key,ed.id):[];
+  const sim=doSim?similarTx(ed.key,ed.id).filter(r=>!r.t.editedAt||needsReview(r.t)):[];
+  const undo={items:[{ym:ed.ym,newYm,id:ed.id,prev:clone(ed.orig)}].concat(sim.map(r=>({ym:r.ym,id:r.t.id,prev:{type:r.t.type,cat:r.t.cat,nature:r.t.nature,editedAt:r.t.editedAt}}))),rules:clone(cfg().rules||[])};
   // el movimiento editado (puede cambiar de mes)
   if(newYm!==ed.ym){ let moved=null; mutateMonth(ed.ym,cur=>{const i=cur.tx.findIndex(x=>x.id===ed.id); if(i>=0){moved=cur.tx.splice(i,1)[0]}}); if(moved){applyEdit(moved,v,true); mutateMonth(newYm,cur=>cur.tx.push(moved));} }
   else mutateMonth(ed.ym,cur=>{const t=cur.tx.find(x=>x.id===ed.id); if(t)applyEdit(t,v,true)});
@@ -2149,7 +2173,7 @@ function saveEdit(){
   Object.entries(byYm).forEach(([ym,ids])=>mutateMonth(ym,cur=>cur.tx.forEach(t=>{ if(ids.includes(t.id)) applyEdit(t,v,false) })));
   if(doRule&&norm(ed.key).length>=3){ mutateConfig(c=>{ c.rules=(c.rules||[]).filter(r=>norm(r.kw)!==norm(ed.key)); c.rules.push({kw:ed.key.toUpperCase(),cat:v.cat}); }); }
   const savedId=ed.id; state.flashId=savedId; markSaved($("#eSave"),"Guardado");
-  if(doRule&&norm(ed.key).length>=3) okToast("Regla recordada para próximas cartolas");
+  if(sim.length||(doRule&&norm(ed.key).length>=3)){ toastAction(`✓ ${v.cat}${sim.length?`: ${sim.length+1} movimientos`:""}${doRule?" · y los próximos «"+ed.key+"»":""}`,"Deshacer",()=>undoCat(undo)); }
   setTimeout(()=>{ if(!ed||ed.id!==savedId)return; ed.mode="view"; ed.justSaved=1+sim.length; renderEdit(); $("#editBody").scrollTop=0; },450);
 }
 function bindEdit(){
@@ -2172,13 +2196,15 @@ function bindEdit(){
   $("#editBody").addEventListener("change",e=>{ if(e.target.id==="eShot"){ const f=[...e.target.files]; e.target.value=""; if(f.length) screensToImport(f); return; } if(e.target.id==="eAcct"&&e.target.value==="__new"){ readEditInputs(); e.target.value=ed.v.account; openAccForm(null,name=>{ ed.v.account=name; renderEdit(); markDirty($("#eSave")); }); } });
   $("#editBody").addEventListener("click",e=>{
     if(e.target.closest("#eFreeGo")){ freeGo(); return }
+    if(e.target.closest("#eOnly")){ readEditInputs(); ed.onlyThis=!ed.onlyThis; const st=$("#editBody").scrollTop; renderEdit(); $("#editBody").scrollTop=st; return }
+    if(e.target.closest("#eKeyBtn")){ $("#eKeyWrap").hidden=false; $("#eKey").focus(); return }
     const py=e.target.closest("[data-pay]"); if(py){ readEditInputs(); ed.v.account=py.dataset.pay; ed.askPay=false; const st=$("#editBody").scrollTop; renderEdit(); $("#editBody").scrollTop=st; markDirty($("#eSave")); return }
     const ph=e.target.closest("[data-photo]"); if(ph){ const id=ph.dataset.photo; hideSheet("#edit"); setTimeout(()=>openPhoto(id),200); return }
     const fq=e.target.closest("[data-fq]"); if(fq){ const f=findTx(fq.dataset.fq); if(!f)return; const t=f.t, v=ed.v; v.desc=t.desc; v.type=t.type; v.cat=t.cat; v.nature=t.nature||"variable"; if(t.account&&accByName(t.account))v.account=t.account; ed.catTouched=true; const amt=$("#eAmt").value; renderEdit(); if(amt&&amt!=="0")$("#eAmt").value=amt; const a=$("#eAmt"); a.focus(); a.select&&a.select(); markDirty($("#eSave")); return }
   });
   $("#editBody").addEventListener("keydown",e=>{ if(e.target.id==="eFree"&&e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); freeGo(); } });
   $("#editBody").addEventListener("input",e=>{ markDirty($("#eSave"));
-    if(ed&&ed.isNew&&!ed.catTouched&&e.target.id==="eDesc"){ const r=classifyRule(e.target.value); if(r){ const c=normCat(r.cat), ty=typeOfCat(c); if(ty&&ty===ed.v.type&&c!==ed.v.cat){ ed.v.cat=c; ed.v.nature=FIXED_CATS.has(c)?"fijo":"variable"; document.querySelectorAll("#editBody [data-ec]").forEach(x=>x.setAttribute("aria-pressed",x.dataset.ec===c)); } } } if(e.target.id==="eKey"&&ed){ ed.key=e.target.value; const n=similarTx(ed.key,ed.id).length; $("#eSimN").textContent=n; $("#eSim").disabled=!n; if(!n)$("#eSim").checked=false; } });
+    if(ed&&ed.isNew&&!ed.catTouched&&e.target.id==="eDesc"){ const r=classifyRule(e.target.value); if(r){ const c=normCat(r.cat), ty=typeOfCat(c); if(ty&&ty===ed.v.type&&c!==ed.v.cat){ ed.v.cat=c; ed.v.nature=FIXED_CATS.has(c)?"fijo":"variable"; document.querySelectorAll("#editBody [data-ec]").forEach(x=>x.setAttribute("aria-pressed",x.dataset.ec===c)); } } } if(e.target.id==="eKey"&&ed){ ed.key=e.target.value; const n=similarTx(ed.key,ed.id).length; if($("#eSimN"))$("#eSimN").textContent=n; $("#eSim").checked=n>0&&!ed.onlyThis; } });
 }
 function flowCard(s){
   if(!s.inc&&!s.exp)return "";
@@ -2291,6 +2317,7 @@ function handleFile(file){
       if(/\.(csv|txt)$/i.test(file.name)){ let txt; try{ txt=new TextDecoder("utf-8",{fatal:true}).decode(bytes) }catch(e){ txt=new TextDecoder("windows-1252").decode(bytes) } wb=XLSX.read(txt.replace(/^\ufeff/,""),{type:"string",raw:true}); }
       else wb=XLSX.read(bytes,{type:"array",cellDates:true});
       let rows=[]; wb.SheetNames.forEach(n=>{ if(!rows.length||rows.length<5){ const r=XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:true,defval:""}); if(r.length>rows.length) rows=r; } });
+      if(state.impTarget&&accByName(state.impTarget)){ refreshSelects(); $("#impAcct").value=state.impTarget; }
       setupMapping(rows,file.name);
     }catch(e){console.error(e);toast("No pude leer ese archivo. Prueba con la versión Excel de la cartola.")} };
   fr.readAsArrayBuffer(file);
@@ -2313,7 +2340,7 @@ async function handlePdf(file,pw){
   if(pw!=null&&$("#pdfPwRem").checked) lsSet(LS_PDFPW,pw);
   let r; try{ r=BankPDF.parseStatement(pages) }catch(e){ console.error(e); r={rows:[]} }
   if(!r.rows.length){ try{ const r2=await ocrPdf(file,saved||pw||undefined); if(r2&&r2.rows.length){ r=r2; r.loose=true; } }catch(e){ console.error(e); } }
-  if(!r.rows.length){ toast("No pude leer movimientos en este PDF. Prueba con la cartola en Excel o con una captura de los movimientos (📷), y cuéntanos para mejorar el lector."); return }
+  if(!r.rows.length){ if(state.impQueue&&state.impQueue.length){ toast(`No pude leer «${file.name}». Sigo con la siguiente.`); nextInQueue(); return } toast("No pude leer movimientos en este PDF. Prueba con la cartola en Excel o con una captura de los movimientos (📷), y cuéntanos para mejorar el lector."); return }
   const acc=matchAccount(r.bank,r.kind); refreshSelects(); $("#impAcct").value=acc.name;
   const per=r.period&&r.period.start&&r.period.end?` (${dmy(r.period.start)} al ${dmy(r.period.end)})`:"";
   okToast(`${acc.created?"Creé la cuenta ":""}${acc.name}: leí ${r.rows.length} movimientos${per}.${r.loose?" Revisa los tipos: este formato no lo conozco del todo.":" Revísalos antes de importar."}`);
@@ -2396,7 +2423,7 @@ function buildPreview(){
   });
   im.preview=out; renderPreview();
 }
-function renderPreview(){
+function renderPreview(){ const q=$("#prevQ"); if(q) q.textContent=state.impTotal>1?`Cartola ${state.impIdx||1} de ${state.impTotal}${state.imp&&state.imp.name?" · "+state.imp.name:""}`:(state.imp&&state.imp.name?state.imp.name:"");
   const im=state.imp; const P=im.preview; $("#prevCard").hidden=false;
   const c={new:0,match:0,dup:0}; P.forEach(p=>c[p.status]++);
   $("#prevSub").textContent=P.length?`${P.length} movimientos leídos · ${c.new} nuevos · ${c.match} concilian con lo que ya anotaste · ${c.dup} ya estaban importados`:"No encontré movimientos. Revisa que las columnas de fecha y monto estén bien asignadas.";
@@ -2416,14 +2443,28 @@ function doImport(){
     (matchByYm[ym]||[]).forEach(p=>{const t=cur.tx.find(x=>x.id===p.matchId); if(t){t.checked=true;t.bankDesc=p.desc; if(t.source&&t.source!=="cartola"&&t.source!=="manual"){ t.account=p.account; } else t.account=t.account||p.account; if(t.amount!==p.amount){ t.origAmount=t.amount; t.amount=p.amount; } delete t.approx; recon++}});
     (byYm[ym]||[]).filter(p=>p.status!=="match").forEach(p=>{const nt={id:p.id,date:p.date,desc:p.desc,bankDesc:p.desc,amount:p.amount,type:p.type,cat:p.cat,account:p.account,nature:p.nature,source:src,checked:src==="cartola"}; cur.tx.push(nt);added++});
   }));
+  const latest=[...Object.keys(byYm)].sort().pop();
+  if(src==="cartola"){ const im=state.imp; const yms=Object.keys(byYm).sort(); mutateConfig(c=>{ c.imports=(c.imports||[]).concat({id:uid(),acct:im.acct,file:String(im.name||"").slice(0,80),ym:latest||yms[0]||ymOf(P[0].date),n:P.length,at:new Date().toISOString()}).slice(-400); }); }
+  state.imp=null; $("#mapCard").hidden=true; $("#prevCard").hidden=true;
+  if(nextInQueue(`${added} importados · ${recon} conciliados.`)) return;
   okToast(`${added} movimientos importados · ${recon} conciliados`);
-  const latest=[...Object.keys(byYm)].sort().pop(); if(latest)state.ym=latest;
-  state.imp=null; $("#mapCard").hidden=true; $("#prevCard").hidden=true; setTab("resumen");
+  if(latest)state.ym=latest; setTab("resumen");
 }
+function nextInQueue(prev){ const Q=state.impQueue||[]; if(!Q.length){ const im=state.pendingImgs||[]; state.pendingImgs=[]; state.impTarget=null; state.impTotal=0; if(im.length){ if(prev)okToast(prev); setTimeout(()=>screensToImport(im),350); return true; } return false; }
+  const f=Q.shift(); state.impIdx=(state.impIdx||1)+1; if(prev) okToast(prev+` Sigue la ${state.impIdx} de ${state.impTotal}.`);
+  if(state.impTarget&&accByName(state.impTarget)){ refreshSelects(); $("#impAcct").value=state.impTarget; }
+  setTimeout(()=>handleFile(f),350); return true; }
+function accHistory(name){ const log=(cfg().imports||[]).filter(x=>x.acct===name); const seen=new Set(log.map(x=>x.ym)); const out=log.slice();
+  Object.entries(allMonths()).forEach(([ym,m])=>{ if(seen.has(ym))return; const n=(m.tx||[]).filter(t=>t.account===name&&t.source==="cartola").length; if(n) out.push({ym,n,file:"",at:""}); });
+  return out.sort((a,b)=>a.ym<b.ym?1:a.ym>b.ym?-1:(b.at||"").localeCompare(a.at||"")); }
+function renderImpAccs(){ const box=$("#impAccs"); if(!box)return; const L=accList().filter(a=>a.type!=="efectivo"); const prev=shiftYM(todayYM(),-1);
+  box.innerHTML=L.length?L.map(a=>{ const H=accHistory(a.name); const months=[...new Set(H.map(h=>h.ym))]; const last=months[0]; const ok=last&&last>=prev; const open=state.impOpen===a.name;
+    return `<div class="iacc${open?" open":""}"><button type="button" class="iarow" data-iacc="${esc(a.name)}"><span class="ai">${(ACC_TYPES[a.type]||ACC_TYPES.otra)[1]}</span><span class="an"><b>${esc(a.name)}</b><small>${last?`${ok?"✓ ":""}hasta ${esc(ymLabel(last,true))} · ${months.length} cartola${months.length===1?"":"s"}`:"Sin cartolas todavía"}</small></span><span class="go">${open?"▾":"›"}</span></button>
+      ${open?`<div class="ihist">${H.length?H.slice(0,12).map(h=>`<div><span>${esc(ymLabel(h.ym,true))}</span><small>${h.n} movs${h.file?" · "+esc(h.file.length>26?h.file.slice(0,24)+"…":h.file):""}${h.at?" · "+new Date(h.at).toLocaleDateString("es-CL",{day:"numeric",month:"short"}):""}</small></div>`).join(""):`<p class="note" style="margin:0">Aún no subes cartolas de esta cuenta.</p>`}<button type="button" class="btn primary sm" data-iup="${esc(a.name)}">Subir cartola de ${esc(a.name)}</button></div>`:""}</div>`; }).join(""):`<p class="note">Todavía no tienes cuentas: sube una cartola en PDF y la creo sola, o toca «+ Nueva cuenta».</p>`; }
 
 /* ---------- UI bindings ---------- */
 function invOptions(sel){ const L=cfg().invest||[]; return `<option value="">Sin asignar</option>`+L.map(i=>`<option value="${i.id}"${i.id===sel?" selected":""}>${esc(i.name)}</option>`).join(""); }
-function setTab(t){ if(t==="rend")t="movs"; if(t==="import")refreshSelects(); state.tab=t; document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===t||(t==="import"&&b.dataset.tab==="movs"))); document.querySelectorAll("[data-panel]").forEach(p=>p.hidden=p.dataset.panel!==t); try{localStorage.setItem("ml_tab",t)}catch(e){} render(); }
+function setTab(t){ if(t==="rend")t="movs"; if(t==="import"){ refreshSelects(); setTimeout(renderImpAccs,0); } state.tab=t; document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===t||(t==="import"&&b.dataset.tab==="movs"))); document.querySelectorAll("[data-panel]").forEach(p=>p.hidden=p.dataset.panel!==t); try{localStorage.setItem("ml_tab",t)}catch(e){} render(); }
 function refreshSelects(){ let cur=$("#impAcct").value; if(!accByName(cur))cur=""; $("#impAcct").innerHTML=acctOptions(cur||(accList().find(a=>a.type!=="efectivo")||{}).name,true); }
 function bindUI(){
   refreshSelects(); bindAhorro();
@@ -2445,7 +2486,7 @@ function bindUI(){
   $("#fab").addEventListener("click",()=>openEdit(null));
   $("#qText").addEventListener("input",renderMovs); $("#qType").addEventListener("change",renderMovs);
   document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeSheet();closeDrill();hideSheet("#edit")} if((e.key==="Enter"||e.key===" ")&&e.target.dataset&&e.target.dataset.drill){e.preventDefault();openDrill(e.target.dataset.drill)}});
-document.addEventListener("click",e=>{ const nw=e.target.closest("[data-new]"); if(nw){openEdit(null);return} const gt=e.target.closest("[data-goto]"); if(gt){ if(gt.closest("#edit")){ hideSheet("#edit"); ed=null; } setTab(gt.dataset.goto); if(gt.dataset.impacc){ refreshSelects(); $("#impAcct").value=gt.dataset.impacc; } window.scrollTo({top:0}); return } const rv=e.target.closest("[data-review]"); if(rv){ setTab("movs"); $("#qType").value="revisar"; renderMovs(); return }
+document.addEventListener("click",e=>{ const nw=e.target.closest("[data-new]"); if(nw){openEdit(null);return} const gt=e.target.closest("[data-goto]"); if(gt){ if(gt.closest("#edit")){ hideSheet("#edit"); ed=null; } setTab(gt.dataset.goto); if(gt.dataset.impacc){ refreshSelects(); $("#impAcct").value=gt.dataset.impacc; state.impTarget=gt.dataset.impacc; state.impOpen=gt.dataset.impacc; renderImpAccs(); } window.scrollTo({top:0}); return } const rv=e.target.closest("[data-review]"); if(rv){ setTab("movs"); $("#qType").value="revisar"; renderMovs(); return }
   const op=e.target.closest("[data-open]"); if(op){ openEdit(op.dataset.open); return }
   const sm=e.target.closest("#movList details > summary"); if(sm){ e.preventDefault(); openEdit(sm.parentElement.dataset.id); return }
   const g=e.target.closest("[data-go]"); if(g){goToTx(g.dataset.go);return} const d=e.target.closest("[data-drill]"); if(d&&d.dataset.drill&&d.dataset.drill!=="undefined"){openDrill(d.dataset.drill)} });
@@ -2456,7 +2497,9 @@ $("#drillClose").addEventListener("click",closeDrill); $("#drillScrim").addEvent
   const drop=$("#drop");
   ["dragenter","dragover"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add("on")}));
   ["dragleave","drop"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove("on")}));
-  const pickFiles=fl=>{ const f=[...(fl||[])]; if(!f.length)return; const imgs=f.filter(x=>/^image\//.test(x.type)||/\.(png|jpe?g|heic|webp)$/i.test(x.name)); if(imgs.length) screensToImport(imgs); else handleFile(f[0]); };
+  const pickFiles=fl=>{ const f=[...(fl||[])]; if(!f.length)return; const isImg=x=>/^image\//.test(x.type)||/\.(png|jpe?g|heic|webp)$/i.test(x.name); const imgs=f.filter(isImg), docs=f.filter(x=>!isImg(x));
+    if(state.impTarget&&accByName(state.impTarget)){ refreshSelects(); $("#impAcct").value=state.impTarget; }
+    if(docs.length){ state.impQueue=docs.slice(1).concat(imgs.length?[]:[]); state.impTotal=docs.length; state.impIdx=1; state.pendingImgs=imgs; handleFile(docs[0]); } else if(imgs.length) screensToImport(imgs); };
   drop.addEventListener("drop",e=>pickFiles(e.dataTransfer.files));
   $("#fileIn").addEventListener("change",e=>{pickFiles(e.target.files);e.target.value=""});
   $("#pdfPw").addEventListener("submit",e=>{ e.preventDefault(); const v=$("#pdfPwIn").value.replace(/[^\dkK]/g,""); if(!v||!pendingPdf)return; $("#pdfPwIn").value=""; handlePdf(pendingPdf,v); });
@@ -2467,7 +2510,11 @@ $("#drillClose").addEventListener("click",closeDrill); $("#drillScrim").addEvent
     if(e.target.matches("[data-pt]")){p.type=e.target.value;p.cat=CATS[p.type][p.type==="gasto"?CATS.gasto.length-1:0]; renderPreview();}
     if(e.target.matches("[data-pc]")){p.cat=e.target.value;p.nature=FIXED_CATS.has(p.cat)?"fijo":"variable"; }
     $("#doImp").disabled=!state.imp.preview.some(p=>p.include); });
-  $("#cancelImp").addEventListener("click",()=>{state.imp=null;$("#mapCard").hidden=true;$("#prevCard").hidden=true});
+  $("#cancelImp").addEventListener("click",()=>{state.imp=null;$("#mapCard").hidden=true;$("#prevCard").hidden=true; if(!nextInQueue("Descartada.")) renderImpAccs(); });
+  $("#impAccs").addEventListener("click",e=>{ const r=e.target.closest("[data-iacc]"); if(r){ state.impOpen=state.impOpen===r.dataset.iacc?null:r.dataset.iacc; renderImpAccs(); return }
+    const u=e.target.closest("[data-iup]"); if(u){ state.impTarget=u.dataset.iup; refreshSelects(); $("#impAcct").value=u.dataset.iup; $("#fileIn").click(); } });
+  $("#impNewAcc").addEventListener("click",()=>openAccForm(null,name=>{ state.impOpen=name; setTab("import"); }));
+  $("#drop").addEventListener("click",()=>{ state.impTarget=null; });
   $("#doImp").addEventListener("click",doImport);
   $("#showMap").addEventListener("click",()=>{ $("#mapCard").hidden=!$("#mapCard").hidden; });
 

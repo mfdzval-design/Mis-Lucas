@@ -2,6 +2,13 @@
 
 Cada versión publicada queda anotada aquí. El número de versión se ve al pie de la app.
 
+## Próxima versión · (sin publicar)
+- Subir cartola rediseñado: eliges varias cartolas a la vez y la app lee cada una y la asigna sola a su cuenta, una tras otra. Debajo, la lista de tus cuentas con hasta qué mes está cargada cada una y su historial de cartolas (mes, archivo, movimientos y fecha de carga). «+ Nueva cuenta» siempre a mano.
+- El formulario de nueva cuenta ya no aparece prellenado con datos de otra cuenta.
+- Categorizar una vez y listo: al cambiar la categoría de un movimiento, se aplica sola a los parecidos y a los próximos con ese texto, con un botón «Deshacer». «Solo este» para excepciones.
+- Recordatorio de respaldo semanal en el Inicio: con un toque lo guardas en Archivos o iCloud.
+- El buscador de Movimientos busca en todos los meses y muestra cuántos resultados y cuánto suman.
+
 ## 1.7.1 beta · 1-oct-2026
 - Lector de PDF más robusto: entiende cartolas donde el texto viene con cada letra por separado o con varias columnas juntas.
 - Si un PDF no trae texto legible (escaneado o generado como imagen), la app lo lee como imagen dentro del teléfono.

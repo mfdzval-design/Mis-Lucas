@@ -10,7 +10,7 @@ Cada versión publicada queda anotada aquí. El número de versión se ve al pie
 - Cada cuenta muestra hasta qué mes está cargada.
 - Pagos que se repiten (en Presupuesto): detecta solo tus suscripciones, seguros, arriendos, sueldo y otros pagos fijos, muestra si ya se pagaron este mes y avisa si suben de precio o aparece uno nuevo. Puedes marcar "No es un pago fijo".
 - Proyección a fin de mes: cuánto te quedaría, sumando los ingresos y pagos fijos que faltan, las cuotas del mes y tu gasto variable promedio.
-- Avisos en el inicio: topes al 80 % y excedidos, proyección negativa, alzas de precio, pagos nuevos y respaldo atrasado. Cada aviso se puede descartar.
+- Avisos en la campana de arriba (junto al ojo), con un número de cuántos hay: al tocarla se despliegan, y al tocar uno ves su detalle. Incluyen topes al 80 % y excedidos, proyección negativa, alzas de precio, pagos nuevos y respaldo atrasado. Cada aviso se puede descartar.
 - "Lo destacado del mes" e informe mensual con comparación de cada categoría contra tus meses anteriores, y botón para compartir el resumen.
 - Nueva pestaña Patrimonio y metas: patrimonio neto (lo que tienes menos lo que debes) con su evolución mes a mes, metas de ahorro con el monto a apartar cada mes, deudas (créditos, líneas) y compras en cuotas detectadas solas en tus cartolas, intereses pagados en el año y otros bienes (saldos, propiedad, auto).
 - Modo privado: el ojo arriba oculta todos los montos con un toque.

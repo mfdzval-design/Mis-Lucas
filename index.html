@@ -668,7 +668,10 @@ body.bs-open #drillScrim{display:block}
 .rr span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.rr small{color:var(--muted)}.rr em{font-style:normal;font-size:12px;text-align:right}
 .biorow{display:flex;gap:12px;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:14px;padding:12px 14px}.biorow small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
 .biobtn{margin-top:14px}
-.privbtn{margin-left:auto}.privbtn[aria-pressed=true]{color:var(--accent)}
+.bellbtn{margin-left:auto;position:relative}.bellbtn .bdg{position:absolute;top:2px;right:2px;min-width:17px;height:17px;padding:0 4px;border-radius:999px;background:var(--warn);color:#111;font-size:10.5px;font-weight:800;display:grid;place-items:center;line-height:1;border:2px solid var(--bg,var(--surface))}.bellbtn.crit .bdg{background:var(--crit);color:#fff}
+.npanel{position:fixed;z-index:72;width:380px;max-width:calc(100vw - 24px);max-height:min(70vh,560px);overflow:auto;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:18px;box-shadow:0 12px 40px rgba(0,0,0,.22);padding:10px;display:grid;gap:8px;align-content:start}
+.nph{display:flex;justify-content:space-between;align-items:center;padding:4px 4px 6px 8px}.nph b{display:block;font-size:16px}.nph small{color:var(--muted);font-size:12.5px}
+#npList{display:grid;gap:8px}.alb .go{margin-left:auto;color:var(--accent);font-size:18px;flex:none}.privbtn[aria-pressed=true]{color:var(--accent)}
 body.priv [data-tip]{pointer-events:auto}
 @media (max-width:640px){ .rr{grid-template-columns:minmax(0,1fr) auto 58px}.rr small{display:none} .rkpi b{font-size:14px} }
 </style>
@@ -680,6 +683,7 @@ body.priv [data-tip]{pointer-events:auto}
     <div class="brand-row">
       <div class="brand"><h1>Mis <span>Lucas</span></h1><span class="chip">CLP</span></div>
       <div class="sync" id="sync"><span class="dot"></span><span id="syncText">Conectando…</span></div>
+      <button class="iconbtn bellbtn" id="bellBtn" type="button" aria-haspopup="dialog" aria-expanded="false" aria-label="Avisos" title="Avisos"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 1112 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 003.4 0"/></svg><span class="bdg" id="bellN" hidden></span></button>
       <button class="iconbtn privbtn" id="privBtn" type="button" aria-pressed="false" title="Ocultar montos" aria-label="Ocultar o mostrar montos"></button>
       <button class="who" id="who" type="button" hidden aria-haspopup="menu" aria-expanded="false" aria-controls="umenu" aria-label="Tu cuenta y configuración"><span class="av" id="whoAv"></span><span id="whoName"></span><span class="caret" aria-hidden="true">▾</span></button>
       <div class="month-nav" role="group" aria-label="Mes">
@@ -709,7 +713,6 @@ body.priv [data-tip]{pointer-events:auto}
     <section class="panel" data-panel="resumen">
       <div class="card todo" id="todo" hidden></div>
       <div class="kpis" id="kpis"></div>
-      <div class="card alerts" id="alerts" hidden></div>
       <div class="card" id="hl" hidden></div>
       <div class="grid-2">
         <div class="card">
@@ -917,6 +920,7 @@ body.priv [data-tip]{pointer-events:auto}
   <div class="err" id="suErr"></div>
   <div class="acts"><button class="btn primary" type="button" id="suNext">Continuar</button></div>
 </div></div>
+<div id="npanel" class="npanel" role="dialog" aria-label="Avisos" hidden><div class="nph"><div><b>Avisos</b><small id="npSub"></small></div><button class="iconbtn" type="button" id="npClose" aria-label="Cerrar">✕</button></div><div id="npList"></div></div>
 <div id="umenu" class="umenu" role="menu" aria-label="Cuenta" hidden>
   <div class="uhead"><div class="uav" id="uAv">•</div><div class="uname" id="uName">Tu perfil</div><div class="umail" id="uMail"></div><div class="ubadge" id="uBadge"></div></div>
   <button role="menuitem" type="button" data-acct="perfil"><span class="ui">👤</span>Perfil personal</button>
@@ -1273,9 +1277,12 @@ function alertList(){
   const P=state.prof||{}; if(!state.example&&P.lastBackup&&daysAgo(P.lastBackup.slice(0,10))>30) out.push({k:"bk|"+todayYM(),lvl:"info",i:"💾",t:`Hace ${daysAgo(P.lastBackup.slice(0,10))} días que no descargas un respaldo`,d:"Tus datos viven solo en este teléfono: un respaldo te protege si lo pierdes.",a:'data-acct="datos"'});
   const off=new Set(P.dismissed||[]); const R={crit:0,warn:1,info:2}; return out.filter(x=>!off.has(x.k)).sort((a,b)=>R[a.lvl]-R[b.lvl]);
 }
-function renderAlerts(){ const box=$("#alerts"); if(!box)return; const L=alertList(); if(!L.length){box.hidden=true;box.innerHTML="";return}
-  const more=L.length>3&&!state.alAll; box.hidden=false; box.innerHTML=`<div class="card-head"><div><h2>Avisos</h2><div class="sub">${L.length} ${L.length===1?"cosa":"cosas"} para mirar</div></div></div>`+(more?L.slice(0,3):L).map(x=>`<div class="al ${x.lvl}"><button type="button" class="alb" ${x.a}><span class="ali">${x.i}</span><span><b>${esc(x.t)}</b><small>${esc(x.d)}</small></span></button><button type="button" class="iconbtn alx" data-dismiss="${esc(x.k)}" aria-label="Descartar aviso">✕</button></div>`).join("")+(L.length>3?`<button class="linkbtn" type="button" id="alMore">${more?`Ver ${L.length-3} más`:"Ver menos"}</button>`:""); const mb=$("#alMore"); if(mb)mb.onclick=()=>{ state.alAll=!state.alAll; renderAlerts(); }; }
-
+function renderAlerts(){ const L=alertList(); const n=L.length, bn=$("#bellN"), bb=$("#bellBtn"); if(!bb)return;
+  bn.hidden=!n; bn.textContent=n>9?"9+":n; bb.classList.toggle("has",n>0); bb.classList.toggle("crit",L.some(x=>x.lvl==="crit")); bb.setAttribute("aria-label",n?`Avisos: ${n}`:"Avisos");
+  $("#npSub").textContent=n?`${n} ${n===1?"cosa":"cosas"} para mirar · ${ymLabel(state.ym)}`:ymLabel(state.ym);
+  $("#npList").innerHTML=n?L.map(x=>`<div class="al ${x.lvl}"><button type="button" class="alb" ${x.a}><span class="ali">${x.i}</span><span><b>${esc(x.t)}</b><small>${esc(x.d)}</small></span><span class="go">›</span></button><button type="button" class="iconbtn alx" data-dismiss="${esc(x.k)}" aria-label="Descartar aviso">✕</button></div>`).join(""):`<div class="empty" style="padding:22px 8px"><span class="ei">✅</span>Todo en orden. Aquí te aviso si te acercas a un tope, sube un pago o la proyección del mes se pone en rojo.</div>`; }
+function openNotif(){ renderAlerts(); closeUMenu(); const p=$("#npanel"), b=$("#bellBtn"); p.hidden=false; const r=b.getBoundingClientRect(); p.style.top=(r.bottom+8)+"px"; const nar=innerWidth<640; p.style.left=nar?"12px":""; p.style.width=nar?"auto":""; p.style.right=(nar?12:Math.max(12,innerWidth-r.right))+"px"; b.setAttribute("aria-expanded","true"); }
+function closeNotif(){ const p=$("#npanel"); if(!p||p.hidden)return; p.hidden=true; $("#bellBtn").setAttribute("aria-expanded","false"); }
 function insights(ym){
   const tx=monthTx(ym), s=summarize(tx); const L=[]; if(!s.n)return L;
   const avg=avgOf("exp",ym); if(avg){ const p=(s.exp-avg)/avg; L.push({i:p>0?"📈":"📉",t:`Gastaste ${money(s.exp)}, ${Math.abs(Math.round(p*100))}% ${p>0?"más":"menos"} que tu promedio de meses anteriores (${money(avg)}).`}); }
@@ -1313,6 +1320,10 @@ function renderRecurring(){ const box=$("#recBody"); if(!box)return; const all=r
   box.innerHTML=R.length?(g.length?`<div class="dgrp-h"><span>Pagos y suscripciones · ${g.length}</span><span class="num">${money(sum(g))}</span></div>${g.map(row).join("")}`:"")+(i.length?`<div class="dgrp-h" style="margin-top:12px"><span>Ingresos · ${i.length}</span><span class="num">${money(sum(i))}</span></div>${i.map(row).join("")}`:""):`<div class="empty"><span class="ei">🔁</span>Todavía no hay suficientes meses para detectarlos.</div>`;
   const ig=all.filter(r=>r.ignored).length; $("#recIgn").hidden=!ig; $("#recIgn").textContent=`Mostrar ${ig} ocultado${ig===1?"":"s"}`; }
 function bindPlan(){
+  $("#bellBtn").addEventListener("click",e=>{ e.stopPropagation(); $("#npanel").hidden?openNotif():closeNotif(); });
+  $("#npClose").addEventListener("click",closeNotif);
+  document.addEventListener("keydown",e=>{ if(e.key==="Escape")closeNotif(); });
+  document.addEventListener("click",e=>{ const p=$("#npanel"); if(!p.hidden&&!e.target.closest("#npanel")&&!e.target.closest("#bellBtn")) closeNotif(); if(e.target.closest("#npanel .alb")) setTimeout(closeNotif,0); },true);
   document.addEventListener("click",e=>{
     const x=e.target.closest("[data-dismiss]"); if(x){ const P=state.prof||{}; saveProfile({dismissed:[...(P.dismissed||[]),x.dataset.dismiss].slice(-200)}); renderAlerts(); return }
     if(e.target.closest("[data-proj]")){ openProj(); return }
@@ -1596,6 +1607,7 @@ function acctOptions(sel,withNew){ const L=accList(); const extra=sel&&!L.some(a
 
 function render(){
   _rc.sig=null;
+  try{ renderAlerts() }catch(e){ console.error(e) }
   const av=$("#appVer"); if(av)av.textContent=APP_VERSION;
   $("#monthLabel").textContent=ymLabel(state.ym);
   $("#exampleBanner").hidden=!state.example;
@@ -1654,7 +1666,7 @@ function renderResumen(){ renderTodo();
       <div class="st"><div class="k"><i>↑</i>Salió</div><div class="v num">${money(s.exp)}</div><div class="d num">${delta(s.exp,prev.exp)||"Fijo "+compact(s.expFix)+" · variable "+compact(s.expVar)}</div></div>
       <div class="st"><div class="k"><i>🐷</i>Guardado</div><div class="v num">${money(s.netSav)}</div><div class="d num">${s.resc?`Aportes ${compact(s.sav)} · retiros ${compact(s.resc)}`:"Ahorro e inversión"}</div></div>
     </div></div>${flowCard(s)}`;
-  renderAlerts(); renderHighlights();
+  renderHighlights();
 
   // categories
   const bud=cfg().budgets||{};

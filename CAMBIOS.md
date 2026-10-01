@@ -2,6 +2,13 @@
 
 Cada versión publicada queda anotada aquí. El número de versión se ve al pie de la app.
 
+## 1.9.0 beta · 1-oct-2026
+- La franja de indicadores ahora es un carrusel que avanza solo (se detiene al tocarla). El conversor funciona en ambos sentidos y entre cualquier par: pesos, dólares, euros, UF y UTM, con botón para invertir.
+- Transferencias entre tus propias cuentas: al subir la cartola de una cuenta, la app busca en tus otras cuentas el mismo monto en sentido contrario (±3 días) y marca ambos movimientos como traspaso, para que no cuenten como gasto ni ingreso. Incluye el pago de la tarjeta desde la cuenta corriente.
+- Categorías de gastos más simples (12): Vivienda, Supermercado, Restaurantes, Delivery, Salidas, Auto y bencina, Vestuario, Deporte, Suscripciones, Oficina (te la devuelven), Ahorro e inversión y Otros gastos. Los movimientos, topes y reglas con categorías anteriores se pasan solos a la nueva que corresponde.
+- Cada persona puede renombrar, cambiar el emoji, borrar o crear categorías en el menú «Categorías de gastos» (aparece también una vez en Primeros pasos).
+- Al categorizar: después de guardar, el botón principal es «Siguiente ›» (abre el próximo sin categoría ya en edición). «Editar» queda al lado de «Eliminar».
+
 ## 1.8.0 beta · 1-oct-2026
 - Subir cartola rediseñado: eliges varias cartolas a la vez y la app lee cada una y la asigna sola a su cuenta, una tras otra. Debajo, la lista de tus cuentas con hasta qué mes está cargada cada una y su historial de cartolas (mes, archivo, movimientos y fecha de carga). «+ Nueva cuenta» siempre a mano.
 - El formulario de nueva cuenta ya no aparece prellenado con datos de otra cuenta.

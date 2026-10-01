@@ -95,7 +95,7 @@
           const near = lines.slice(Math.max(0, idx - 3), idx + 3).flatMap(z => z.items);
           const sd = near.find(x => /^SALDO/.test(N(x.s)) && x.x > ab.x);
           const c = x => (x.x + x.r) / 2;
-          const dh = near.find(x => /^(DESCRIPCION|DETALLE|GLOSA|CONCEPTO|MOVIMIENTO)/.test(N(x.s)));
+          const dh = near.find(x => /^(DESCRIPCION|DESCRIPCION DEL MOVIMIENTO|DETALLE|GLOSA|CONCEPTO|MOVIMIENTO|DESCRIPCION MOVIMIENTO)$/.test(N(x.s)));
           cols = { cargo: c(cg), abono: c(ab), saldo: sd ? c(sd) : Infinity, dx: dh ? dh.x - 25 : null, ax: Math.min(cg.x, ab.x) - 40 };
           return;
         }
@@ -142,7 +142,38 @@
     }
     return rows;
   }
-  function parseStatement(pages) {
+  // Algunos PDF traen cada fila (o varias columnas) como un solo texto: lo separamos en palabras
+  // estimando la posición de cada una según su lugar dentro del texto.
+  function splitPages(pages) {
+    return pages.map(lines => lines.map(l => {
+      const items = [];
+      l.items.forEach(it => {
+        const s = it.s, w = Math.max(1, it.r - it.x), cw = w / Math.max(1, s.length);
+        const re = /\$\s?-?[\d.,]+|\S+/g; let m; let n = 0;
+        while ((m = re.exec(s))) { n++; items.push({ x: Math.round(it.x + m.index * cw), r: Math.round(it.x + (m.index + m[0].length) * cw), s: m[0] }); }
+        if (!n) items.push(it);
+      });
+      items.sort((a, b) => a.x - b.x);
+      return { y: l.y, items };
+    }));
+  }
+  // Otros PDF traen cada letra por separado: juntamos las letras pegadas en palabras.
+  function mergeTight(pages) {
+    return pages.map(lines => lines.map(l => {
+      const out = [];
+      l.items.forEach(it => {
+        const cur = out[out.length - 1];
+        if (cur) {
+          const cw = Math.max(1, (cur.r - cur.x) / Math.max(1, cur.s.length)), gap = it.x - cur.r;
+          if (gap <= Math.max(0.8, cw * 0.3)) { cur.s += it.s; cur.r = Math.max(cur.r, it.r); return; }
+          if (gap <= cw * 1.8 && !/\s$/.test(cur.s)) { cur.s += " " + it.s; cur.r = Math.max(cur.r, it.r); return; }
+        }
+        out.push({ x: it.x, r: it.r, s: it.s });
+      });
+      return { y: l.y, items: out };
+    }));
+  }
+  function parseOnce(pages) {
     const lines = pages.flat();
     const info = detect(pages);
     const period = periodOf(lines);
@@ -151,6 +182,13 @@
     if (!rows.length) { rows = parseLoose(lines, period, info.card); loose = rows.length > 0; }
     return { ...info, period, rows, loose };
   }
+  function parseStatement(pages) {
+    const r = parseOnce(pages);
+    if (r.rows.length >= 3 && !r.loose) return r;
+    const score = x => x.rows.length * (x.loose ? 1 : 2);
+    return [r, parseOnce(splitPages(pages)), parseOnce(splitPages(mergeTight(pages)))].sort((a, b) => score(b) - score(a))[0];
+  }
+  function textSize(pages) { return pages.flat().reduce((a, l) => a + l.items.reduce((b, i) => b + (i.s.match(/[A-Za-z0-9]/g) || []).length, 0), 0); }
 
   /* Convierte páginas de PDF.js en líneas con posición */
   async function pdfToPages(pdfjsLib, data, password) {
@@ -168,6 +206,6 @@
     return pages;
   }
 
-  const api = { parseStatement, pdfToPages };
+  const api = { parseStatement, pdfToPages, splitPages, textSize };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.BankPDF = api;
 })(typeof window !== "undefined" ? window : this);

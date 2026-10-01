@@ -2,6 +2,11 @@
 
 Cada versión publicada queda anotada aquí. El número de versión se ve al pie de la app.
 
+## Próxima versión · (sin publicar)
+- Lector de PDF más robusto: entiende cartolas donde el texto viene con cada letra por separado o con varias columnas juntas.
+- Si un PDF no trae texto legible (escaneado o generado como imagen), la app lo lee como imagen dentro del teléfono.
+- Mensaje más claro cuando un PDF no se puede leer, con alternativas (Excel o captura).
+
 ## 1.7.0 beta · 1-oct-2026
 - Anotar con frases normales: al tocar + escribes o dictas «gasté 20 mil en el Jumbo», «ayer almuerzo 12.500 en efectivo» o «me pagaron el arriendo 450.000» y la app arma el movimiento con monto, fecha, categoría y cuenta. Entiende mil, lucas, palos, ayer, débito, crédito, efectivo y el nombre de tu banco.
 - Atajo de Siri «Anotar gasto»: le dictas el gasto a Siri y queda en la lista del iPhone; entra a la app pegándola en el cuadro de texto, sin duplicar. Guía paso a paso en el menú.

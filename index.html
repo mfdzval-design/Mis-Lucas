@@ -2312,13 +2312,31 @@ async function handlePdf(file,pw){
   $("#pdfPw").hidden=true;
   if(pw!=null&&$("#pdfPwRem").checked) lsSet(LS_PDFPW,pw);
   let r; try{ r=BankPDF.parseStatement(pages) }catch(e){ console.error(e); r={rows:[]} }
-  if(!r.rows.length){ toast("No encontré movimientos en ese PDF. Si es una cartola sin movimientos, no hay nada que importar."); return }
+  if(!r.rows.length){ try{ const r2=await ocrPdf(file,saved||pw||undefined); if(r2&&r2.rows.length){ r=r2; r.loose=true; } }catch(e){ console.error(e); } }
+  if(!r.rows.length){ toast("No pude leer movimientos en este PDF. Prueba con la cartola en Excel o con una captura de los movimientos (📷), y cuéntanos para mejorar el lector."); return }
   const acc=matchAccount(r.bank,r.kind); refreshSelects(); $("#impAcct").value=acc.name;
   const per=r.period&&r.period.start&&r.period.end?` (${dmy(r.period.start)} al ${dmy(r.period.end)})`:"";
   okToast(`${acc.created?"Creé la cuenta ":""}${acc.name}: leí ${r.rows.length} movimientos${per}.${r.loose?" Revisa los tipos: este formato no lo conozco del todo.":" Revísalos antes de importar."}`);
   setupMapping([["Fecha","Descripción","Cargos","Abonos"],...r.rows],file.name);
   $("#mapCard").hidden=true;
 }
+/* PDF sin texto legible (escaneado o con letras raras): lo leemos como imagen */
+async function ocrPdf(file,pw){
+  const say=m=>{ const t=$("#toast"); t.textContent=m; t.classList.remove("ok"); t.classList.add("show"); clearTimeout(toast._t); };
+  say("Este PDF no trae texto legible: lo leo como imagen… (puede tardar un poco)");
+  const w=await getOcr((st,p)=>{ if(/load|init/i.test(st))say(`Preparando el lector… ${Math.round(p*100)}%`); });
+  const doc=await window.pdfjsLib.getDocument({data:new Uint8Array(await file.arrayBuffer()),password:pw,isEvalSupported:false}).promise;
+  const pages=[]; const n=Math.min(doc.numPages,6), SC=2.5;
+  for(let i=1;i<=n;i++){ say(`Leyendo página ${i} de ${n}…`);
+    const page=await doc.getPage(i); const vp=page.getViewport({scale:SC}); const H=page.getViewport({scale:1}).height;
+    const cv=document.createElement("canvas"); cv.width=Math.round(vp.width); cv.height=Math.round(vp.height); const cx=cv.getContext("2d"); cx.fillStyle="#fff"; cx.fillRect(0,0,cv.width,cv.height);
+    await page.render({canvasContext:cx,viewport:vp}).promise;
+    const {data}=await w.recognize(cv,{},{text:true,blocks:true});
+    const words=(data.words&&data.words.length?data.words:(data.blocks||[]).flatMap(b=>(b.paragraphs||[]).flatMap(p=>(p.lines||[]).flatMap(l=>l.words||[])))).filter(x=>x.text&&x.text.trim()&&x.confidence>20);
+    const L=[]; words.forEach(wd=>{ const b=wd.bbox; const yc=H-((b.y0+b.y1)/2)/SC; const h=(b.y1-b.y0)/SC; let l=L.find(l=>Math.abs(l.y-yc)<Math.max(2.5,h*0.45)); if(!l){ l={y:yc,items:[]}; L.push(l); } l.items.push({x:Math.round(b.x0/SC),r:Math.round(b.x1/SC),s:wd.text.trim()}); });
+    L.sort((a,b)=>b.y-a.y).forEach(l=>l.items.sort((a,b)=>a.x-b.x)); pages.push(L); }
+  toast._t=setTimeout(()=>$("#toast").classList.remove("show"),10);
+  return BankPDF.parseStatement(pages); }
 function matchAccount(bank,kind){ const L=accList(); const isCard=kind==="tc";
   let a=L.find(x=>x.bank===bank&&x.type===kind)||L.find(x=>x.bank===bank&&((x.type==="tc")===isCard)&&x.type!=="efectivo");
   if(!a&&!bank){ const cur=$("#impAcct").value; a=L.find(x=>x.name===cur&&x.type!=="efectivo")||L.find(x=>x.type!=="efectivo"); }

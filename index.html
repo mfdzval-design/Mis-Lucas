@@ -687,7 +687,7 @@ body.priv [data-tip]{pointer-events:auto}
 .ef>*{min-width:0}.freq{max-width:100%}
 @media (max-width:640px){ #syncText{display:none} }
 .pbrow{display:grid;grid-template-columns:1fr 1fr;gap:8px}.pbrow .pastebtn{display:flex;align-items:center;justify-content:center;cursor:pointer}
-.freebox{display:grid;grid-template-columns:1fr auto;gap:8px}.freebox input{font:inherit;font-size:15px;border:1.5px solid var(--accent);border-radius:12px;padding:12px;background:var(--surface);color:var(--ink);min-width:0}
+.freebox{display:grid;grid-template-columns:1fr auto;gap:8px}.freebox textarea{font:inherit;font-size:15px;border:1.5px solid var(--accent);border-radius:12px;padding:12px;background:var(--surface);color:var(--ink);min-width:0;resize:none;min-height:48px;max-height:120px;line-height:1.35}.freebox{align-items:start}
 .paychips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}.paychips::-webkit-scrollbar{display:none}
 .paychips button{flex:none;border:1px solid var(--line-2);background:var(--surface);color:var(--ink);border-radius:999px;padding:9px 13px;font:inherit;font-size:13.5px;cursor:pointer;white-space:nowrap}
 .paychips button[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:700}
@@ -760,7 +760,7 @@ body.priv [data-tip]{pointer-events:auto}
       <div class="card">
         <div class="card-head">
           <div><h2>Movimientos del mes</h2><div class="sub" id="movSub"></div></div>
-          <div class="toolbar"><button class="btn primary" type="button" data-new="1">+ Agregar</button><button class="btn" type="button" data-pastenew="1">📋 Pegar aviso</button><button class="btn" type="button" data-goto="import">📄 Cartola o capturas</button></div>
+          <div class="toolbar"><button class="btn primary" type="button" data-new="1">+ Agregar</button><button class="btn" type="button" data-goto="import">📄 Cartola o capturas</button></div>
           <div class="toolbar">
             <label class="field">Buscar<input type="search" id="qText" placeholder="Descripción…"></label>
             <label class="field">Mostrar<select id="qType"><option value="">Todo</option><option value="gasto">Gastos</option><option value="ingreso">Ingresos</option><option value="ahorro">Ahorro e inversión</option><option value="traspaso">Traspasos</option><option value="revisar">🏷️ Por categorizar</option></select></label>
@@ -1016,7 +1016,7 @@ body.priv [data-tip]{pointer-events:auto}
       <div class="guide"><h3>1 · Avisos del banco <small>cualquier banco</small></h3>
         <ol><li>Activa en la app o web de tu banco los avisos de compra por correo (sección Alertas o Notificaciones).</li>
         <li>Cuando te llegue un aviso, ábrelo, mantén presionado el texto, toca <b>Seleccionar todo</b> y <b>Copiar</b>.</li>
-        <li>En Mis Lucas toca <b>+</b> y luego <b>📋 Pegar aviso</b>. La app lee monto, comercio, fecha y tarjeta, y le pone categoría. Revisa y toca <b>Agregar</b>.</li></ol></div>
+        <li>En Mis Lucas toca <b>+</b>, mantén presionado el cuadro de arriba y toca <b>Pegar</b> → <b>Listo</b>. La app lee monto, comercio, fecha y tarjeta, y le pone categoría. Revisa y toca <b>Agregar</b>.</li></ol></div>
       <div class="guide"><h3>2 · Foto de la boleta <small>al momento de comprar</small></h3>
         <ol><li>Recién pagas: toca <b>+</b> → <b>📷 Boleta o captura</b> → <b>Tomar foto</b> y fotografía la boleta derecha y completa.</li>
         <li>La app lee el total, el comercio y la fecha. Toca <b>con qué pagaste</b> (tu tarjeta o efectivo) y luego <b>Agregar</b>.</li>
@@ -1035,7 +1035,7 @@ body.priv [data-tip]{pointer-events:auto}
         <li>Agrega la acción <b>Añadir a archivo de texto</b>: archivo <code>MisLucas.txt</code>, activa <b>Crear nueva línea</b>. Toca <b>OK</b>.</li></ol>
         <b class="gsub">B. El botón para pasarlas a la app</b>
         <ol start="6"><li>En <b>Atajos</b> → <b>+</b>, agrega <b>Obtener archivo</b> (archivo <code>MisLucas.txt</code>, sin mostrar selector) y luego <b>Copiar al portapapeles</b>. Llámalo <b>Pasar a Mis Lucas</b> y agrégalo a tu pantalla de inicio.</li>
-        <li>Cuando quieras actualizar: toca <b>Pasar a Mis Lucas</b>, abre la app, toca <b>+</b> → <b>📋 Pegar aviso</b>. Entran todas las compras nuevas; las que ya estaban se ignoran solas, así que nunca tienes que borrar la lista.</li></ol></div>
+        <li>Cuando quieras actualizar: toca <b>Pasar a Mis Lucas</b>, abre la app, toca <b>+</b>, mantén presionado el cuadro de arriba → <b>Pegar</b> → <b>Listo</b>. Entran todas las compras nuevas; las que ya estaban se ignoran solas, así que nunca tienes que borrar la lista.</li></ol></div>
       <div class="guide"><h3>4 · Con Siri: «Anotar gasto» <small>iPhone</small></h3>
         <p class="note">Le dices a Siri lo que gastaste, como a una persona, y queda en la misma lista del atajo de Apple Pay.</p>
         <ol><li>En <b>Atajos</b> → <b>+</b>, agrega la acción <b>Dictar texto</b> (idioma Español).</li>
@@ -1043,7 +1043,7 @@ body.priv [data-tip]{pointer-events:auto}
         <li>Agrega <b>Texto</b> con esta línea: <code>MLV|</code>Fecha formateada<code>|</code>Texto dictado</li>
         <li>Agrega <b>Añadir a archivo de texto</b>: archivo <code>MisLucas.txt</code>, con <b>Crear nueva línea</b>. Si quieres, suma <b>Mostrar notificación</b> «Anotado».</li>
         <li>Llámalo <b>Anotar gasto</b>. Úsalo diciendo: «Oye Siri, anotar gasto» → «gasté 20 mil en el Jumbo con la de crédito».</li>
-        <li>Para pasarlo a la app usa el mismo botón <b>Pasar a Mis Lucas</b> → <b>+</b> → <b>📋 Pegar aviso</b>.</li></ol>
+        <li>Para pasarlo a la app usa el mismo botón <b>Pasar a Mis Lucas</b> → <b>+</b> → pegar en el cuadro de arriba → <b>Listo</b>.</li></ol>
         <p class="note" style="margin:6px 0 0">Entiende «20 mil», «20 lucas», «1,5 palos», «ayer», «con la de débito», «en efectivo», «me pagaron el arriendo 450.000».</p></div>
       <div class="guide"><h3>5 · A mano en segundos</h3>
         <p class="note" style="margin:0">Toca <b>+</b> y escribe o dicta con el micrófono del teclado: «almuerzo 12.500 ayer». La app arma el movimiento. También puedes tocar un comercio frecuente y solo poner el monto.</p></div>
@@ -1518,12 +1518,12 @@ function importVoice(list){ const have=new Set(allRefs().map(r=>r.t.extId).filte
 async function pasteAlert(fromText){
   let txt=fromText;
   if(txt==null){ try{ txt=await navigator.clipboard.readText(); }catch(e){ txt=null; } }
-  if(!txt||!txt.trim()){ const w=$("#ePasteWrap"); if(w){ w.hidden=false; setTimeout(()=>$("#ePasteTxt").focus(),50); } toast("Mantén presionado el cuadro y elige «Pegar»"); return; }
+  if(!txt||!txt.trim()){ const w=$("#ePasteWrap"); if(w){ w.hidden=false; setTimeout(()=>$("#ePasteTxt").focus(),50); } toast("Escribe el gasto o pega el texto en el cuadro de arriba"); return; }
   const ml=parseMLLines(txt), vl=parseVoiceLines(txt);
   if(ml.length||vl.length){ const r1=importML(ml), good=vl.filter(x=>!x.bad), bad=vl.length-good.length, r2=importVoice(good); hideSheet("#edit"); ed=null; const add=r1.add+r2.add, skip=r1.skip+r2.skip;
     if(add){ okToast(`${add} movimiento${add===1?"":"s"} agregado${add===1?"":"s"}${r1.add&&r2.add?` (${r1.add} de Apple Pay, ${r2.add} de Siri)`:r2.add?" desde Siri":" de Apple Pay"}${skip?` · ${skip} ya estaban`:""}${bad?` · ${bad} sin monto`:""}`); setTab("movs"); } else toast(skip?`Nada nuevo: los ${skip} ya estaban`:"No encontré montos en lo que dictaste"); return; }
   if(!/\$|US\$|CLP/i.test(txt)&&txt.length<160&&fillFromFree(txt)){ okToast("Lo entendí así: revisa y toca Agregar"); return; }
-  const a=parseAlert(txt); if(!a){ if(fillFromFree(txt)){ okToast("Lo entendí así: revisa y toca Agregar"); return; } toast("No encontré un monto en el texto. Revisa lo que copiaste."); const w=$("#ePasteWrap"); if(w)w.hidden=false; return; }
+  const a=parseAlert(txt); if(!a){ if(fillFromFree(txt)){ okToast("Lo entendí así: revisa y toca Agregar"); return; } toast("No encontré el monto. Ej: «gasté 20 mil en el Jumbo»"); return; }
   if(!ed||!ed.isNew) openEdit(null);
   const v=ed.v; const c=catFor(a.desc,a.type); v.amount=a.amount; v.desc=a.desc; v.date=a.date; v.type=a.transfer&&a.type==="gasto"&&c.cat==="Otros gastos"?"gasto":c.type; v.cat=c.cat; v.nature=FIXED_CATS.has(c.cat)?"fijo":"variable"; v.source="aviso";
   let acc=accForCard(a.last4,txt); if(!acc&&a.transfer){ const x=accList().find(x=>x.type==="cc"||x.type==="vista"); if(x)acc=x.name; } if(acc)v.account=acc; ed.fromAlert={usd:a.usd,last4:a.last4,matched:!!acc}; renderEdit(); markDirty($("#eSave"));
@@ -1564,6 +1564,7 @@ function parseFree(txt){
   if(!cat){ const hit=(inc?NL_INC:NL_CATS).find(([re])=>re.test(T)); if(hit)cat=hit[1]; }
   if(!cat) cat=inc?"Otros ingresos":"Otros gastos";
   return {amount:a.v,date,desc,type,cat,account:accHint,approx:/\b(LUCAS|LUCA|MIL|K|PALO|PALOS|MILLON|MILLONES|APROX)\b/.test(T)}; }
+function freeGo(){ const el=$("#eFree"); const v=(el&&el.value||"").trim(); if(!v){ toast("Escribe el gasto, por ejemplo «gasté 20 mil en el Jumbo»"); return } pasteAlert(v); }
 function fillFromFree(txt){ const f=parseFree(txt); if(!f)return false; if(!ed||!ed.isNew) openEdit(null);
   const v=ed.v; v.amount=f.amount; v.desc=f.desc; v.date=f.date; v.type=f.type; v.cat=f.cat; v.nature=FIXED_CATS.has(f.cat)?"fijo":"variable"; v.source="voz"; if(f.approx)v.approx=true; if(f.account)v.account=f.account;
   ed.fromAlert={matched:!!f.account||true,free:true}; ed.catTouched=true; renderEdit(); markDirty($("#eSave")); return true; }
@@ -2108,8 +2109,7 @@ function renderEdit0(){
   $("#editSub").textContent=(v.bankDesc&&v.bankDesc!==v.desc?"Banco: "+v.bankDesc+" · ":"")+(ed.isNew?"Para efectivo o para anotar al día":v.checked?"En cartola":"Anotado a mano");
   const FQ=ed.isNew&&!ed.fromAlert?freqList():[];
   $("#editBody").innerHTML=`<div class="ef">
-    ${ed.isNew?`<div class="pastebox"><div class="freebox"><input id="eFree" type="text" autocomplete="off" enterkeyhint="done" placeholder="Ej: gasté 20 mil en el Jumbo"><button type="button" class="btn primary" id="eFreeGo">Listo</button></div><div class="pbrow"><button type="button" class="btn pastebtn" id="ePaste">📋 Pegar aviso</button><label class="btn pastebtn" for="eShot">📷 Boleta o captura</label><input type="file" id="eShot" accept="image/*" multiple hidden></div>
-      <div id="ePasteWrap" hidden><textarea id="ePasteTxt" rows="3" placeholder="Pega aquí el texto del correo o la notificación del banco"></textarea><button type="button" class="btn primary sm" id="ePasteGo">Leer aviso</button></div>
+    ${ed.isNew?`<div class="pastebox"><div class="freebox"><textarea id="eFree" rows="1" autocomplete="off" enterkeyhint="done" placeholder="Ej: gasté 20 mil en el Jumbo"></textarea><button type="button" class="btn primary" id="eFreeGo">Listo</button></div><div class="pbrow"><button type="button" class="btn pastebtn" data-goto="import">📄 Subir cartola</button><label class="btn pastebtn" for="eShot">📷 Boleta o captura</label><input type="file" id="eShot" accept="image/*" multiple hidden></div>
       ${ed.fromAlert&&ed.fromAlert.receipt?`<div class="rcpt">${ed.photoUrl?`<img src="${ed.photoUrl}" alt="Boleta">`:""}<div class="note okn" style="margin:0">🧾 Boleta leída${ed.fromAlert.method?` · pagada con ${ed.fromAlert.method==="efectivo"?"efectivo":ed.fromAlert.method==="credito"?"crédito":"débito"}`:""}. ${ed.fromAlert.matched?"Revisa y toca <b>Agregar</b>.":"Elige con qué pagaste y toca <b>Agregar</b>."} La foto queda guardada en el movimiento.</div></div>`:ed.fromAlert&&ed.fromAlert.free?`<div class="note okn">✓ Lo entendí así. Revisa y toca <b>Agregar</b>.</div>`:ed.fromAlert?`<div class="note okn">✓ Leído del aviso${ed.fromAlert.matched?"":" · no reconocí la tarjeta, elige la cuenta"}${ed.fromAlert.usd?" · venía en dólares: corrige el monto en pesos":""}. Revisa y toca <b>Agregar</b>.</div>`:""}</div>`:""}
     ${FQ.length?`<div><div class="eflabel">Frecuentes · toca uno y solo pon el monto</div><div class="freq">${FQ.map(t=>`<button type="button" data-fq="${t.id}">${ICON[t.cat]||"•"} ${esc(String(t.desc).slice(0,22))}</button>`).join("")}</div></div>`:""}
     <label class="field">Nombre<input id="eDesc" type="text" value="${esc(v.desc)}" autocomplete="off"></label>
@@ -2171,14 +2171,12 @@ function bindEdit(){
   });
   $("#editBody").addEventListener("change",e=>{ if(e.target.id==="eShot"){ const f=[...e.target.files]; e.target.value=""; if(f.length) screensToImport(f); return; } if(e.target.id==="eAcct"&&e.target.value==="__new"){ readEditInputs(); e.target.value=ed.v.account; openAccForm(null,name=>{ ed.v.account=name; renderEdit(); markDirty($("#eSave")); }); } });
   $("#editBody").addEventListener("click",e=>{
-    if(e.target.closest("#ePaste")){ readEditInputs(); pasteAlert(); return }
-    if(e.target.closest("#ePasteGo")){ pasteAlert($("#ePasteTxt").value); return }
-    if(e.target.closest("#eFreeGo")){ const v=$("#eFree").value; if(!fillFromFree(v)) toast("No encontré el monto. Ej: «gasté 20 mil en el Jumbo»"); return }
+    if(e.target.closest("#eFreeGo")){ freeGo(); return }
     const py=e.target.closest("[data-pay]"); if(py){ readEditInputs(); ed.v.account=py.dataset.pay; ed.askPay=false; const st=$("#editBody").scrollTop; renderEdit(); $("#editBody").scrollTop=st; markDirty($("#eSave")); return }
     const ph=e.target.closest("[data-photo]"); if(ph){ const id=ph.dataset.photo; hideSheet("#edit"); setTimeout(()=>openPhoto(id),200); return }
     const fq=e.target.closest("[data-fq]"); if(fq){ const f=findTx(fq.dataset.fq); if(!f)return; const t=f.t, v=ed.v; v.desc=t.desc; v.type=t.type; v.cat=t.cat; v.nature=t.nature||"variable"; if(t.account&&accByName(t.account))v.account=t.account; ed.catTouched=true; const amt=$("#eAmt").value; renderEdit(); if(amt&&amt!=="0")$("#eAmt").value=amt; const a=$("#eAmt"); a.focus(); a.select&&a.select(); markDirty($("#eSave")); return }
   });
-  $("#editBody").addEventListener("keydown",e=>{ if(e.target.id==="eFree"&&e.key==="Enter"){ e.preventDefault(); if(!fillFromFree(e.target.value)) toast("No encontré el monto. Ej: «gasté 20 mil en el Jumbo»"); } });
+  $("#editBody").addEventListener("keydown",e=>{ if(e.target.id==="eFree"&&e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); freeGo(); } });
   $("#editBody").addEventListener("input",e=>{ markDirty($("#eSave"));
     if(ed&&ed.isNew&&!ed.catTouched&&e.target.id==="eDesc"){ const r=classifyRule(e.target.value); if(r){ const c=normCat(r.cat), ty=typeOfCat(c); if(ty&&ty===ed.v.type&&c!==ed.v.cat){ ed.v.cat=c; ed.v.nature=FIXED_CATS.has(c)?"fijo":"variable"; document.querySelectorAll("#editBody [data-ec]").forEach(x=>x.setAttribute("aria-pressed",x.dataset.ec===c)); } } } if(e.target.id==="eKey"&&ed){ ed.key=e.target.value; const n=similarTx(ed.key,ed.id).length; $("#eSimN").textContent=n; $("#eSim").disabled=!n; if(!n)$("#eSim").checked=false; } });
 }
@@ -2429,8 +2427,7 @@ function bindUI(){
   $("#fab").addEventListener("click",()=>openEdit(null));
   $("#qText").addEventListener("input",renderMovs); $("#qType").addEventListener("change",renderMovs);
   document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeSheet();closeDrill();hideSheet("#edit")} if((e.key==="Enter"||e.key===" ")&&e.target.dataset&&e.target.dataset.drill){e.preventDefault();openDrill(e.target.dataset.drill)}});
-document.addEventListener("click",e=>{ const nw=e.target.closest("[data-new]"); if(nw){openEdit(null);return} const gt=e.target.closest("[data-goto]"); if(gt){ setTab(gt.dataset.goto); if(gt.dataset.impacc){ refreshSelects(); $("#impAcct").value=gt.dataset.impacc; } window.scrollTo({top:0}); return } const rv=e.target.closest("[data-review]"); if(rv){ setTab("movs"); $("#qType").value="revisar"; renderMovs(); return }
-  if(e.target.closest("[data-pastenew]")){ openEdit(null); setTimeout(()=>pasteAlert(),280); return }
+document.addEventListener("click",e=>{ const nw=e.target.closest("[data-new]"); if(nw){openEdit(null);return} const gt=e.target.closest("[data-goto]"); if(gt){ if(gt.closest("#edit")){ hideSheet("#edit"); ed=null; } setTab(gt.dataset.goto); if(gt.dataset.impacc){ refreshSelects(); $("#impAcct").value=gt.dataset.impacc; } window.scrollTo({top:0}); return } const rv=e.target.closest("[data-review]"); if(rv){ setTab("movs"); $("#qType").value="revisar"; renderMovs(); return }
   const op=e.target.closest("[data-open]"); if(op){ openEdit(op.dataset.open); return }
   const sm=e.target.closest("#movList details > summary"); if(sm){ e.preventDefault(); openEdit(sm.parentElement.dataset.id); return }
   const g=e.target.closest("[data-go]"); if(g){goToTx(g.dataset.go);return} const d=e.target.closest("[data-drill]"); if(d&&d.dataset.drill&&d.dataset.drill!=="undefined"){openDrill(d.dataset.drill)} });

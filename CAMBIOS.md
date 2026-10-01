@@ -6,6 +6,7 @@ Cada versión publicada queda anotada aquí. El número de versión se ve al pie
 - Anotar con frases normales: al tocar + escribes o dictas «gasté 20 mil en el Jumbo», «ayer almuerzo 12.500 en efectivo» o «me pagaron el arriendo 450.000» y la app arma el movimiento con monto, fecha, categoría y cuenta. Entiende mil, lucas, palos, ayer, débito, crédito, efectivo y el nombre de tu banco.
 - Atajo de Siri «Anotar gasto»: le dictas el gasto a Siri y queda en la lista del iPhone; entra a la app con «Pegar aviso», sin duplicar. Guía paso a paso en el menú.
 - Foto de la boleta: al comprar tocas + → 📷 Boleta o captura → Tomar foto. La app lee el total, el comercio y la fecha (y si dice débito, crédito o efectivo), tú tocas con qué pagaste y queda anotado con la foto guardada en el movimiento («🧾 Ver foto»), solo en este teléfono.
+- El botón «Pegar aviso» se reemplaza por «📄 Subir cartola». Los avisos del banco y las listas de Apple Pay o Siri se pegan en el mismo cuadro donde escribes el gasto.
 - Al anotar, botones «¿Con qué pagaste?» con tus tarjetas, cuentas y efectivo a un toque.
 - Al subir la cartola, los gastos anotados con monto aproximado se juntan con el cobro real (por ejemplo 20 mil con $19.990 en JUMBO): queda el monto exacto del banco y tu categoría.
 

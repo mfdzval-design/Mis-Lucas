@@ -14,6 +14,7 @@ Cada versión publicada queda anotada aquí. El número de versión se ve al pie
 - "Lo destacado del mes" e informe mensual con comparación de cada categoría contra tus meses anteriores, y botón para compartir el resumen.
 - Nueva pestaña Patrimonio y metas: patrimonio neto (lo que tienes menos lo que debes) con su evolución mes a mes, metas de ahorro con el monto a apartar cada mes, deudas (créditos, líneas) y compras en cuotas detectadas solas en tus cartolas, intereses pagados en el año y otros bienes (saldos, propiedad, auto).
 - Anotar gastos al instante: "📋 Pegar aviso" lee el texto del correo o la notificación del banco (monto, comercio, fecha, tarjeta y si es transferencia) y lo deja listo con su categoría. También importa de una vez las compras de Apple Pay que el iPhone anota solo con un atajo, sin duplicar las que ya estaban. Guía paso a paso en el menú: "Anotar gastos al instante".
+- Leer capturas de pantalla: eliges una o varias capturas de los movimientos en la app de tu banco (o de una notificación de compra) y la app lee fecha, comercio y monto, en tu teléfono, sin subirlas a ningún lado. Muestra la lista para revisar, marca las que ya tenías y al llegar la cartola se juntan solas.
 - Al anotar a mano aparecen tus comercios frecuentes (un toque y solo pones el monto) y la categoría se elige sola al escribir un nombre conocido.
 - Los gastos anotados por aviso o Apple Pay se juntan con la cartola aunque los hayas puesto en otra tarjeta del mismo tipo.
 - Aviso en la campana cuando falta la cartola del mes anterior de alguna cuenta.

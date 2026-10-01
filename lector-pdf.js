@@ -95,8 +95,10 @@
           const near = lines.slice(Math.max(0, idx - 3), idx + 3).flatMap(z => z.items);
           const sd = near.find(x => /^SALDO/.test(N(x.s)) && x.x > ab.x);
           const c = x => (x.x + x.r) / 2;
-          const dh = near.find(x => /^(DESCRIPCION|DESCRIPCION DEL MOVIMIENTO|DETALLE|GLOSA|CONCEPTO|MOVIMIENTO|DESCRIPCION MOVIMIENTO)$/.test(N(x.s)));
-          cols = { cargo: c(cg), abono: c(ab), saldo: sd ? c(sd) : Infinity, dx: dh ? dh.x - 25 : null, ax: Math.min(cg.x, ab.x) - 40 };
+          const hdr = lines.slice(Math.max(0, idx - 2), idx + 1).filter(z => /FECHA|DESCRIPCION|DETALLE|GLOSA|SUCURSAL/.test(N(lineText(z))) && !/DETALLE DE MOVIMIENTOS|DIRECCION HA CAMBIADO/.test(N(lineText(z)))).flatMap(z => z.items);
+          const sh = hdr.find(x => /^(SUCURSAL|OFICINA|SUC\.?)$/.test(N(x.s)));
+          const dh = hdr.find(x => /^(DESCRIPCION|DESCRIPCION DEL MOVIMIENTO|DETALLE|GLOSA|CONCEPTO|MOVIMIENTO|DESCRIPCION MOVIMIENTO)$/.test(N(x.s)));
+          cols = { cargo: c(cg), abono: c(ab), saldo: sd ? c(sd) : Infinity, dx: sh ? sh.r + 2 : dh ? dh.x - 25 : null, ax: Math.min(cg.x, ab.x) - 40 };
           return;
         }
         if (!cols) return;

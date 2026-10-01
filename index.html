@@ -674,6 +674,18 @@ body.bs-open #drillScrim{display:block}
 #npList{display:grid;gap:8px}.alb .go{margin-left:auto;color:var(--accent);font-size:18px;flex:none}.privbtn[aria-pressed=true]{color:var(--accent)}
 body.priv [data-tip]{pointer-events:auto}
 @media (max-width:640px){ .rr{grid-template-columns:minmax(0,1fr) auto 58px}.rr small{display:none} .rkpi b{font-size:14px} }
+
+.pastebox{display:grid;gap:8px}.pastebtn{width:100%;justify-content:center;border-style:dashed;font-weight:700}
+#ePasteWrap{display:grid;gap:8px}#ePasteWrap textarea{width:100%;font:inherit;font-size:14px;border:1px solid var(--line-2);border-radius:12px;padding:10px;background:var(--surface);color:var(--ink);resize:vertical}
+.okn{margin:0;color:var(--good-text)}
+.freq{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}.freq::-webkit-scrollbar{display:none}
+.freq button{flex:none;border:1px solid var(--line-2);background:var(--surface);color:var(--ink);border-radius:999px;padding:8px 12px;font:inherit;font-size:13px;cursor:pointer;white-space:nowrap}
+.guide{border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-top:12px}.guide h3{margin:0 0 6px;font-size:15px}.guide h3 small{font-weight:500;color:var(--muted);font-size:12px;margin-left:6px}
+.guide ol{margin:6px 0;padding-left:20px;display:grid;gap:7px;font-size:13.5px;line-height:1.45}.guide code{background:var(--surface-2);border-radius:6px;padding:1px 5px;font-size:12.5px}.gsub{display:block;margin-top:10px;font-size:13px}
+.guide small{color:var(--muted)}
+
+.ef>*{min-width:0}.freq{max-width:100%}
+@media (max-width:640px){ #syncText{display:none} }
 </style>
 
 </head>
@@ -741,7 +753,7 @@ body.priv [data-tip]{pointer-events:auto}
       <div class="card">
         <div class="card-head">
           <div><h2>Movimientos del mes</h2><div class="sub" id="movSub"></div></div>
-          <div class="toolbar"><button class="btn primary" type="button" data-new="1">+ Agregar</button><button class="btn" type="button" data-goto="import">📄 Subir cartola</button></div>
+          <div class="toolbar"><button class="btn primary" type="button" data-new="1">+ Agregar</button><button class="btn" type="button" data-pastenew="1">📋 Pegar aviso</button><button class="btn" type="button" data-goto="import">📄 Subir cartola</button></div>
           <div class="toolbar">
             <label class="field">Buscar<input type="search" id="qText" placeholder="Descripción…"></label>
             <label class="field">Mostrar<select id="qType"><option value="">Todo</option><option value="gasto">Gastos</option><option value="ingreso">Ingresos</option><option value="ahorro">Ahorro e inversión</option><option value="traspaso">Traspasos</option><option value="revisar">🏷️ Por categorizar</option></select></label>
@@ -929,6 +941,7 @@ body.priv [data-tip]{pointer-events:auto}
   <button role="menuitem" type="button" data-acct="seguridad"><span class="ui">🔐</span>PIN y contraseña<small id="uSec"></small></button>
   <button role="menuitem" type="button" data-acct="apariencia"><span class="ui">🎨</span>Apariencia<small id="uTheme"></small></button>
   <button role="menuitem" type="button" data-umgoto="fixed"><span class="ui">🏷️</span>Reglas de categorización</button>
+  <button role="menuitem" type="button" data-acct="captura"><span class="ui">⚡</span>Anotar gastos al instante</button>
   <button role="menuitem" type="button" data-acct="datos"><span class="ui">💾</span>Respaldo y datos</button>
   <button role="menuitem" type="button" data-acct="acerca"><span class="ui">ℹ️</span>Acerca de Mis Lucas<small id="uVer"></small></button>
   <hr>
@@ -990,6 +1003,26 @@ body.priv [data-tip]{pointer-events:auto}
       <p class="note" style="margin-top:12px">Para pasar tus datos a otro teléfono: descarga el respaldo aquí y restáuralo allá. Restaurar reemplaza lo que haya en este teléfono.</p>
       <hr style="border:0;border-top:1px solid var(--line);margin:14px 0">
       <button class="btn ghost" type="button" id="bkWipe" style="color:var(--crit)">Borrar todo de este teléfono</button>
+    </section>
+    <section data-sec="captura" hidden>
+      <p class="note" style="margin-top:0">Tres formas de que tus gastos entren al momento, sin esperar la cartola. A fin de mes, cuando subes la cartola, la app junta cada gasto con su línea y no lo cuenta dos veces.</p>
+      <div class="guide"><h3>1 · Avisos del banco <small>cualquier banco</small></h3>
+        <ol><li>Activa en la app o web de tu banco los avisos de compra por correo (sección Alertas o Notificaciones).</li>
+        <li>Cuando te llegue un aviso, ábrelo, mantén presionado el texto, toca <b>Seleccionar todo</b> y <b>Copiar</b>.</li>
+        <li>En Mis Lucas toca <b>+</b> y luego <b>📋 Pegar aviso</b>. La app lee monto, comercio, fecha y tarjeta, y le pone categoría. Revisa y toca <b>Agregar</b>.</li></ol></div>
+      <div class="guide"><h3>2 · Apple Pay automático <small>iPhone</small></h3>
+        <p class="note">Cada vez que pagas con Apple Pay, el iPhone anota la compra solo en una lista. Se configura una vez.</p>
+        <b class="gsub">A. La automatización</b>
+        <ol><li>Abre la app <b>Atajos</b> → pestaña <b>Automatización</b> → <b>+</b>.</li>
+        <li>Elige <b>Transacción</b> (en iOS 26 se llama <b>Wallet</b>). Marca tus tarjetas, deja «Al tocar» y elige <b>Ejecutar inmediatamente</b>. Toca <b>Siguiente</b> → <b>Nueva automatización en blanco</b>.</li>
+        <li>Agrega la acción <b>Formatear fecha</b>: fecha <b>Fecha actual</b>, formato <b>Personalizado</b> y escribe <code>yyyy-MM-dd HH:mm</code>.</li>
+        <li>Agrega la acción <b>Texto</b> y arma esta línea, insertando las variables con la barra de sugerencias:<br><code>ML|</code>Fecha formateada<code>|</code>Monto<code>|</code>Comercio<code>|</code>Tarjeta<br><small>Monto, Comercio y Tarjeta salen de «Entrada del atajo»: tócala y elige cada dato.</small></li>
+        <li>Agrega la acción <b>Añadir a archivo de texto</b>: archivo <code>MisLucas.txt</code>, activa <b>Crear nueva línea</b>. Toca <b>OK</b>.</li></ol>
+        <b class="gsub">B. El botón para pasarlas a la app</b>
+        <ol start="6"><li>En <b>Atajos</b> → <b>+</b>, agrega <b>Obtener archivo</b> (archivo <code>MisLucas.txt</code>, sin mostrar selector) y luego <b>Copiar al portapapeles</b>. Llámalo <b>Pasar a Mis Lucas</b> y agrégalo a tu pantalla de inicio.</li>
+        <li>Cuando quieras actualizar: toca <b>Pasar a Mis Lucas</b>, abre la app, toca <b>+</b> → <b>📋 Pegar aviso</b>. Entran todas las compras nuevas; las que ya estaban se ignoran solas, así que nunca tienes que borrar la lista.</li></ol></div>
+      <div class="guide"><h3>3 · A mano en segundos</h3>
+        <p class="note" style="margin:0">Toca <b>+</b>: arriba aparecen tus comercios frecuentes. Toca uno, pon el monto y listo. Al escribir un nombre conocido, la categoría se elige sola.</p></div>
     </section>
     <section data-sec="acerca" hidden>
       <div class="arow"><span>Versión</span><b id="abVer">—</b></div>
@@ -1274,6 +1307,8 @@ function alertList(){
     if(r.change>0&&!r.isNew) out.push({k:"up|"+r.key+"|"+r.amount,lvl:"warn",i:"▲",t:`${r.name} subió ${money(r.change)}`,d:`Pasó de ${money(r.prev)} a ${money(r.amount)} al mes.`,a:'data-goto="budget"'});
     else if(r.isNew) news.push(r); });
   if(news.length) out.push({k:"new|"+news.map(r=>r.key).join(","),lvl:"info",i:"🔁",t:news.length===1?`Nuevo pago que se repite: ${news[0].name}`:`${news.length} pagos nuevos que se repiten`,d:news.length===1?`${money(news[0].amount)} al mes${news[0].account?" en "+news[0].account:""}. ¿Lo reconoces?`:news.map(r=>r.name+" "+money(r.amount)).join(" · ")+". ¿Los reconoces?",a:'data-goto="budget"'});
+  if(cur&&!state.example&&new Date().getDate()>=3){ const pm=shiftYM(ym,-1); const miss=accList().filter(a=>a.type!=="efectivo").filter(a=>{ const st=accStats(a.name); return st.last&&st.last<pm; });
+    if(miss.length) out.push({k:"cart|"+pm+"|"+miss.map(a=>a.name).join(","),lvl:"warn",i:"📄",t:`Falta la cartola de ${ymLabel(pm).split(" ")[0].toLowerCase()}${miss.length===1?` de ${miss[0].name}`:` (${miss.length} cuentas)`}`,d:miss.length===1?"Súbela para cerrar el mes y cuadrar lo que anotaste.":miss.map(a=>a.name).join(" · "),a:`data-goto="import" data-impacc="${esc(miss[0].name)}"`}); }
   const P=state.prof||{}; if(!state.example&&P.lastBackup&&daysAgo(P.lastBackup.slice(0,10))>30) out.push({k:"bk|"+todayYM(),lvl:"info",i:"💾",t:`Hace ${daysAgo(P.lastBackup.slice(0,10))} días que no descargas un respaldo`,d:"Tus datos viven solo en este teléfono: un respaldo te protege si lo pierdes.",a:'data-acct="datos"'});
   const off=new Set(P.dismissed||[]); const R={crit:0,warn:1,info:2}; return out.filter(x=>!off.has(x.k)).sort((a,b)=>R[a.lvl]-R[b.lvl]);
 }
@@ -1413,6 +1448,56 @@ async function bioUnlock(auto){ if($("#lock").hidden||state._bioBusy)return; sta
 async function renderBioRow(){ const row=$("#secBioRow"); if(!row)return; const ok=state.pinHash&&await bioAvailable(); row.hidden=!ok; if(!ok)return; const on=!!(state.prof||{}).bio;
   $("#secBioState").textContent=on?"Activo: al abrir la app puedes entrar con tu cara o tu huella.":"Entra con tu cara o tu huella en vez de escribir el código. El código sigue funcionando."; $("#secBio").textContent=on?"Desactivar":"Activar"; }
 
+/* ---------- pegar aviso del banco / compras de Apple Pay ---------- */
+const isoToday=()=>{ const d=new Date(); return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); };
+function accForCard(last4,cardName){ const L=accList();
+  if(last4){ const a=L.find(a=>a.last4===last4||String(a.name).includes(last4)); if(a)return a.name; }
+  if(cardName){ const c=norm(cardName); const words=[...new Set(c.split(/[^A-Z0-9]+/).filter(w=>w.length>=3&&!/^\d+$/.test(w)))];
+    let best=null,bs=0; L.forEach(a=>{ const n=norm(a.name+" "+(a.bank||"")); let sc=words.filter(w=>n.includes(w)).length; if(/CREDIT|CREDITO|VISA|MASTER|AMEX/.test(c)&&a.type==="tc")sc+=.5; if(/DEBIT|DEBITO|CUENTA/.test(c)&&a.type!=="tc")sc+=.5; if(sc>bs){bs=sc;best=a} }); if(best&&bs>=1)return best.name; }
+  return null; }
+function parseAlert(txt){
+  const raw=String(txt||"").replace(/ /g," ").replace(/\s+/g," ").trim(); if(!raw)return null;
+  let m=raw.match(/(?:US\$|USD)\s?([\d.,]+)/i); const usd=!!m;
+  if(!m) m=raw.match(/\$\s?(\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?|\d+(?:,\d{1,2})?)/)||raw.match(/(?:CLP|monto|por un total de|por|total)\s*:?\s*\$?\s?(\d{1,3}(?:\.\d{3})+|\d{3,})/i);
+  if(!m)return null; const amount=Math.round(Math.abs(parseAmount(m[1]))); if(!amount)return null;
+  let date=null; const dm=raw.match(/\b(\d{4}-\d{2}-\d{2})\b/)||raw.match(/\b(\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{2,4})\b/); if(dm)date=parseDate(dm[1],new Date().getFullYear());
+  if(!date){ const dl=raw.match(/\b(\d{1,2})\s+de\s+([a-záéíóú]{3,})\.?(?:\s+de\s+(\d{4}))?/i); if(dl)date=parseDate(dl[0],new Date().getFullYear()); }
+  const l4=raw.match(/(?:terminad[ao] en|termina en|finalizada en|final|\*{2,}|x{3,}|N[°º]\s*\**)\s*(\d{4})\b/i);
+  const transfer=/transfer/i.test(raw); const income=/\b(recibiste|has recibido|te transfiri[oó]|transferencia recibida|abono|dep[oó]sito)\b/i.test(raw);
+  let desc=""; const rawD=l4?raw.replace(l4[0]," "):raw;
+  const lab=rawD.match(/\b(?:comercio|establecimiento|lugar de compra|destinatario|nombre del destinatario|origen|beneficiario)\s*:\s*(.+?)(?=\s+(?:fecha|monto|hora|tarjeta|cuenta|rut|banco|n[°º]|tipo)\b|\s*[|;]|$)/i);
+  if(lab) desc=lab[1];
+  if(!desc){ const en=rawD.match(/\ben\s+(?!(?:tu|su|la|el|los|las|un|una|nuestro|nuestra|cuotas?)\b)([A-Z0-9*][^,;$]*?)(?=\s+(?:el|con|a las|por|fecha|desde|usando|mediante|del)\b|[,;]|\.(?:\s|$)|$)/); if(en)desc=en[1]; }
+  if(!desc&&transfer){ const t=raw.match(/\b(a|de|desde)\s+([A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑáéíóúñ ]{3,40}?)(?=\s+(?:por|el|de|desde|con|a las)\b|[,;.]|$)/); if(t)desc=(t[1]==="a"?"Transf. a ":"Transf. de ")+t[2]; }
+  desc=desc.replace(/\s+/g," ").trim().slice(0,60);
+  return {amount,usd,date:date||isoToday(),desc:desc||(transfer?"Transferencia":"Compra"),last4:l4?l4[1]:null,type:income?"ingreso":"gasto",transfer};
+}
+function catFor(desc,type){ const r=classifyRule(desc); let cat=r?normCat(r.cat):null; const t2=cat?typeOfCat(cat):null; if(t2==="traspaso")return {type:"traspaso",cat};
+  if(!cat||t2!==type) cat=type==="ingreso"?"Otros ingresos":"Otros gastos"; return {type,cat}; }
+function parseMLLines(txt){ return String(txt||"").split(/\r?\n/).map(l=>l.trim()).filter(l=>/^ML\s*\|/.test(l)).map(l=>{ const p=l.split("|").map(x=>x.trim());
+  const when=p[1]||""; const date=parseDate(when.slice(0,10),new Date().getFullYear())||isoToday(); const amount=Math.round(Math.abs(parseAmount(p[2]))); const desc=(p[3]||"Apple Pay").slice(0,60);
+  return amount?{date,amount,desc,card:p[4]||"",ext:"ap|"+when+"|"+amount+"|"+norm(desc)}:null; }).filter(Boolean); }
+function importML(list){ const have=new Set(allRefs().map(r=>r.t.extId).filter(Boolean)); let add=0,skip=0; const byYm={};
+  list.forEach(x=>{ if(have.has(x.ext)){skip++;return} have.add(x.ext); const c=catFor(x.desc,"gasto");
+    const acc=accForCard(null,x.card)||state.lastAcct||(accList().find(a=>a.type==="tc")||accList()[0]).name;
+    const t={id:uid(),date:x.date,desc:x.desc,amount:x.amount,type:c.type,cat:c.cat,account:acc,nature:FIXED_CATS.has(c.cat)?"fijo":"variable",source:"applepay",extId:x.ext,checked:false};
+    (byYm[ymOf(x.date)]=byYm[ymOf(x.date)]||[]).push(t); add++; });
+  Object.entries(byYm).forEach(([ym,L])=>mutateMonth(ym,cur=>cur.tx.push(...L)));
+  return {add,skip}; }
+async function pasteAlert(fromText){
+  let txt=fromText;
+  if(txt==null){ try{ txt=await navigator.clipboard.readText(); }catch(e){ txt=null; } }
+  if(!txt||!txt.trim()){ const w=$("#ePasteWrap"); if(w){ w.hidden=false; setTimeout(()=>$("#ePasteTxt").focus(),50); } toast("Mantén presionado el cuadro y elige «Pegar»"); return; }
+  const ml=parseMLLines(txt);
+  if(ml.length){ const r=importML(ml); hideSheet("#edit"); ed=null; if(r.add){ okToast(`${r.add} ${r.add===1?"compra":"compras"} de Apple Pay agregada${r.add===1?"":"s"}${r.skip?` · ${r.skip} ya estaban`:""}`); setTab("movs"); } else toast(`Nada nuevo: las ${r.skip} compras ya estaban`); return; }
+  const a=parseAlert(txt); if(!a){ toast("No encontré un monto en el texto. Revisa lo que copiaste."); const w=$("#ePasteWrap"); if(w)w.hidden=false; return; }
+  if(!ed||!ed.isNew) openEdit(null);
+  const v=ed.v; const c=catFor(a.desc,a.type); v.amount=a.amount; v.desc=a.desc; v.date=a.date; v.type=a.transfer&&a.type==="gasto"&&c.cat==="Otros gastos"?"gasto":c.type; v.cat=c.cat; v.nature=FIXED_CATS.has(c.cat)?"fijo":"variable"; v.source="aviso";
+  let acc=accForCard(a.last4,txt); if(!acc&&a.transfer){ const x=accList().find(x=>x.type==="cc"||x.type==="vista"); if(x)acc=x.name; } if(acc)v.account=acc; ed.fromAlert={usd:a.usd,last4:a.last4,matched:!!acc}; renderEdit(); markDirty($("#eSave"));
+  okToast(a.usd?"Leído: el monto viene en dólares, revisa cuánto fue en pesos":"Leído del aviso: revisa y toca Agregar"); }
+function freqList(){ const cut=shiftYM(todayYM(),-3); const G={}; allRefs().forEach(({t,ym})=>{ if(ym<cut||t.type!=="gasto"||t.cat===SAVINGS)return; const k=merchantKey(t.bankDesc||t.desc); if(k.length<3)return; const g=G[k]||(G[k]={n:0,t}); g.n++; if(t.date>=g.t.date)g.t=t; });
+  return Object.values(G).filter(g=>g.n>=2).sort((a,b)=>b.n-a.n).slice(0,8).map(g=>g.t); }
+
 /* ---------- persistence (local, en este equipo) ---------- */
 const LS_DATA="mislucas.data.v1", LS_PROFILE="mislucas.profile.v1";
 let saveTimer=null, storageOk=true;
@@ -1467,7 +1552,7 @@ function openUMenu(){ const P=state.prof||{}; const m=$("#umenu"), w=$("#who");
   m.hidden=false; const r=w.getBoundingClientRect(); m.style.top=(r.bottom+8)+"px"; m.style.left=""; m.style.right=Math.max(12,innerWidth-r.right)+"px";
   w.setAttribute("aria-expanded","true"); setTimeout(()=>{const f=m.querySelector("button");f&&f.focus()},30); }
 function closeUMenu(){ const m=$("#umenu"); if(!m||m.hidden)return; m.hidden=true; $("#who").setAttribute("aria-expanded","false"); }
-const ACCT_TITLE={cuentas:"Mis cuentas y tarjetas",perfil:"Perfil personal",cuenta:"Cuenta y correo",seguridad:"PIN y contraseña",apariencia:"Apariencia",datos:"Respaldo y datos",acerca:"Acerca de Mis Lucas"};
+const ACCT_TITLE={captura:"Anotar gastos al instante",cuentas:"Mis cuentas y tarjetas",perfil:"Perfil personal",cuenta:"Cuenta y correo",seguridad:"PIN y contraseña",apariencia:"Apariencia",datos:"Respaldo y datos",acerca:"Acerca de Mis Lucas"};
 function openAcct(sec){ closeUMenu(); const P=state.prof||{};
   document.querySelectorAll("#acctBody [data-sec]").forEach(x=>x.hidden=x.dataset.sec!==sec); $("#acctTitle").textContent=ACCT_TITLE[sec]||"Cuenta";
   if(sec==="perfil"){ $("#pfName").value=state.name||""; $("#pfNick").value=P.nick||""; }
@@ -1827,9 +1912,14 @@ function renderEdit(){
   const catList=(CATS[v.type]||[]);
   $("#editTitle").textContent=ed.isNew?"Nuevo movimiento":"Editar movimiento";
   $("#editSub").textContent=(v.bankDesc&&v.bankDesc!==v.desc?"Banco: "+v.bankDesc+" · ":"")+(ed.isNew?"Para efectivo o para anotar al día":v.checked?"En cartola":"Anotado a mano");
+  const FQ=ed.isNew&&!ed.fromAlert?freqList():[];
   $("#editBody").innerHTML=`<div class="ef">
+    ${ed.isNew?`<div class="pastebox"><button type="button" class="btn pastebtn" id="ePaste">📋 Pegar aviso del banco o de Apple Pay</button>
+      <div id="ePasteWrap" hidden><textarea id="ePasteTxt" rows="3" placeholder="Pega aquí el texto del correo o la notificación del banco"></textarea><button type="button" class="btn primary sm" id="ePasteGo">Leer aviso</button></div>
+      ${ed.fromAlert?`<div class="note okn">✓ Leído del aviso${ed.fromAlert.matched?"":" · no reconocí la tarjeta, elige la cuenta"}${ed.fromAlert.usd?" · venía en dólares: corrige el monto en pesos":""}. Revisa y toca <b>Agregar</b>.</div>`:""}</div>`:""}
+    ${FQ.length?`<div><div class="eflabel">Frecuentes · toca uno y solo pon el monto</div><div class="freq">${FQ.map(t=>`<button type="button" data-fq="${t.id}">${ICON[t.cat]||"•"} ${esc(String(t.desc).slice(0,22))}</button>`).join("")}</div></div>`:""}
     <label class="field">Nombre<input id="eDesc" type="text" value="${esc(v.desc)}" autocomplete="off"></label>
-    <div class="row2"><label class="field">Monto<input id="eAmt" type="text" inputmode="numeric" value="${esc(String(v.amount))}"></label><label class="field">Fecha<input id="eDate" type="date" value="${esc(v.date)}"></label></div>
+    <div class="row2"><label class="field">Monto<input id="eAmt" type="text" inputmode="numeric" value="${v.amount?esc(String(v.amount)):""}" placeholder="0"></label><label class="field">Fecha<input id="eDate" type="date" value="${esc(v.date)}"></label></div>
     <div><div class="eflabel">Tipo</div><div class="seg3">${["gasto","ingreso","traspaso"].map(x=>`<button type="button" data-et="${x}" aria-pressed="${v.type===x}">${x==="gasto"?"− Gasto":x==="ingreso"?"+ Ingreso":"⇄ Traspaso"}</button>`).join("")}</div></div>
     <div><div class="eflabel">Categoría</div><div class="chips2">${catList.map(c=>`<button type="button" data-ec="${esc(c)}" aria-pressed="${v.cat===c}">${ICON[c]||"•"} <span>${esc(c)}</span></button>`).join("")}</div></div>
     <div class="row2"><label class="field">Cuenta<select id="eAcct">${acctOptions(v.account,true)}</select></label><div><div class="eflabel">Se repite</div><div class="seg2"><button type="button" data-en="variable" aria-pressed="${v.nature!=="fijo"}">Variable</button><button type="button" data-en="fijo" aria-pressed="${v.nature==="fijo"}">Fijo</button></div></div></div>
@@ -1878,13 +1968,19 @@ function bindEdit(){
     if(b.id==="eDel"){ if(b.dataset.armed){ mutateMonth(ed.ym,cur=>{cur.tx=cur.tx.filter(x=>x.id!==ed.id)}); hideSheet("#edit"); toast("Movimiento eliminado"); ed=null; } else { b.dataset.armed="1"; b.textContent="¿Seguro? Toca de nuevo"; setTimeout(()=>{if(b.isConnected){delete b.dataset.armed;b.textContent="Eliminar"}},3000);} return }
     readEditInputs(); const v=ed.v;
     if(b.dataset.et){ v.type=b.dataset.et; if(!(CATS[v.type]||[]).includes(v.cat)) v.cat=v.type==="ingreso"?"Otros ingresos":v.type==="traspaso"?"Traspaso / pago TC":"Otros gastos"; ed.touched=!ed.isNew; }
-    else if(b.dataset.ec){ v.cat=b.dataset.ec; v.nature=FIXED_CATS.has(v.cat)?"fijo":"variable"; ed.touched=!ed.isNew; }
+    else if(b.dataset.ec){ v.cat=b.dataset.ec; v.nature=FIXED_CATS.has(v.cat)?"fijo":"variable"; ed.touched=!ed.isNew; ed.catTouched=true; }
     else if(b.dataset.en){ v.nature=b.dataset.en; }
     else return;
     const st=$("#editBody").scrollTop; renderEdit(); $("#editBody").scrollTop=st; markDirty($("#eSave"));
   });
   $("#editBody").addEventListener("change",e=>{ if(e.target.id==="eAcct"&&e.target.value==="__new"){ readEditInputs(); e.target.value=ed.v.account; openAccForm(null,name=>{ ed.v.account=name; renderEdit(); markDirty($("#eSave")); }); } });
-  $("#editBody").addEventListener("input",e=>{ markDirty($("#eSave")); if(e.target.id==="eKey"&&ed){ ed.key=e.target.value; const n=similarTx(ed.key,ed.id).length; $("#eSimN").textContent=n; $("#eSim").disabled=!n; if(!n)$("#eSim").checked=false; } });
+  $("#editBody").addEventListener("click",e=>{
+    if(e.target.closest("#ePaste")){ readEditInputs(); pasteAlert(); return }
+    if(e.target.closest("#ePasteGo")){ pasteAlert($("#ePasteTxt").value); return }
+    const fq=e.target.closest("[data-fq]"); if(fq){ const f=findTx(fq.dataset.fq); if(!f)return; const t=f.t, v=ed.v; v.desc=t.desc; v.type=t.type; v.cat=t.cat; v.nature=t.nature||"variable"; if(t.account&&accByName(t.account))v.account=t.account; ed.catTouched=true; const amt=$("#eAmt").value; renderEdit(); if(amt&&amt!=="0")$("#eAmt").value=amt; const a=$("#eAmt"); a.focus(); a.select&&a.select(); markDirty($("#eSave")); return }
+  });
+  $("#editBody").addEventListener("input",e=>{ markDirty($("#eSave"));
+    if(ed&&ed.isNew&&!ed.catTouched&&e.target.id==="eDesc"){ const r=classifyRule(e.target.value); if(r){ const c=normCat(r.cat), ty=typeOfCat(c); if(ty&&ty===ed.v.type&&c!==ed.v.cat){ ed.v.cat=c; ed.v.nature=FIXED_CATS.has(c)?"fijo":"variable"; document.querySelectorAll("#editBody [data-ec]").forEach(x=>x.setAttribute("aria-pressed",x.dataset.ec===c)); } } } if(e.target.id==="eKey"&&ed){ ed.key=e.target.value; const n=similarTx(ed.key,ed.id).length; $("#eSimN").textContent=n; $("#eSim").disabled=!n; if(!n)$("#eSim").checked=false; } });
 }
 function flowCard(s){
   if(!s.inc&&!s.exp)return "";
@@ -2075,7 +2171,7 @@ function buildPreview(){
     const dup=pool.find(t=>t.source==="cartola"&&t.account===p.account&&`${t.date}|${t.amount}|${t.type}|${norm(t.bankDesc||t.desc)}`===key);
     if(dup){p.status="dup";p.include=false;return}
     const dd=(a,b)=>Math.abs((new Date(a)-new Date(b))/864e5);
-    const match=pool.find(t=>!t.checked&&!used.has(t.id)&&t.amount===p.amount&&t.type===p.type&&t.account!=="Efectivo"&&(!t.account||t.account===p.account)&&dd(t.date,p.date)<=5);
+    const match=pool.find(t=>!t.checked&&!used.has(t.id)&&t.amount===p.amount&&t.type===p.type&&t.account!=="Efectivo"&&(!t.account||t.account===p.account||((t.source==="aviso"||t.source==="applepay")&&accType(t.account)===accType(p.account)))&&dd(t.date,p.date)<=5);
     if(match){p.status="match";p.matchId=match.id;p.matchYm=ymOf(match.date);p.matchDesc=match.desc;p.cat=match.cat;used.add(match.id)} else p.status="new";
   });
   im.preview=out; renderPreview();
@@ -2130,6 +2226,7 @@ function bindUI(){
   $("#qText").addEventListener("input",renderMovs); $("#qType").addEventListener("change",renderMovs);
   document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeSheet();closeDrill();hideSheet("#edit")} if((e.key==="Enter"||e.key===" ")&&e.target.dataset&&e.target.dataset.drill){e.preventDefault();openDrill(e.target.dataset.drill)}});
 document.addEventListener("click",e=>{ const nw=e.target.closest("[data-new]"); if(nw){openEdit(null);return} const gt=e.target.closest("[data-goto]"); if(gt){ setTab(gt.dataset.goto); if(gt.dataset.impacc){ refreshSelects(); $("#impAcct").value=gt.dataset.impacc; } window.scrollTo({top:0}); return } const rv=e.target.closest("[data-review]"); if(rv){ setTab("movs"); $("#qType").value="revisar"; renderMovs(); return }
+  if(e.target.closest("[data-pastenew]")){ openEdit(null); setTimeout(()=>pasteAlert(),280); return }
   const op=e.target.closest("[data-open]"); if(op){ openEdit(op.dataset.open); return }
   const sm=e.target.closest("#movList details > summary"); if(sm){ e.preventDefault(); openEdit(sm.parentElement.dataset.id); return }
   const g=e.target.closest("[data-go]"); if(g){goToTx(g.dataset.go);return} const d=e.target.closest("[data-drill]"); if(d&&d.dataset.drill&&d.dataset.drill!=="undefined"){openDrill(d.dataset.drill)} });

@@ -13,6 +13,10 @@ Cada versión publicada queda anotada aquí. El número de versión se ve al pie
 - Avisos en la campana de arriba (junto al ojo), con un número de cuántos hay: al tocarla se despliegan, y al tocar uno ves su detalle. Incluyen topes al 80 % y excedidos, proyección negativa, alzas de precio, pagos nuevos y respaldo atrasado. Cada aviso se puede descartar.
 - "Lo destacado del mes" e informe mensual con comparación de cada categoría contra tus meses anteriores, y botón para compartir el resumen.
 - Nueva pestaña Patrimonio y metas: patrimonio neto (lo que tienes menos lo que debes) con su evolución mes a mes, metas de ahorro con el monto a apartar cada mes, deudas (créditos, líneas) y compras en cuotas detectadas solas en tus cartolas, intereses pagados en el año y otros bienes (saldos, propiedad, auto).
+- Anotar gastos al instante: "📋 Pegar aviso" lee el texto del correo o la notificación del banco (monto, comercio, fecha, tarjeta y si es transferencia) y lo deja listo con su categoría. También importa de una vez las compras de Apple Pay que el iPhone anota solo con un atajo, sin duplicar las que ya estaban. Guía paso a paso en el menú: "Anotar gastos al instante".
+- Al anotar a mano aparecen tus comercios frecuentes (un toque y solo pones el monto) y la categoría se elige sola al escribir un nombre conocido.
+- Los gastos anotados por aviso o Apple Pay se juntan con la cartola aunque los hayas puesto en otra tarjeta del mismo tipo.
+- Aviso en la campana cuando falta la cartola del mes anterior de alguna cuenta.
 - Modo privado: el ojo arriba oculta todos los montos con un toque.
 - Entrar con Face ID o huella (en PIN y contraseña), sin servidor: la verificación la hace tu teléfono.
 

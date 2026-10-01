@@ -25,14 +25,26 @@
     return { start: iso(start), end: iso(end) };
   }
 
+  // Bancos y emisores de Chile (el primero que aparezca con más peso gana). Se puede ampliar sin tocar el resto.
+  const BANKS = [
+    ["BancoEstado", /BANCOESTADO|BANCO ?DEL ?ESTADO|CUENTA ?RUT/], ["Banco de Chile", /BANCO DE CHILE|BANCOCHILE|BANCO EDWARDS|BANCO CREDICHILE/],
+    ["Santander", /SANTANDER|BANEFE/], ["BCI", /\bBCI\b|BANCO DE CREDITO E INVERSIONES|MACH\b/], ["Scotiabank", /SCOTIABANK|SCOTIA\b/],
+    ["Itaú", /\bITAU\b|BANCO ITAU/], ["Banco Falabella", /FALABELLA|CMR/], ["Banco Ripley", /RIPLEY/], ["Banco Security", /SECURITY/],
+    ["BICE", /\bBICE\b/], ["Banco Consorcio", /CONSORCIO/], ["Banco Internacional", /BANCO INTERNACIONAL/], ["Coopeuch", /COOPEUCH/],
+    ["Tenpo", /TENPO/], ["Mercado Pago", /MERCADO ?PAGO/], ["Prex", /\bPREX\b/], ["Lider BCI", /LIDER ?BCI|TARJETA LIDER/], ["Cencosud", /CENCOSUD|SCOTIABANK CENCOSUD/]
+  ];
   function detect(pages) {
     const all = N(pages.flat().map(lineText).join(" "));
-    const card = /TARJETA DE CREDITO/.test(all) && /PERIODO FACTURADO/.test(all);
-    const itau = /ITAU/.test(all) || /ESTADO DE CUENTA PERSONAL/.test(all);
-    const sant = /SANTANDER/.test(all);
-    const bank = sant && !/ITAU/.test(all) ? "Santander" : itau ? "Itaú" : sant ? "Santander" : "";
-    const vista = /CUENTA VISTA/.test(all);
-    return { card, bank, vista };
+    const isTx = l => l.items.some(x => DATE.test(x.s)) && l.items.some(x => AMT.test(x.s.replace(/\s/g, "")) && /[.$]/.test(x.s));
+    const meta = N(pages.flat().filter(l => !isTx(l)).map(lineText).join(" "));
+    const head = N(pages[0].slice(0, 25).filter(l => !isTx(l)).map(lineText).join(" "));
+    const card = /TARJETA DE CREDITO/.test(all) && /PERIODO FACTURADO|MONTO TOTAL FACTURADO|CUPO (TOTAL|UTILIZADO)/.test(all);
+    let bank = "", best = 0;
+    BANKS.forEach(([name, re]) => { const n = (meta.match(new RegExp(re.source, "g")) || []).length + (re.test(head) ? 3 : 0); if (n > best) { best = n; bank = name; } });
+    if (!bank && /ESTADO DE CUENTA PERSONAL/.test(all)) bank = "Itaú";
+    const wallet = ["Tenpo", "Mercado Pago", "Prex", "MACH"].includes(bank);
+    const kind = card ? "tc" : wallet ? "billetera" : /CUENTA ?RUT|CUENTA VISTA|CHEQUERA ELECTRONICA/.test(all) ? "vista" : /CUENTA DE AHORRO|LIBRETA/.test(all) ? "ahorro" : /PREPAGO/.test(all) ? "prepago" : "cc";
+    return { card, bank, kind, vista: kind === "vista" };
   }
 
   function parseCard(lines, period) {
@@ -77,19 +89,20 @@
         if (stop) return;
         const t = N(lineText(l));
         if (/RESUMEN DE COMISIONES|RESUMEN DE MOVIMIENTOS|INFORMACION DE CUENTA|RESUMEN DE SALDOS/.test(t)) { if (cols) stop = true; return; }
-        const cg = l.items.find(x => /CARGOS?$/.test(N(x.s)));
-        const ab = l.items.find(x => /ABONOS?$/.test(N(x.s)));
+        const cg = l.items.find(x => /(CARGOS?|GIROS?|DEBITOS?|EGRESOS?|RETIROS?)$/.test(N(x.s)));
+        const ab = l.items.find(x => /(ABONOS?|DEPOSITOS?|INGRESOS?)$/.test(N(x.s)) || (/^CREDITOS?$/.test(N(x.s))));
         if (cg && ab) {
           const near = lines.slice(Math.max(0, idx - 3), idx + 3).flatMap(z => z.items);
           const sd = near.find(x => /^SALDO/.test(N(x.s)) && x.x > ab.x);
           const c = x => (x.x + x.r) / 2;
-          cols = { cargo: c(cg), abono: c(ab), saldo: sd ? c(sd) : Infinity };
+          const dh = near.find(x => /^(DESCRIPCION|DETALLE|GLOSA|CONCEPTO|MOVIMIENTO)/.test(N(x.s)));
+          cols = { cargo: c(cg), abono: c(ab), saldo: sd ? c(sd) : Infinity, dx: dh ? dh.x - 25 : null, ax: Math.min(cg.x, ab.x) - 40 };
           return;
         }
         if (!cols) return;
         const it = l.items; const d = it[0] && it[0].s.match(DATE);
         if (!d || it[0].x > 90) return;
-        const amts = it.slice(1).filter(x => AMT.test(x.s.replace(/\s/g, "")) && x.x > 300);
+        const amts = it.slice(1).filter(x => AMT.test(x.s.replace(/\s/g, "")) && x.r > cols.ax);
         if (!amts.length) return;
         let cargo = 0, abono = 0;
         amts.forEach(a => {
@@ -98,7 +111,7 @@
           if (best === "cargo") cargo = Math.abs(num(a.s)); else if (best === "abono") abono = Math.abs(num(a.s));
         });
         if (!cargo && !abono) return;
-        const desc = it.slice(1).filter(x => !amts.includes(x) && x.x > 110 && !/^\d{3,}$/.test(x.s) && !/^[A-Z]\.[A-Za-z]+$/.test(x.s) && x.x < 400)
+        const desc = it.slice(1).filter(x => !amts.includes(x) && (cols.dx == null ? x.x > 110 : x.x >= cols.dx) && !/^\d{3,}$/.test(x.s) && !/^[A-Z]\.[A-Za-z]+$/.test(x.s) && x.r < cols.ax + 40)
           .map(x => x.s).join(" ").replace(/^\d{9}[\dK] /, "").replace(/\s+/g, " ").trim();
         if (/SALDO DIA|^---/i.test(desc)) return;
         let y = d[3] ? (d[3].length === 2 ? 2000 + +d[3] : +d[3]) : (+d[2] > endM ? endY - 1 : endY);
@@ -108,13 +121,35 @@
     return rows;
   }
 
+  function parseLoose(lines, period, card) {
+    const rows = []; let prevSaldo = null;
+    const endY = period.end ? +period.end.slice(0, 4) : new Date().getFullYear(), endM = period.end ? +period.end.slice(5, 7) : 12;
+    for (const l of lines) {
+      const it = l.items; const di = it.findIndex((x, k) => k < 3 && DATE.test(x.s)); if (di < 0) continue;
+      const d = it[di].s.match(DATE);
+      const amts = it.slice(di + 1).filter(x => AMT.test(x.s.replace(/[\s+]/g, "")) && /[.,$+-]/.test(x.s));
+      if (!amts.length) continue;
+      const desc = it.slice(di + 1).filter(x => !amts.includes(x) && !/^\d{3,}$/.test(x.s)).map(x => x.s).join(" ").replace(/\s+/g, " ").trim();
+      if (!desc || /^(SALDO|TOTAL)/i.test(desc)) continue;
+      let mov = num(amts[0].s), saldo = amts.length > 1 ? num(amts[amts.length - 1].s) : null;
+      let cargo;
+      if (mov < 0) cargo = true; else if (saldo != null && prevSaldo != null) cargo = saldo < prevSaldo; else cargo = true;
+      if (card && mov < 0) cargo = false;
+      if (saldo != null) prevSaldo = saldo;
+      const y = d[3] ? (d[3].length === 2 ? 2000 + +d[3] : +d[3]) : (+d[2] > endM ? endY - 1 : endY);
+      const a = Math.abs(mov); if (!a) continue;
+      rows.push([`${y}-${d[2]}-${d[1]}`, desc, cargo ? a : "", cargo ? "" : a]);
+    }
+    return rows;
+  }
   function parseStatement(pages) {
     const lines = pages.flat();
     const info = detect(pages);
     const period = periodOf(lines);
-    const rows = info.card ? parseCard(lines, period) : parseAccount(pages, period);
-    const account = info.card ? (info.bank === "Itaú" ? "Itaú TC" : "Santander TC") : (info.bank === "Itaú" ? "Itaú Cta. Cte." : "Santander Cta. Cte.");
-    return { ...info, period, account, rows };
+    let rows = info.card ? parseCard(lines, period) : parseAccount(pages, period);
+    let loose = false;
+    if (!rows.length) { rows = parseLoose(lines, period, info.card); loose = rows.length > 0; }
+    return { ...info, period, rows, loose };
   }
 
   /* Convierte páginas de PDF.js en líneas con posición */

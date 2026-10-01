@@ -629,6 +629,18 @@ body.bs-open #drillScrim{display:block}
 .vrows>div{display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid var(--line);font-size:14px}
 .vrows span{color:var(--muted)}
 .vrows b{font-weight:600;text-align:right}
+.accrow{display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:10px;align-items:center;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:8px;font:inherit;color:var(--ink);cursor:pointer}
+.accrow .ai{width:40px;height:40px;border-radius:12px;background:var(--surface-2);display:grid;place-items:center;font-size:20px}
+.accrow .an b{display:block;font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.accrow .an small{color:var(--muted);font-size:12px}
+.accrow .as{text-align:right;display:grid;gap:2px}.accrow .as em{font-style:normal;font-size:12px;color:var(--muted)}.accrow .as em.ok{color:var(--good-text);font-weight:600}.accrow .as small{font-size:11.5px;color:var(--muted)}
+.todo{padding:16px}
+.todo .tdh{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px}
+.todo .tdbar{height:6px;border-radius:9px;background:var(--surface-2);overflow:hidden;margin:4px 0 8px}.todo .tdbar i{display:block;height:100%;background:var(--good-text);border-radius:9px;transition:width .4s}
+.tdi{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--line);padding:11px 2px;font:inherit;font-size:14px;color:var(--ink);cursor:pointer}
+.tdi .ck{width:22px;height:22px;flex:none;border-radius:50%;border:2px solid var(--line-2);display:grid;place-items:center;font-size:13px;font-weight:800;color:#fff}
+.tdi.done{color:var(--muted);cursor:default}.tdi.done .ck{background:var(--good-text);border-color:var(--good-text)}.tdi.done span:nth-child(2){text-decoration:line-through;text-decoration-color:color-mix(in srgb,var(--muted) 50%,transparent)}
+.tdi .go{margin-left:auto;color:var(--accent);font-size:18px}.tdi small{color:var(--warn-text);font-weight:600}
+.todo.closed{padding-bottom:12px}
 </style>
 
 </head>
@@ -664,6 +676,7 @@ body.bs-open #drillScrim{display:block}
   <main>
     <!-- RESUMEN -->
     <section class="panel" data-panel="resumen">
+      <div class="card todo" id="todo" hidden></div>
       <div class="kpis" id="kpis"></div>
       <div class="grid-2">
         <div class="card">
@@ -706,14 +719,14 @@ body.bs-open #drillScrim{display:block}
     <!-- IMPORT -->
     <section class="panel" data-panel="import" hidden>
       <div class="card">
-        <div class="card-head"><div><button class="linkbtn" type="button" data-goto="movs" style="margin-bottom:6px">‹ Volver a movimientos</button><h2>Subir cartola</h2><div class="sub">PDF del estado de cuenta o cartola (Santander o Itaú), o Excel/CSV del banco. Se lee solo en tu teléfono: nada se sube a internet.</div></div></div>
+        <div class="card-head"><div><button class="linkbtn" type="button" data-goto="movs" style="margin-bottom:6px">‹ Volver a movimientos</button><h2>Subir cartola</h2><div class="sub">PDF, Excel o CSV de cualquier banco, tarjeta o billetera digital. Se lee solo en tu teléfono: nada se sube a internet.</div></div></div>
         <div class="toolbar" style="margin-bottom:12px">
-          <label class="field">¿De qué cuenta es la cartola?<select id="impAcct"></select></label>
+          <label class="field">¿De qué cuenta es? <span class="muted" style="font-weight:400">(con PDF la detecto sola)</span><select id="impAcct"></select></label>
         </div>
         <label class="drop" id="drop" for="fileIn"><strong>Arrastra la cartola aquí</strong> o haz clic para elegir el archivo<br><span class="muted" style="font-size:12px">Formatos: .pdf · .xlsx · .xls · .csv. El PDF que te llega por correo sirve tal cual.</span></label>
         <form id="pdfPw" class="card" hidden style="margin-top:12px;box-shadow:none;border:1px solid var(--line,#e3e7ee)">
           <div style="font-weight:600;margin-bottom:4px">🔒 Este PDF tiene clave</div>
-          <div class="muted" style="font-size:13px;margin-bottom:10px">Los bancos usan tu RUT sin puntos, sin guion y sin dígito verificador (ej: 12345678).</div>
+          <div class="muted" style="font-size:13px;margin-bottom:10px">La mayoría de los bancos usa tu RUT sin puntos, sin guion y sin dígito verificador (ej: 12345678). Si no funciona, revisa el correo del banco: ahí dice cuál es la clave.</div>
           <div class="toolbar"><label class="field" style="flex:1">Clave del PDF<input id="pdfPwIn" type="password" inputmode="numeric" autocomplete="off"></label><button class="btn primary" type="submit">Abrir</button></div>
           <label style="display:flex;gap:8px;align-items:center;font-size:13px;margin-top:8px"><input type="checkbox" id="pdfPwRem"> Recordar la clave en este teléfono</label>
           <div id="pdfPwMsg" class="muted" style="font-size:13px;margin-top:6px"></div>
@@ -805,7 +818,7 @@ body.bs-open #drillScrim{display:block}
   <h1>Tus lucas, claras y en orden.</h1>
   <p class="lead">Sube la cartola de tu banco y en un minuto ves en qué se va tu plata, cuánto ahorras y dónde ajustar.</p>
   <div class="pts">
-    <div><i>📄</i><span><b>Lee tus cartolas</b> de Santander e Itaú, en PDF o Excel, y ordena todo solo.</span></div>
+    <div><i>📄</i><span><b>Lee tus cartolas</b> de cualquier banco o tarjeta, en PDF, Excel o CSV, y ordena todo solo.</span></div>
     <div><i>📊</i><span><b>Te muestra el mes</b>: lo que entró, lo que gastaste y cuánto ahorraste.</span></div>
     <div><i>🔒</i><span><b>Privado de verdad</b>: tus datos quedan solo en este teléfono, sin cuentas ni servidores.</span></div>
   </div>
@@ -854,6 +867,7 @@ body.bs-open #drillScrim{display:block}
   <div class="uhead"><div class="uav" id="uAv">•</div><div class="uname" id="uName">Tu perfil</div><div class="umail" id="uMail"></div><div class="ubadge" id="uBadge"></div></div>
   <button role="menuitem" type="button" data-acct="perfil"><span class="ui">👤</span>Perfil personal</button>
   <button role="menuitem" type="button" data-acct="cuenta"><span class="ui">📧</span>Cuenta y correo de ingreso</button>
+  <button role="menuitem" type="button" data-acct="cuentas"><span class="ui">🏦</span>Mis cuentas y tarjetas<small id="uAccN"></small></button>
   <button role="menuitem" type="button" data-acct="seguridad"><span class="ui">🔐</span>PIN y contraseña<small id="uSec"></small></button>
   <button role="menuitem" type="button" data-acct="apariencia"><span class="ui">🎨</span>Apariencia<small id="uTheme"></small></button>
   <button role="menuitem" type="button" data-umgoto="fixed"><span class="ui">🏷️</span>Reglas de categorización</button>
@@ -865,6 +879,20 @@ body.bs-open #drillScrim{display:block}
 <div id="acct" class="bsheet" role="dialog" aria-modal="true" aria-labelledby="acctTitle" hidden>
   <div class="dhead"><div><button class="linkbtn" type="button" data-umenu="1">‹ Menú</button><h2 id="acctTitle" style="margin-top:4px">Cuenta</h2></div><button class="iconbtn" id="acctClose" type="button" aria-label="Cerrar">✕</button></div>
   <div id="acctBody" style="overflow:auto;-webkit-overflow-scrolling:touch">
+    <section data-sec="cuentas" hidden>
+      <div class="ainfo">Agrega cada cuenta, tarjeta o billetera que uses, de cualquier banco. Al subir un PDF, la app lo asigna sola a la cuenta correcta (o la crea).</div>
+      <div id="accListBox"></div>
+      <div id="accFormBox" hidden>
+        <div class="eflabel" id="accFormTitle" style="margin-top:6px">Nueva cuenta</div>
+        <label class="field">Tipo<select id="afType"></select></label>
+        <label class="field" id="afBankWrap">Banco o emisor<select id="afBank"></select></label>
+        <label class="field" id="afOtherWrap" hidden>¿Cuál?<input id="afOther" placeholder="Nombre del banco o app"></label>
+        <label class="field">Últimos 4 dígitos (opcional)<input id="afLast4" inputmode="numeric" maxlength="4" placeholder="1234"></label>
+        <label class="field">Nombre en la app<input id="afName" placeholder="Se arma solo"></label>
+        <div class="abtns"><button class="btn primary" type="button" id="afSave">Guardar cuenta</button><button class="btn" type="button" id="afCancel">Cancelar</button><button class="btn" type="button" id="afDel" style="color:var(--crit);margin-left:auto" hidden>Eliminar</button></div>
+      </div>
+      <div class="abtns" id="accAddRow"><button class="btn primary" type="button" id="accAdd">+ Agregar cuenta o tarjeta</button></div>
+    </section>
     <section data-sec="perfil" hidden>
       <label class="field">Nombre<input id="pfName" autocomplete="name" placeholder="Tu nombre"></label>
       <label class="field">¿Cómo quieres que te salude la app?<input id="pfNick" placeholder="Ej: Mati (opcional)"></label>
@@ -932,10 +960,22 @@ const LEGACY = {"Oficina (se rinde)":"Oficina (te la devuelven)","Comida fuera":
 const normCat = c=>LEGACY[c]||c;
 const ICON = {"Vivienda":"🏠","Cuentas básicas":"💡","Supermercado":"🛒","Restaurantes y bares":"🍽️","Delivery":"🛵","Café y snacks":"☕","Auto y bencina":"🚗","Transporte":"🚇","Ropa y calzado":"👕","Cuidado personal":"💈","Salud":"💊","Deporte":"🏋️","Salidas y carrete":"🍻","Amigos y regalos":"🎁","Panoramas y ocio":"🎟️","Suscripciones":"📺","Tecnología":"📱","Hogar":"🛋️","Caprichos":"🍭","Educación":"📚","Viajes":"✈️","Mascotas":"🐾","Seguros":"🛡️","Créditos y deudas":"💳","Comisiones e intereses":"🏦","Compras varias":"🛍️",[SAVINGS]:"🐷","Otros gastos":"📦",
   "Sueldo":"💼","Arriendos":"🏘️","Bonos y comisiones":"⭐","Emprendimiento":"🚀","Honorarios":"📝","Intereses y dividendos":"📈","Venta de cosas":"🏷️","Regalos recibidos":"🎀","Reembolsos":"↩️",[OFFICE_IN]:"🏢",[RESCUE]:"🔓","Otros ingresos":"💰","Traspaso / pago TC":"🔁",[OFFICE]:"🧾","Comida fuera":"🍽️","Ocio":"🎟️","Regalos":"🎁","Compras":"🛍️"};
-const ACCT_ICON = {"Santander Cta. Cte.":"🏦","Santander TC":"💳","Itaú Cta. Cte.":"🏦","Itaú TC":"💳","Efectivo":"💵"};
+const ACC_TYPES={cc:["Cuenta corriente","🏦"],vista:["Cuenta vista / RUT","🏦"],ahorro:["Cuenta de ahorro","🐖"],tc:["Tarjeta de crédito","💳"],prepago:["Tarjeta prepago o débito","💳"],billetera:["Billetera digital","📱"],efectivo:["Efectivo","💵"],inversion:["Inversión","📈"],otra:["Otra","🗂️"]};
+const ACC_SHORT={cc:"Cta. Cte.",vista:"Cta. Vista",ahorro:"Ahorro",tc:"TC",prepago:"Prepago",billetera:"",efectivo:"",inversion:"Inversión",otra:""};
+const BANKS=["BancoEstado","Banco de Chile","Santander","BCI","Scotiabank","Itaú","Banco Falabella","Banco Ripley","Banco Security","BICE","Banco Consorcio","Banco Internacional","Coopeuch","Tenpo","MACH","Mercado Pago","Prex","Lider BCI","Cencosud","Otro"];
+function guessAcc(name){ const n=norm(name); const bank=BANKS.find(b=>b!=="Otro"&&n.includes(norm(b)))||(/ITAU/.test(n)?"Itaú":"");
+  const type=/EFECTIVO|CASH/.test(n)?"efectivo":/\bTC\b|TARJETA DE CREDITO|CREDITO|VISA|MASTER/.test(n)?"tc":/VISTA|RUT/.test(n)?"vista":/AHORRO/.test(n)?"ahorro":/PREPAGO|DEBITO/.test(n)?"prepago":/MERCADO PAGO|TENPO|MACH|PREX/.test(n)?"billetera":/CTA|CUENTA|CORRIENTE/.test(n)?"cc":"otra";
+  return {bank:type==="efectivo"?"":bank,type}; }
+function accList(){ const c=cfg(); return (c.accounts&&c.accounts.length)?c.accounts:[{id:"cash",name:"Efectivo",bank:"",type:"efectivo"}]; }
+function accByName(n){ return accList().find(a=>a.name===n)||null; }
+function accType(n){ const a=accByName(n); return a?a.type:guessAcc(n||"").type; }
+function accIcon(n){ return (ACC_TYPES[accType(n)]||ACC_TYPES.otra)[1]; }
+function accDefaultName(bank,type,last4){ const t=ACC_SHORT[type]; const b=bank&&bank!=="Otro"?bank:""; const base=type==="efectivo"?"Efectivo":b&&!t?b:[b,t||ACC_TYPES[type][0]].filter(Boolean).join(" "); return base+(last4?" ··"+last4:""); }
+function ensureAccounts(c,months){ if(c.accounts&&c.accounts.length)return false; const names=new Set(); Object.values(months||{}).forEach(m=>(m.tx||[]).forEach(t=>t.account&&names.add(t.account)));
+  c.accounts=[...names].map(n=>({id:uid(),name:n,...guessAcc(n)})); if(!c.accounts.some(a=>a.type==="efectivo"))c.accounts.push({id:uid(),name:"Efectivo",bank:"",type:"efectivo"}); return true; }
 const ico = c=>`<span class="cico" aria-hidden="true">${ICON[c]||"•"}</span>`;
 const FIXED_CATS = new Set(["Vivienda","Cuentas básicas","Suscripciones","Seguros","Créditos y deudas","Educación","Sueldo","Arriendos"]);
-const ACCOUNTS = ["Santander Cta. Cte.","Santander TC","Itaú Cta. Cte.","Itaú TC","Efectivo"];
+
 const INV_TYPES = {"Cuenta de ahorro":"🏦","Fondo de emergencia":"🛟","Depósito a plazo":"📄","Fondo mutuo":"📊","APV":"🧓","Acciones / ETF":"📈","Cripto":"🪙","Otro":"💼"};
 const isOffice = t=>t.cat===OFFICE||t.cat===OFFICE_IN;
 const R_ = (cat,...kws)=>kws.map(kw=>({kw,cat}));
@@ -1037,7 +1077,7 @@ const afterSave=(btn,label,close)=>{ markSaved(btn,label); if(close)setTimeout(c
 
 /* ---------- state ---------- */
 const state = { db:null, dl:null, config:null, months:{}, example:true, ym:todayYM(), tab:"resumen", loaded:false, imp:null };
-function defaultConfig(){ return { started:true, rulesV:2, budgets:{}, fixed:[], invest:[], rules:clone(DEFAULT_RULES), createdAt:new Date().toISOString() }; }
+function defaultConfig(){ return { started:true, rulesV:2, accounts:[{id:uid(),name:"Efectivo",bank:"",type:"efectivo"}], budgets:{}, fixed:[], invest:[], rules:clone(DEFAULT_RULES), createdAt:new Date().toISOString() }; }
 function cfg(){ return state.config || EXAMPLE.config; }
 function monthTx(ym){ return ((state.example?EXAMPLE.months:state.months)[ym]||{tx:[]}).tx||[]; }
 function allMonths(){ return state.example?EXAMPLE.months:state.months; }
@@ -1081,7 +1121,7 @@ const EXAMPLE = (function(){
     {id:"i3",name:"Fondo mutuo moderado",type:"Fondo mutuo",value:860000,valueDate:vd,baseDate:vd,base:800000},
     {id:"i4",name:"Cripto",type:"Cripto",value:210000,valueDate:shiftYM(base,-1)+"-15",baseDate:shiftYM(base,-1)+"-15",base:250000}
   ];
-  return {months,config:{started:false,budgets,fixed,rules:DEFAULT_RULES,invest}};
+  const ex={months,config:{started:false,budgets,fixed,rules:DEFAULT_RULES,invest}}; ensureAccounts(ex.config,months); return ex;
 })();
 
 /* ---------- aggregation ---------- */
@@ -1124,7 +1164,7 @@ async function sha(txt){ try{ const b=await crypto.subtle.digest("SHA-256",new T
 function loadLocal(){
   const prof=lsGet(LS_PROFILE)||{}; state.prof=prof; state.name=prof.name||""; state.pinHash=prof.pin||""; applyTheme();
   const d=lsGet(LS_DATA);
-  if(d&&d.config&&d.config.started){ const oldRV=d.config.rulesV||0; state.config=normalizeConfig(d.config); state.months={}; Object.entries(d.months||{}).forEach(([k,m])=>state.months[k]=normalizeMonth(m)); state.example=false; pickInitialMonth(); if(oldRV<2||JSON.stringify(d.months).includes('"scope"')||d.config.batches) persist(); }
+  if(d&&d.config&&d.config.started){ const oldRV=d.config.rulesV||0; state.config=normalizeConfig(d.config); state.months={}; Object.entries(d.months||{}).forEach(([k,m])=>state.months[k]=normalizeMonth(m)); const accNew=ensureAccounts(state.config,state.months); state.example=false; pickInitialMonth(); if(accNew||oldRV<2||JSON.stringify(d.months).includes('"scope"')||d.config.batches) persist(); }
   else { state.example=true; }
 }
 function boot(){
@@ -1154,11 +1194,11 @@ const THEME_LBL={auto:"Automático",light:"Claro",dark:"Oscuro"};
 function openUMenu(){ const P=state.prof||{}; const m=$("#umenu"), w=$("#who");
   $("#uAv").textContent=(firstName()[0]||"•").toUpperCase(); $("#uName").textContent=state.name||"Tu perfil"; $("#uMail").textContent=P.email||"Sin correo registrado";
   $("#uBadge").textContent=(state.pinHash?(P.mode==="pass"?"🔒 Contraseña activa":"🔒 PIN activo"):"🔓 Sin código de acceso")+" · datos en este teléfono";
-  $("#uSec").textContent=state.pinHash?"Activo":"Crear"; $("#uTheme").textContent=THEME_LBL[P.theme||"auto"]; $("#uVer").textContent=APP_VERSION;
+  $("#uSec").textContent=state.pinHash?"Activo":"Crear"; $("#uAccN").textContent=accList().length; $("#uTheme").textContent=THEME_LBL[P.theme||"auto"]; $("#uVer").textContent=APP_VERSION;
   m.hidden=false; const r=w.getBoundingClientRect(); m.style.top=(r.bottom+8)+"px"; m.style.left=""; m.style.right=Math.max(12,innerWidth-r.right)+"px";
   w.setAttribute("aria-expanded","true"); setTimeout(()=>{const f=m.querySelector("button");f&&f.focus()},30); }
 function closeUMenu(){ const m=$("#umenu"); if(!m||m.hidden)return; m.hidden=true; $("#who").setAttribute("aria-expanded","false"); }
-const ACCT_TITLE={perfil:"Perfil personal",cuenta:"Cuenta y correo",seguridad:"PIN y contraseña",apariencia:"Apariencia",datos:"Respaldo y datos",acerca:"Acerca de Mis Lucas"};
+const ACCT_TITLE={cuentas:"Mis cuentas y tarjetas",perfil:"Perfil personal",cuenta:"Cuenta y correo",seguridad:"PIN y contraseña",apariencia:"Apariencia",datos:"Respaldo y datos",acerca:"Acerca de Mis Lucas"};
 function openAcct(sec){ closeUMenu(); const P=state.prof||{};
   document.querySelectorAll("#acctBody [data-sec]").forEach(x=>x.hidden=x.dataset.sec!==sec); $("#acctTitle").textContent=ACCT_TITLE[sec]||"Cuenta";
   if(sec==="perfil"){ $("#pfName").value=state.name||""; $("#pfNick").value=P.nick||""; }
@@ -1166,15 +1206,44 @@ function openAcct(sec){ closeUMenu(); const P=state.prof||{};
   if(sec==="seguridad"){ state.secType=P.mode==="pass"?"pass":"pin"; renderSec(); ["#secCur","#secNew","#secNew2"].forEach(k=>$(k).value=""); $("#secAuto").value=String(P.autoLock==null?5:P.autoLock); }
   if(sec==="apariencia"){ document.querySelectorAll("#thSeg [data-th]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.th===(P.theme||"auto"))); }
   if(sec==="datos"){ renderData(); }
+  if(sec==="cuentas"){ renderAccounts(); if(!accFormCb) closeAccForm(); }
   if(sec==="acerca"){ $("#abVer").textContent=APP_VERSION; $("#abMsg").textContent=""; }
   showSheet("#acct"); $("#acctBody").scrollTop=0; }
+let accFormCb=null, accEditId=null;
+function accStats(name){ let n=0,last=""; Object.entries(allMonths()).forEach(([ym,m])=>(m.tx||[]).forEach(t=>{ if(t.account===name){ n++; if(t.source==="cartola"&&ym>last)last=ym; } })); return {n,last}; }
+function renderAccounts(){ const L=accList();
+  $("#accListBox").innerHTML=L.map(a=>{ const st=accStats(a.name); const T=ACC_TYPES[a.type]||ACC_TYPES.otra; const upd=st.last&&st.last>=shiftYM(todayYM(),-1);
+    return `<button type="button" class="accrow" data-accedit="${esc(a.id)}"><span class="ai">${T[1]}</span><span class="an"><b>${esc(a.name)}</b><small>${esc([a.bank&&a.bank!=="Otro"?a.bank:"",T[0]].filter(Boolean).join(" · "))}</small></span><span class="as">${st.last?`<em class="${upd?"ok":""}">${upd?"✓ ":""}hasta ${esc(ymLabel(st.last,true))}</em>`:a.type==="efectivo"?"":"<em>sin cartola</em>"}<small>${st.n} movs</small></span></button>`; }).join(""); }
+function fillAccSelects(a){ $("#afType").innerHTML=Object.entries(ACC_TYPES).map(([k,v])=>`<option value="${k}"${a&&a.type===k?" selected":""}>${v[1]} ${v[0]}</option>`).join(""); const b=a?a.bank:""; const known=BANKS.includes(b)||!b;
+  $("#afBank").innerHTML=`<option value="">Elige…</option>`+BANKS.map(x=>`<option${(known?b:"Otro")===x?" selected":""}>${x}</option>`).join(""); $("#afOther").value=known?"":b; $("#afOtherWrap").hidden=known||!b; }
+function syncAccForm(){ const t=$("#afType").value; $("#afBankWrap").hidden=t==="efectivo"; $("#afOtherWrap").hidden=$("#afBank").value!=="Otro"||t==="efectivo"; if(!$("#afName").dataset.touched){ const bank=$("#afBank").value==="Otro"?$("#afOther").value.trim():$("#afBank").value; $("#afName").value=accDefaultName(bank,t,$("#afLast4").value.trim()); } }
+function openAccForm(acc,cb){ accFormCb=null; openAcct("cuentas"); accFormCb=cb||null; accEditId=acc?acc.id:null; $("#accFormBox").hidden=false; $("#accAddRow").hidden=true; $("#accFormTitle").textContent=acc?"Editar cuenta":"Nueva cuenta"; fillAccSelects(acc||{type:"tc"}); $("#afLast4").value=acc&&acc.last4||""; $("#afName").value=acc?acc.name:""; if(acc)$("#afName").dataset.touched="1"; else delete $("#afName").dataset.touched; $("#afDel").hidden=!acc; syncAccForm(); setTimeout(()=>$("#afType").focus(),80); }
+function closeAccForm(){ $("#accFormBox").hidden=true; $("#accAddRow").hidden=false; accEditId=null; accFormCb=null; }
+function saveAccForm(){ const type=$("#afType").value; let bank=type==="efectivo"?"":$("#afBank").value==="Otro"?($("#afOther").value.trim()||"Otro"):$("#afBank").value; const last4=$("#afLast4").value.replace(/\D/g,"").slice(0,4); let name=$("#afName").value.trim()||accDefaultName(bank,type,last4);
+  if(type!=="efectivo"&&!bank){ toast("Elige el banco o emisor."); return }
+  const old=accEditId?accList().find(a=>a.id===accEditId):null;
+  if(accList().some(a=>a.name===name&&(!old||a.id!==old.id))){ toast("Ya tienes una cuenta con ese nombre."); return }
+  mutateConfig(c=>{ c.accounts=c.accounts&&c.accounts.length?c.accounts:accList().slice(); if(old){ const a=c.accounts.find(x=>x.id===old.id); Object.assign(a,{name,bank,type,last4}); } else c.accounts.push({id:uid(),name,bank,type,last4}); });
+  if(old&&old.name!==name){ Object.keys(allMonths()).forEach(ym=>{ if((allMonths()[ym].tx||[]).some(t=>t.account===old.name)) mutateMonth(ym,cur=>cur.tx.forEach(t=>{ if(t.account===old.name)t.account=name })); }); }
+  const cb=accFormCb; markSaved($("#afSave"),old?"Guardada":"Cuenta creada"); okToast(old?`Cuenta "${name}" actualizada`:`Cuenta "${name}" creada`);
+  setTimeout(()=>{ closeAccForm(); renderAccounts(); refreshSelects(); if(cb){ hideSheet("#acct"); cb(name); } },500); }
 function renderSec(){ const P=state.prof||{}, has=!!state.pinHash, pass=state.secType==="pass";
   $("#secState").textContent=has?`Tienes ${P.mode==="pass"?"una contraseña":"un PIN"}. Se pide al abrir la app y al volver a ella.`:"No tienes código: cualquiera que tome tu teléfono puede ver tus números.";
   document.querySelectorAll("#secType [data-st]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.st===state.secType));
   $("#secCurWrap").hidden=!has; $("#secDel").hidden=!has;
   [["#secNew",1],["#secNew2",1]].forEach(([k])=>{ const i=$(k); i.inputMode=pass?"text":"numeric"; i.maxLength=pass?64:4; i.placeholder=pass?"Mínimo 6 caracteres":"4 números"; });
   $("#secCur").inputMode=P.mode==="pass"?"text":"numeric"; }
-function bindAccount(){
+function bindAccounts(){
+  $("#accAdd").addEventListener("click",()=>openAccForm(null,null));
+  $("#accListBox").addEventListener("click",e=>{ const b=e.target.closest("[data-accedit]"); if(!b)return; const a=accList().find(x=>x.id===b.dataset.accedit); if(a)openAccForm(a,null); });
+  ["#afType","#afBank"].forEach(k=>$(k).addEventListener("change",syncAccForm)); ["#afOther","#afLast4"].forEach(k=>$(k).addEventListener("input",syncAccForm));
+  $("#afName").addEventListener("input",e=>{ e.target.dataset.touched="1"; markDirty($("#afSave")); });
+  $("#afSave").addEventListener("click",saveAccForm); $("#afCancel").addEventListener("click",()=>{ const cb=accFormCb; closeAccForm(); if(cb)hideSheet("#acct"); });
+  $("#afDel").addEventListener("click",e=>{ const a=accList().find(x=>x.id===accEditId); if(!a)return; const st=accStats(a.name); if(st.n){ toast(`Tiene ${st.n} movimientos: cámbiales la cuenta antes de eliminarla.`); return }
+    const b=e.currentTarget; if(!b.dataset.armed){ b.dataset.armed="1"; b.textContent="¿Seguro?"; setTimeout(()=>{ if(b.isConnected){delete b.dataset.armed; b.textContent="Eliminar"} },3000); return }
+    mutateConfig(c=>{ c.accounts=(c.accounts||[]).filter(x=>x.id!==a.id) }); closeAccForm(); renderAccounts(); refreshSelects(); okToast("Cuenta eliminada"); });
+}
+function bindAccount(){ bindAccounts();
   $("#who").addEventListener("click",e=>{ e.stopPropagation(); $("#umenu").hidden?openUMenu():closeUMenu(); });
   document.addEventListener("click",e=>{ if(!$("#umenu").hidden&&!e.target.closest("#umenu")&&!e.target.closest("#who")) closeUMenu();
     const um=e.target.closest("[data-umenu]"); if(um){ hideSheet("#acct"); setTimeout(openUMenu,60); return }
@@ -1249,7 +1318,7 @@ function bindLocal(){
   document.addEventListener("visibilitychange",()=>{ const al=(state.prof||{}).autoLock==null?5:(state.prof||{}).autoLock; if(document.hidden&&state.pinHash){ state._hiddenAt=Date.now() } else if(!document.hidden&&state.pinHash&&al>=0&&state._hiddenAt&&Date.now()-state._hiddenAt>=al*60*1000){ lockNow() } });
   $("#bkExport").addEventListener("click",()=>{ if(state.example){toast("Aún no tienes datos propios que respaldar.");return} const d=new Date(); saveFile(`mis-lucas-respaldo-${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}.json`,JSON.stringify({app:"mis-lucas",v:1,exportedAt:d.toISOString(),profile:{name:state.name,email:(state.prof||{}).email||""},config:state.config,months:state.months}),"application/json"); saveProfile({lastBackup:new Date().toISOString()}); renderData(); markSaved($("#bkExport"),"Respaldo descargado"); });
   $("#bkFile").addEventListener("change",e=>{ const f=e.target.files[0]; e.target.value=""; if(!f)return; const fr=new FileReader(); fr.onload=()=>{ try{ const d=JSON.parse(fr.result); if(d.app!=="mis-lucas"||!d.config)throw 0;
-      state.config=normalizeConfig(d.config); state.config.started=true; state.months={}; Object.entries(d.months||{}).forEach(([k,m])=>state.months[k]=normalizeMonth(m)); state.example=false; if(d.profile&&d.profile.name&&!state.name){state.name=d.profile.name} if(d.profile&&d.profile.email&&!(state.prof||{}).email){state.prof=Object.assign({},state.prof,{email:d.profile.email})} saveProfile({});
+      state.config=normalizeConfig(d.config); state.config.started=true; state.months={}; Object.entries(d.months||{}).forEach(([k,m])=>state.months[k]=normalizeMonth(m)); ensureAccounts(state.config,state.months); state.example=false; if(d.profile&&d.profile.name&&!state.name){state.name=d.profile.name} if(d.profile&&d.profile.email&&!(state.prof||{}).email){state.prof=Object.assign({},state.prof,{email:d.profile.email})} saveProfile({});
       persist(); pickInitialMonth(); showWho(); render(); $("#welcome").hidden=true; try{localStorage.setItem("ml_seen","1")}catch(e){} if(!state.name){ openSetup(); } okToast("Respaldo restaurado"); }catch(err){ toast("Ese archivo no es un respaldo de Mis Lucas."); } }; fr.readAsText(f); });
   $("#bkWipe").addEventListener("click",e=>{ const b=e.currentTarget; if(!b.dataset.armed){b.dataset.armed="1";b.textContent="¿Borrar todo? Toca de nuevo";setTimeout(()=>{if(b.isConnected){delete b.dataset.armed;b.textContent="Borrar todo"}},3500);return}
     try{localStorage.removeItem(LS_DATA);localStorage.removeItem(LS_PROFILE)}catch(err){} location.reload(); });
@@ -1259,7 +1328,7 @@ function renderData(){ if(!$("#bkInfo"))return; const n=Object.values(state.exam
 /* ---------- rendering ---------- */
 function catOptions(type,sel){ return (sel&&!(CATS[type]||[]).includes(sel)?`<option selected>${esc(sel)}</option>`:"")+(CATS[type]||[]).map(c=>`<option${c===sel?" selected":""}>${esc(c)}</option>`).join(""); }
 function allCatOptions(sel){ const known=Object.values(CATS).flat().includes(sel); return (sel&&!known?`<option selected>${esc(sel)}</option>`:"")+Object.entries(CATS).map(([t,l])=>`<optgroup label="${t==="gasto"?"Gastos":t==="ingreso"?"Ingresos":"Traspasos"}">${l.map(c=>`<option${c===sel?" selected":""}>${esc(c)}</option>`).join("")}</optgroup>`).join(""); }
-function acctOptions(sel){ return ACCOUNTS.map(a=>`<option${a===sel?" selected":""}>${esc(a)}</option>`).join(""); }
+function acctOptions(sel,withNew){ const L=accList(); const extra=sel&&!L.some(a=>a.name===sel)?`<option selected>${esc(sel)}</option>`:""; return extra+L.map(a=>`<option value="${esc(a.name)}"${a.name===sel?" selected":""}>${(ACC_TYPES[a.type]||ACC_TYPES.otra)[1]} ${esc(a.name)}</option>`).join("")+(withNew?`<option value="__new">➕ Nueva cuenta…</option>`:""); }
 
 function render(){
   const av=$("#appVer"); if(av)av.textContent=APP_VERSION;
@@ -1269,7 +1338,32 @@ function render(){
   const r={resumen:renderResumen,movs:renderMovs,budget:renderBudget,fixed:renderFixed,ahorro:renderAhorro}[state.tab]; r&&r();
 }
 
-function renderResumen(){
+function renderTodo(){ const box=$("#todo"); if(!box)return; if(state.example){box.hidden=true;return}
+  const P=state.prof||{}, M=allMonths(), all=Object.values(M).flatMap(m=>m.tx||[]), tx=monthTx(state.ym);
+  const accs=accList().filter(a=>a.type!=="efectivo"); const budN=Object.values(cfg().budgets||{}).filter(v=>+v>0).length;
+  const steps=[
+    {done:true,t:"Crear tu espacio"},
+    {done:accs.length>0,t:"Agregar tus cuentas y tarjetas",act:'data-acct="cuentas"'},
+    {done:all.some(t=>t.source==="cartola"),t:"Subir tu primera cartola",act:'data-goto="import"'},
+    {done:all.length>0&&!tx.some(needsReview),t:"Ordenar lo que quedó sin categoría",act:'data-review="1"',n:tx.filter(needsReview).length},
+    {done:budN>=3,t:"Definir topes de presupuesto",act:'data-goto="budget"'},
+    {done:!!state.pinHash,t:"Proteger la app con PIN o contraseña",act:'data-acct="seguridad"'},
+    {done:!!P.lastBackup,t:"Descargar tu primer respaldo",act:'data-acct="datos"'}];
+  const nDone=steps.filter(x=>x.done).length;
+  const row=x=>`<button type="button" class="tdi${x.done?" done":""}" ${x.done?"disabled":x.act}><span class="ck">${x.done?"✓":""}</span><span>${esc(x.t)}${x.n?` <small>(${x.n})</small>`:""}</span>${x.done?"":"<span class=\"go\">›</span>"}</button>`;
+  let html="";
+  if(nDone<steps.length&&!P.todoHidden){
+    html=`<div class="tdh"><div><h2>Primeros pasos</h2><div class="sub">${nDone} de ${steps.length} listos</div></div><button class="linkbtn" type="button" id="todoHide">Ocultar</button></div><div class="tdbar"><i style="width:${nDone/steps.length*100}%"></i></div>${steps.map(row).join("")}`;
+  } else {
+    const items=accs.map(a=>({done:tx.some(t=>t.account===a.name&&t.source==="cartola"),t:`Cartola de ${a.name}`,act:`data-goto="import" data-impacc="${esc(a.name)}"`}));
+    const rev=tx.filter(needsReview).length; items.push({done:tx.length>0&&!rev,t:"Todo categorizado",act:'data-review="1"',n:rev});
+    const nd=items.filter(x=>x.done).length; const closed=nd===items.length&&items.length>1;
+    html=`<div class="tdh"><div><h2>${closed?"✓ ":""}Cierre de ${esc(ymLabel(state.ym).split(" ")[0].toLowerCase())}</h2><div class="sub">${closed?"Mes completo: todas tus cuentas cargadas y ordenadas":`${nd} de ${items.length} listos`}</div></div>${closed?'<span class="pill ok">Mes cerrado</span>':""}</div>${closed?"":`<div class="tdbar"><i style="width:${nd/items.length*100}%"></i></div>${items.map(row).join("")}`}`;
+  }
+  box.innerHTML=html; box.hidden=false; box.classList.toggle("closed",/Mes cerrado/.test(html));
+  const h=$("#todoHide"); if(h)h.onclick=()=>{ saveProfile({todoHidden:true}); renderTodo(); okToast("Lo encuentras de nuevo como «Cierre de mes»"); };
+}
+function renderResumen(){ renderTodo();
   const tx=monthTx(state.ym), s=summarize(tx), prev=summarize(monthTx(shiftYM(state.ym,-1)));
   const budTot=Object.values(cfg().budgets||{}).reduce((a,b)=>a+(+b||0),0);
   const delta=(a,b)=>{ if(!b)return ""; const p=(a-b)/b; return `${p>=0?"▲":"▼"} ${Math.abs(p*100).toFixed(0)}% vs ${ymLabel(shiftYM(state.ym,-1),true)}` };
@@ -1306,7 +1400,7 @@ function renderResumen(){
 
   // accounts
   const acc=Object.entries(s.byAcct).sort((a,b)=>b[1]-a[1]); const amax=Math.max(1,...acc.map(a=>a[1]));
-  $("#acctBars").innerHTML=acc.length?acc.map(([a,v])=>`<div class="catrow acctrow" data-drill="acct:${esc(a)}" role="button" tabindex="0" data-tip="<b>${esc(a)}</b><br>${esc(money(v))} · ${(v/(s.expGross||1)*100).toFixed(1)}%"><span class="cico" aria-hidden="true">${ACCT_ICON[a]||"💳"}</span><span class="name">${esc(a)}</span><div class="track"><div class="fill" style="width:${v/amax*100}%;background:var(--inc)"></div></div><span class="amt num">${compact(v)}<small>${(v/(s.expGross||1)*100).toFixed(0)}%</small></span></div>`).join(""):`<div class="empty">Sin gastos.</div>`;
+  $("#acctBars").innerHTML=acc.length?acc.map(([a,v])=>`<div class="catrow acctrow" data-drill="acct:${esc(a)}" role="button" tabindex="0" data-tip="<b>${esc(a)}</b><br>${esc(money(v))} · ${(v/(s.expGross||1)*100).toFixed(1)}%"><span class="cico" aria-hidden="true">${accIcon(a)}</span><span class="name">${esc(a)}</span><div class="track"><div class="fill" style="width:${v/amax*100}%;background:var(--inc)"></div></div><span class="amt num">${compact(v)}<small>${(v/(s.expGross||1)*100).toFixed(0)}%</small></span></div>`).join(""):`<div class="empty">Sin gastos.</div>`;
 
   renderTrend();
 }
@@ -1420,7 +1514,7 @@ function openEdit(id){
   let t,ym;
   if(id){ const f=findTx(id); if(!f){toast("No encontré ese movimiento.");return} t=f.t; ym=f.ym; }
   else { const now=todayYM(); const d=state.ym===now?new Date():new Date(+state.ym.slice(0,4),+state.ym.slice(5,7)-1,1); const iso=d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
-    t={id:uid(),date:iso,desc:"",amount:0,type:"gasto",cat:"Otros gastos",account:state.lastAcct||ACCOUNTS[0],nature:"variable",source:"manual",checked:false}; ym=ymOf(iso); }
+    t={id:uid(),date:iso,desc:"",amount:0,type:"gasto",cat:"Otros gastos",account:state.lastAcct||(accList().find(a=>a.type!=="efectivo")||accList()[0]).name,nature:"variable",source:"manual",checked:false}; ym=ymOf(iso); }
   ed={id:t.id,isNew:!id,mode:id?"view":"edit",ym,orig:clone(t),v:clone(t),key:id?merchantKey(t.bankDesc||t.desc):"",touched:false};
   renderEdit(); showSheet("#edit"); $("#editBody").scrollTop=0; if(!id) setTimeout(()=>$("#eAmt")&&$("#eAmt").focus(),260);
 }
@@ -1458,7 +1552,7 @@ function renderEdit(){
     <div class="row2"><label class="field">Monto<input id="eAmt" type="text" inputmode="numeric" value="${esc(String(v.amount))}"></label><label class="field">Fecha<input id="eDate" type="date" value="${esc(v.date)}"></label></div>
     <div><div class="eflabel">Tipo</div><div class="seg3">${["gasto","ingreso","traspaso"].map(x=>`<button type="button" data-et="${x}" aria-pressed="${v.type===x}">${x==="gasto"?"− Gasto":x==="ingreso"?"+ Ingreso":"⇄ Traspaso"}</button>`).join("")}</div></div>
     <div><div class="eflabel">Categoría</div><div class="chips2">${catList.map(c=>`<button type="button" data-ec="${esc(c)}" aria-pressed="${v.cat===c}">${ICON[c]||"•"} <span>${esc(c)}</span></button>`).join("")}</div></div>
-    <div class="row2"><label class="field">Cuenta<select id="eAcct">${acctOptions(v.account)}</select></label><div><div class="eflabel">Se repite</div><div class="seg2"><button type="button" data-en="variable" aria-pressed="${v.nature!=="fijo"}">Variable</button><button type="button" data-en="fijo" aria-pressed="${v.nature==="fijo"}">Fijo</button></div></div></div>
+    <div class="row2"><label class="field">Cuenta<select id="eAcct">${acctOptions(v.account,true)}</select></label><div><div class="eflabel">Se repite</div><div class="seg2"><button type="button" data-en="variable" aria-pressed="${v.nature!=="fijo"}">Variable</button><button type="button" data-en="fijo" aria-pressed="${v.nature==="fijo"}">Fijo</button></div></div></div>
     ${v.cat===SAVINGS||v.cat===RESCUE?`<label class="field">${v.cat===RESCUE?"¿De qué ahorro sacaste?":"¿A qué ahorro o inversión?"}<select id="eInv">${invOptions(v.inv)}</select></label>`:""}
     <div class="simbox"${ed.isNew?" hidden":""}>
       <label><input type="checkbox" id="eSim" ${sim.length&&ed.touched?"checked":""} ${sim.length?"":"disabled"}> <span>Aplicar también a <b id="eSimN">${sim.length}</b> movimiento${sim.length===1?"":"s"} parecido${sim.length===1?"":"s"}</span></label>
@@ -1468,7 +1562,7 @@ function renderEdit(){
   </div>
   <div class="efactions">${ed.isNew?"<span></span>":`<button class="btn" id="eDel" type="button" style="color:var(--crit)">Eliminar</button>`}<div style="display:flex;gap:8px"><button class="btn" id="eCancel" type="button">Cancelar</button><button class="btn primary" id="eSave" type="button">${ed.isNew?"Agregar":"Guardar"}</button></div></div>`;
 }
-function readEditInputs(){ const v=ed.v; v.desc=$("#eDesc").value.trim()||v.bankDesc||v.desc; const a=Math.abs(Math.round(parseAmount($("#eAmt").value))); if(a)v.amount=a; if($("#eDate").value)v.date=$("#eDate").value; v.account=$("#eAcct").value; if($("#eInv"))v.inv=$("#eInv").value||undefined; if($("#eKey"))ed.key=$("#eKey").value.trim(); }
+function readEditInputs(){ const v=ed.v; v.desc=$("#eDesc").value.trim()||v.bankDesc||v.desc; const a=Math.abs(Math.round(parseAmount($("#eAmt").value))); if(a)v.amount=a; if($("#eDate").value)v.date=$("#eDate").value; if($("#eAcct").value!=="__new")v.account=$("#eAcct").value; if($("#eInv"))v.inv=$("#eInv").value||undefined; if($("#eKey"))ed.key=$("#eKey").value.trim(); }
 function applyEdit(t,v,keepOwn){
   if(keepOwn){ t.desc=v.desc; t.amount=v.amount; t.date=v.date; t.account=v.account; if(v.inv)t.inv=v.inv; else delete t.inv; }
   t.type=v.type; t.cat=v.cat; t.nature=v.nature; t.editedAt=new Date().toISOString(); delete t.scope; delete t.rstat; delete t.rbatch;
@@ -1509,6 +1603,7 @@ function bindEdit(){
     else return;
     const st=$("#editBody").scrollTop; renderEdit(); $("#editBody").scrollTop=st; markDirty($("#eSave"));
   });
+  $("#editBody").addEventListener("change",e=>{ if(e.target.id==="eAcct"&&e.target.value==="__new"){ readEditInputs(); e.target.value=ed.v.account; openAccForm(null,name=>{ ed.v.account=name; renderEdit(); markDirty($("#eSave")); }); } });
   $("#editBody").addEventListener("input",e=>{ markDirty($("#eSave")); if(e.target.id==="eKey"&&ed){ ed.key=e.target.value; const n=similarTx(ed.key,ed.id).length; $("#eSimN").textContent=n; $("#eSim").disabled=!n; if(!n)$("#eSim").checked=false; } });
 }
 function flowCard(s){
@@ -1634,25 +1729,31 @@ async function handlePdf(file,pw){
   let pages;
   try{ pages=await BankPDF.pdfToPages(window.pdfjsLib,new Uint8Array(await file.arrayBuffer()),saved||undefined); }
   catch(e){
-    if(e&&e.name==="PasswordException"){ $("#pdfPw").hidden=false; $("#pdfPwMsg").textContent=(pw||saved)?"Esa clave no abrió el PDF. Revisa que sea tu RUT sin dígito verificador.":""; setTimeout(()=>$("#pdfPwIn").focus(),50); return }
+    if(e&&e.name==="PasswordException"){ $("#pdfPw").hidden=false; $("#pdfPwMsg").textContent=(pw||saved)?"Esa clave no abrió el PDF. Revisa el correo del banco: ahí dice cuál es la clave.":""; setTimeout(()=>$("#pdfPwIn").focus(),50); return }
     console.error(e); toast("No pude leer ese PDF."); return }
   $("#pdfPw").hidden=true;
   if(pw!=null&&$("#pdfPwRem").checked) lsSet(LS_PDFPW,pw);
   let r; try{ r=BankPDF.parseStatement(pages) }catch(e){ console.error(e); r={rows:[]} }
   if(!r.rows.length){ toast("No encontré movimientos en ese PDF. Si es una cartola sin movimientos, no hay nada que importar."); return }
-  if(ACCOUNTS.includes(r.account)) $("#impAcct").value=r.account;
+  const acc=matchAccount(r.bank,r.kind); refreshSelects(); $("#impAcct").value=acc.name;
   const per=r.period&&r.period.start&&r.period.end?` (${dmy(r.period.start)} al ${dmy(r.period.end)})`:"";
-  toast(`Leí ${r.rows.length} movimientos de ${r.account}${per}. Revísalos antes de importar.`);
+  okToast(`${acc.created?"Creé la cuenta ":""}${acc.name}: leí ${r.rows.length} movimientos${per}.${r.loose?" Revisa los tipos: este formato no lo conozco del todo.":" Revísalos antes de importar."}`);
   setupMapping([["Fecha","Descripción","Cargos","Abonos"],...r.rows],file.name);
   $("#mapCard").hidden=true;
 }
+function matchAccount(bank,kind){ const L=accList(); const isCard=kind==="tc";
+  let a=L.find(x=>x.bank===bank&&x.type===kind)||L.find(x=>x.bank===bank&&((x.type==="tc")===isCard)&&x.type!=="efectivo");
+  if(!a&&!bank){ const cur=$("#impAcct").value; a=L.find(x=>x.name===cur&&x.type!=="efectivo")||L.find(x=>x.type!=="efectivo"); }
+  if(a) return {name:a.name,created:false};
+  const name=uniqueAccName(accDefaultName(bank||"",kind||"otra")); mutateConfig(c=>{ c.accounts=c.accounts&&c.accounts.length?c.accounts:accList().slice(); c.accounts.push({id:uid(),name,bank:bank||"Otro",type:kind||"otra"}); }); return {name,created:true}; }
+function uniqueAccName(n){ let x=n,i=2; while(accList().some(a=>a.name===x)){x=n+" "+i;i++} return x; }
 function setupMapping(rows,name){
   let h=0; for(let i=0;i<Math.min(60,rows.length);i++){ const cells=rows[i].map(c=>norm(c)); if(cells.some(c=>/^FECHA/.test(c))&&rows[i].filter(c=>String(c).trim()).length>=3){h=i;break} }
   const head=(rows[h]||[]).map(c=>String(c).trim()); const H=head.map(norm);
   const find=re=>H.findIndex(c=>re.test(c)&&!/SALDO/.test(c));
   const map={ date:find(/FECHA/), desc:find(/DESCRIP|DETALLE|GLOSA|MOVIMIENTO|CONCEPTO|COMERCIO|DESCR/), cargo:find(/CARGO|DEBITO|GIRO|EGRESO/), abono:find(/ABONO|CREDITO|DEPOSITO|INGRESO/), monto:find(/MONTO|IMPORTE|VALOR|TOTAL/) };
   const acct=$("#impAcct").value;
-  state.imp={rows:rows.slice(h+1),head,map,name,sign:/TC/.test(acct)?"pos":"neg",acct,preview:[]};
+  state.imp={rows:rows.slice(h+1),head,map,name,sign:accType(acct)==="tc"?"pos":"neg",acct,preview:[]};
   renderMapping(); buildPreview(); $("#mapCard").hidden=state.imp.preview.length>0;
 }
 function renderMapping(){
@@ -1722,8 +1823,8 @@ function doImport(){
 
 /* ---------- UI bindings ---------- */
 function invOptions(sel){ const L=cfg().invest||[]; return `<option value="">Sin asignar</option>`+L.map(i=>`<option value="${i.id}"${i.id===sel?" selected":""}>${esc(i.name)}</option>`).join(""); }
-function setTab(t){ if(t==="rend")t="movs"; state.tab=t; document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===t||(t==="import"&&b.dataset.tab==="movs"))); document.querySelectorAll("[data-panel]").forEach(p=>p.hidden=p.dataset.panel!==t); try{localStorage.setItem("ml_tab",t)}catch(e){} render(); }
-function refreshSelects(){ $("#impAcct").innerHTML=acctOptions("Santander Cta. Cte."); }
+function setTab(t){ if(t==="rend")t="movs"; if(t==="import")refreshSelects(); state.tab=t; document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===t||(t==="import"&&b.dataset.tab==="movs"))); document.querySelectorAll("[data-panel]").forEach(p=>p.hidden=p.dataset.panel!==t); try{localStorage.setItem("ml_tab",t)}catch(e){} render(); }
+function refreshSelects(){ let cur=$("#impAcct").value; if(!accByName(cur))cur=""; $("#impAcct").innerHTML=acctOptions(cur||(accList().find(a=>a.type!=="efectivo")||{}).name,true); }
 function bindUI(){
   refreshSelects(); bindAhorro();
   document.querySelectorAll("nav.tabs button").forEach(b=>b.addEventListener("click",()=>setTab(b.dataset.tab)));
@@ -1744,7 +1845,7 @@ function bindUI(){
   $("#fab").addEventListener("click",()=>openEdit(null));
   $("#qText").addEventListener("input",renderMovs); $("#qType").addEventListener("change",renderMovs);
   document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeSheet();closeDrill();hideSheet("#edit")} if((e.key==="Enter"||e.key===" ")&&e.target.dataset&&e.target.dataset.drill){e.preventDefault();openDrill(e.target.dataset.drill)}});
-document.addEventListener("click",e=>{ const nw=e.target.closest("[data-new]"); if(nw){openEdit(null);return} const gt=e.target.closest("[data-goto]"); if(gt){ setTab(gt.dataset.goto); window.scrollTo({top:0}); return } const rv=e.target.closest("[data-review]"); if(rv){ setTab("movs"); $("#qType").value="revisar"; renderMovs(); return }
+document.addEventListener("click",e=>{ const nw=e.target.closest("[data-new]"); if(nw){openEdit(null);return} const gt=e.target.closest("[data-goto]"); if(gt){ setTab(gt.dataset.goto); if(gt.dataset.impacc){ refreshSelects(); $("#impAcct").value=gt.dataset.impacc; } window.scrollTo({top:0}); return } const rv=e.target.closest("[data-review]"); if(rv){ setTab("movs"); $("#qType").value="revisar"; renderMovs(); return }
   const op=e.target.closest("[data-open]"); if(op){ openEdit(op.dataset.open); return }
   const sm=e.target.closest("#movList details > summary"); if(sm){ e.preventDefault(); openEdit(sm.parentElement.dataset.id); return }
   const g=e.target.closest("[data-go]"); if(g){goToTx(g.dataset.go);return} const d=e.target.closest("[data-drill]"); if(d&&d.dataset.drill&&d.dataset.drill!=="undefined"){openDrill(d.dataset.drill)} });
@@ -1758,7 +1859,7 @@ $("#drillClose").addEventListener("click",closeDrill); $("#drillScrim").addEvent
   drop.addEventListener("drop",e=>handleFile(e.dataTransfer.files[0]));
   $("#fileIn").addEventListener("change",e=>{handleFile(e.target.files[0]);e.target.value=""});
   $("#pdfPw").addEventListener("submit",e=>{ e.preventDefault(); const v=$("#pdfPwIn").value.replace(/[^\dkK]/g,""); if(!v||!pendingPdf)return; $("#pdfPwIn").value=""; handlePdf(pendingPdf,v); });
-  $("#impAcct").addEventListener("change",()=>{ if(state.imp){state.imp.acct=$("#impAcct").value; buildPreview()} });
+  $("#impAcct").addEventListener("change",()=>{ if($("#impAcct").value==="__new"){ $("#impAcct").value=state.imp?state.imp.acct:""; openAccForm(null,name=>{ refreshSelects(); $("#impAcct").value=name; if(state.imp){state.imp.acct=name; buildPreview()} }); return } if(state.imp){state.imp.acct=$("#impAcct").value; buildPreview()} });
   $("#mapFields").addEventListener("change",e=>{ if(!state.imp)return; if(e.target.dataset.map){state.imp.map[e.target.dataset.map]=+e.target.value} if(e.target.id==="signSel")state.imp.sign=e.target.value; buildPreview(); });
   $("#prevBody").addEventListener("change",e=>{const tr=e.target.closest("[data-i]"); if(!tr)return; const p=state.imp.preview[+tr.dataset.i];
     if(e.target.matches("[data-inc]")){p.include=e.target.checked;tr.classList.toggle("off",!p.include)}

@@ -719,6 +719,15 @@ body.priv [data-tip]{pointer-events:auto}
 .catrowe input{font:inherit;font-size:15px;border:1px solid var(--line-2);border-radius:10px;padding:9px;background:var(--surface);color:var(--ink);min-width:0}.catrowe .ce-i{text-align:center;padding:9px 4px}
 .catrowe input[readonly]{background:var(--surface-2);color:var(--ink-2)}.catrowe .ce-l{font-size:11.5px;color:var(--muted);text-align:center}
 .catrowe.gone{opacity:.45}.catrowe.gone .ce-n{text-decoration:line-through}
+.psum{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.psum span{font-size:12px;background:var(--surface-2);border-radius:999px;padding:3px 9px;color:var(--ink-2)}.psum .ok{color:var(--good-text)}.psum .wa{color:var(--warn-text);background:color-mix(in srgb,var(--warn) 18%,var(--surface));font-weight:700}
+.psec h3{margin:4px 0 2px;font-size:16px}.psec p{margin:0 0 10px;font-size:12.5px;color:var(--muted)}
+.pcard{border:1px solid var(--line);border-radius:16px;padding:12px;margin-bottom:10px;background:var(--surface)}
+.pct{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:8px}.pct b{display:block;font-size:14.5px;word-break:break-word}.pct small{color:var(--muted);font-size:12.5px}.pct .linkbtn{font-size:12px;color:var(--muted);flex:none}
+.pchips{display:flex;flex-wrap:wrap;gap:6px}.pchip{border:1px solid var(--line-2);background:var(--surface);color:var(--ink);border-radius:999px;padding:8px 11px;font:inherit;font-size:13px;cursor:pointer}.pchip:active{background:var(--accent-soft)}.pchip.more{color:var(--accent);font-weight:700}.pchip.sug{border-color:var(--accent);background:var(--accent-soft);font-weight:700}.pchip.sug small{font-weight:500;color:var(--accent);margin-left:2px}
+.pdone{background:var(--accent-soft);color:var(--good-text);border-radius:14px;padding:12px;font-size:13.5px;margin-bottom:10px}
+.pdet{border-top:1px solid var(--line);padding:6px 0}.pdet summary{cursor:pointer;font-weight:700;font-size:14px;padding:8px 0;list-style:none}.pdet summary span{color:var(--muted);font-weight:500;margin-left:4px}.pdet summary::after{content:" ›";color:var(--accent)}.pdet[open] summary::after{content:" ▾"}
+.pa{font-weight:600;text-align:right}.pa.ingreso{color:var(--good-text)}.pa.traspaso{color:var(--muted)}
+.pimp{width:100%;margin-top:12px;padding:14px;font-size:15px}
 </style>
 
 </head>
@@ -824,7 +833,7 @@ body.priv [data-tip]{pointer-events:auto}
           <div><h2>Revisa antes de importar</h2><div class="sub" id="prevQ"></div><label class="field impacc">Cuenta<select id="impAcct"></select></label><div class="sub" id="prevSub"></div><button class="linkbtn" type="button" id="showMap" style="margin-top:4px">¿Se ve raro? Ajustar columnas</button></div>
           <div class="toolbar"><button class="btn" id="cancelImp" type="button">Descartar</button><button class="btn primary" id="doImp" type="button">Importar</button></div>
         </div>
-        <div class="plist" id="prevBody" style="max-height:640px;overflow:auto"></div>
+        <div class="plist" id="prevBody"></div>
       </div>
     </section>
 
@@ -2540,20 +2549,35 @@ function buildPreview(){
   });
   im.preview=out; renderPreview();
 }
+function catUsage(type){ const c={}; allRefs().forEach(({t})=>{ if(t.type===type&&!needsReview(t)&&t.cat!=="Traspaso / pago TC") c[t.cat]=(c[t.cat]||0)+1; }); return c; }
 function renderPreview(){ const q=$("#prevQ"); if(q) q.textContent=state.impTotal>1?`Cartola ${state.impIdx||1} de ${state.impTotal}${state.imp&&state.imp.name?" · "+state.imp.name:""}`:(state.imp&&state.imp.name?state.imp.name:"");
-  const im=state.imp; const P=im.preview; $("#prevCard").hidden=false;
-  const c={new:0,match:0,dup:0}; P.forEach(p=>c[p.status]++);
-  $("#prevSub").textContent=P.length?`${P.length} movimientos leídos · ${c.new} nuevos · ${c.match} concilian con lo que ya anotaste · ${c.dup} ya estaban importados`:"No encontré movimientos. Revisa que las columnas de fecha y monto estén bien asignadas.";
-  $("#doImp").disabled=!P.some(p=>p.include);
-  $("#prevBody").innerHTML=P.map((p,i)=>`<div class="pitem${p.include?"":" off"}" data-i="${i}"><input type="checkbox" data-inc ${p.include?"checked":""} aria-label="Incluir">
-    <div style="min-width:0"><div class="t">${esc(p.desc)}</div><div class="m num">${dmy(p.date)} · ${p.status==="dup"?'Ya importado':p.status==="match"?`<span style="color:var(--good-text)">✓ Concilia con “${esc(p.matchDesc.slice(0,26))}”${p.matchAmt&&p.matchAmt!==p.amount?` (anotaste ${money(p.matchAmt)})`:""}</span>`:p.xfer?`<span style="color:var(--inc)">⇄ Entre tus cuentas · ${esc(p.xfer.acct)}</span>`:'<span style="color:var(--inc)">Nuevo</span>'}</div></div>
-    <div class="num" style="font-weight:600;text-align:right;color:${p.type==="ingreso"?"var(--good-text)":p.type==="traspaso"?"var(--muted)":"var(--ink)"}">${p.type==="ingreso"?"+":p.type==="traspaso"?"⇄ ":"−"}${money(p.amount)}</div>
-    <div class="ctl"><select data-pt aria-label="Tipo"><option value="gasto"${p.type==="gasto"?" selected":""}>Gasto</option><option value="ingreso"${p.type==="ingreso"?" selected":""}>Ingreso</option><option value="traspaso"${p.type==="traspaso"?" selected":""}>Traspaso</option></select><select data-pc aria-label="Categoría">${catOptions(p.type,p.cat)}</select></div></div>`).join("");
+  const im=state.imp; const P=im.preview; $("#prevCard").hidden=false; const st=$("#prevBody").scrollTop;
+  const isNew=p=>p.status==="new"&&!p.xfer, unk=p=>isNew(p)&&p.include&&!p.userCat&&(p.cat==="Otros gastos"||p.cat==="Otros ingresos");
+  const groups={}; P.forEach((p,i)=>{ if(!unk(p))return; const k=p.type+"|"+merchantKey(p.desc); (groups[k]=groups[k]||{k,type:p.type,ix:[]}).ix.push(i); });
+  const G=Object.values(groups).sort((a,b)=>b.ix.length-a.ix.length||P[b.ix[0]].amount-P[a.ix[0]].amount);
+  const ready=P.map((p,i)=>i).filter(i=>isNew(P[i])&&!unk(P[i])), xf=P.map((p,i)=>i).filter(i=>P[i].xfer), mt=P.map((p,i)=>i).filter(i=>P[i].status==="match"), dp=P.map((p,i)=>i).filter(i=>P[i].status==="dup");
+  const nInc=P.filter(p=>p.include).length, nUnk=G.reduce((a,g)=>a+g.ix.length,0);
+  $("#prevSub").innerHTML=P.length?`<span class="psum"><span>📄 ${P.length} leídos</span>${ready.length?`<span class="ok">✓ ${ready.length} con categoría</span>`:""}${nUnk?`<span class="wa">🏷️ ${nUnk} por categorizar</span>`:""}${xf.length?`<span>⇄ ${xf.length} entre tus cuentas</span>`:""}${mt.length?`<span>✓ ${mt.length} ya anotados</span>`:""}${dp.length?`<span>${dp.length} repetidos</span>`:""}</span>`:"No encontré movimientos. Revisa que las columnas de fecha y monto estén bien asignadas.";
+  $("#doImp").disabled=!nInc; $("#doImp").textContent=nInc?`Importar ${nInc}`:"Importar";
+  const use={gasto:catUsage("gasto"),ingreso:catUsage("ingreso")};
+  const chips=(g)=>{ const L=(CATS[g.type]||[]).filter(c=>c!=="Otros gastos"&&c!=="Otros ingresos"); const u=use[g.type]||{}; const top=L.slice().sort((a,b)=>(u[b]||0)-(u[a]||0)||L.indexOf(a)-L.indexOf(b)); const open=state.impMore===g.k; let sug=null; if(g.type==="gasto"){ const D=" "+norm(P[g.ix[0]].desc||"").toUpperCase()+" "; let hit=null,hl=0; NL_CATS.forEach(x=>{ const m=D.match(x[0]); if(m&&m[0].length>hl){hl=m[0].length;hit=x;} }); if(hit){ const c=normCat(hit[1]); if(L.includes(c)) sug=c; } } const ord=sug?[sug,...top.filter(c=>c!==sug)]:top; const show=open?ord:ord.slice(0,4);
+    return show.map(c=>`<button type="button" class="pchip${c===sug?" sug":""}" data-gk="${esc(g.k)}" data-cat="${esc(c)}">${ICON[c]||"•"} ${esc(c)}${c===sug?" <small>¿esta?</small>":""}</button>`).join("")+(open?`<button type="button" class="pchip" data-gk="${esc(g.k)}" data-cat="Traspaso / pago TC">⇄ Entre mis cuentas</button>`:`<button type="button" class="pchip more" data-more="${esc(g.k)}">Otra…</button>`); };
+  const row=i=>{ const p=P[i]; return `<div class="pitem${p.include?"":" off"}" data-i="${i}"><input type="checkbox" data-inc ${p.include?"checked":""} aria-label="Incluir"><div style="min-width:0"><div class="t">${esc(p.desc)}</div><div class="m num">${dmy(p.date)}${p.status==="match"?` · <span style="color:var(--good-text)">✓ junto con «${esc(p.matchDesc.slice(0,24))}»${p.matchAmt&&p.matchAmt!==p.amount?` (anotaste ${money(p.matchAmt)})`:""}</span>`:p.xfer?` · <span style="color:var(--inc)">⇄ ${esc(p.xfer.acct)}</span>`:p.status==="dup"?" · ya importado":""}</div></div><div class="num pa ${p.type}">${p.type==="ingreso"?"+":p.type==="traspaso"?"⇄ ":"−"}${money(p.amount)}</div>${p.status==="new"?`<div class="ctl"><select data-pc aria-label="Categoría">${allCatOptions(p.cat)}</select></div>`:""}</div>`; };
+  let h="";
+  if(G.length){ h+=`<div class="psec"><h3>🏷️ ¿En qué categoría va?</h3><p>Toca una. Se aplica a los iguales y la app lo recordará para las próximas cartolas.</p></div>`+G.map(g=>{ const p0=P[g.ix[0]], tot=g.ix.reduce((a,i)=>a+P[i].amount,0);
+      return `<div class="pcard"><div class="pct"><div><b>${esc(p0.desc)}</b><small class="num">${g.ix.length>1?`${g.ix.length} movimientos · ${money(tot)}`:`${dmy(p0.date)} · ${money(p0.amount)}`}${p0.type==="ingreso"?" · ingreso":""}</small></div><button type="button" class="linkbtn" data-skip="${esc(g.k)}">No importar</button></div><div class="pchips">${chips(g)}</div></div>`; }).join(""); }
+  else if(P.some(isNew)) h+=`<div class="pdone">✓ Todo tiene categoría. Revisa si quieres y toca <b>Importar</b>.</div>`;
+  const sec=(t,ix,open)=>ix.length?`<details class="pdet"${open?" open":""}><summary>${t} <span>${ix.length}</span></summary>${ix.map(row).join("")}</details>`:"";
+  h+=sec("✓ Con categoría",ready,!G.length&&ready.length<=12)+sec("⇄ Entre tus cuentas",xf)+sec("✓ Ya los habías anotado",mt)+sec("Repetidos (no se importan)",dp);
+  if(nInc) h+=`<button type="button" class="btn primary pimp" data-doimp>Importar ${nInc} movimiento${nInc===1?"":"s"}</button>`;
+  $("#prevBody").innerHTML=h; $("#prevBody").scrollTop=st;
 }
 function doImport(){
   const P=state.imp.preview.filter(p=>p.include); if(!P.length)return; const src=state.imp.src||"cartola";
   const byYm={}; P.forEach(p=>{(byYm[ymOf(p.date)]=byYm[ymOf(p.date)]||[]).push(p)});
   const matchByYm={}; P.filter(p=>p.status==="match").forEach(p=>{(matchByYm[p.matchYm]=matchByYm[p.matchYm]||[]).push(p)});
+  const learn={}; P.forEach(p=>{ if(p.userCat&&p.ruleKey&&norm(p.ruleKey).length>=3&&p.cat!=="Otros gastos"&&p.cat!=="Otros ingresos") learn[norm(p.ruleKey)]={kw:p.ruleKey.toUpperCase(),cat:p.cat}; });
+  if(Object.keys(learn).length) mutateConfig(c=>{ c.rules=(c.rules||[]).filter(r=>!learn[norm(r.kw)]).concat(Object.values(learn)); });
   const xfByYm={}; P.filter(p=>p.xfer).forEach(p=>{(xfByYm[p.xfer.ym]=xfByYm[p.xfer.ym]||[]).push(p)});
   const yms=new Set([...Object.keys(byYm),...Object.keys(matchByYm),...Object.keys(xfByYm)]);
   let added=0,recon=0,xf=0;
@@ -2625,10 +2649,16 @@ $("#drillClose").addEventListener("click",closeDrill); $("#drillScrim").addEvent
   $("#pdfPw").addEventListener("submit",e=>{ e.preventDefault(); const v=$("#pdfPwIn").value.replace(/[^\dkK]/g,""); if(!v||!pendingPdf)return; $("#pdfPwIn").value=""; handlePdf(pendingPdf,v); });
   $("#impAcct").addEventListener("change",()=>{ if($("#impAcct").value==="__new"){ $("#impAcct").value=state.imp?state.imp.acct:""; openAccForm(null,name=>{ refreshSelects(); $("#impAcct").value=name; if(state.imp){state.imp.acct=name; buildPreview()} }); return } if(state.imp){state.imp.acct=$("#impAcct").value; buildPreview()} });
   $("#mapFields").addEventListener("change",e=>{ if(!state.imp)return; if(e.target.dataset.map){state.imp.map[e.target.dataset.map]=+e.target.value} if(e.target.id==="signSel")state.imp.sign=e.target.value; buildPreview(); });
+  $("#prevBody").addEventListener("click",e=>{ const P=state.imp&&state.imp.preview; if(!P)return;
+    const ch=e.target.closest("[data-gk]"); if(ch){ const k=ch.dataset.gk, cat=ch.dataset.cat, ty=typeOfCat(cat)||"gasto"; P.forEach(p=>{ if(p.status==="new"&&!p.xfer&&!p.userCat&&(p.type+"|"+merchantKey(p.desc))===k){ p.cat=cat; p.type=ty; p.nature=FIXED_CATS.has(cat)?"fijo":"variable"; p.userCat=true; p.ruleKey=ty==="traspaso"?null:merchantKey(p.desc); } }); state.impMore=null; renderPreview(); return }
+    const mo=e.target.closest("[data-more]"); if(mo){ state.impMore=mo.dataset.more; renderPreview(); return }
+    const sk=e.target.closest("[data-skip]"); if(sk){ P.forEach(p=>{ if(p.status==="new"&&(p.type+"|"+merchantKey(p.desc))===sk.dataset.skip){ p.include=false; p.userCat=true; } }); renderPreview(); return }
+    if(e.target.closest("[data-doimp]")) doImport(); });
   $("#prevBody").addEventListener("change",e=>{const tr=e.target.closest("[data-i]"); if(!tr)return; const p=state.imp.preview[+tr.dataset.i];
     if(e.target.matches("[data-inc]")){p.include=e.target.checked;tr.classList.toggle("off",!p.include)}
     if(e.target.matches("[data-pt]")){p.type=e.target.value;p.cat=CATS[p.type][p.type==="gasto"?CATS.gasto.length-1:0]; renderPreview();}
-    if(e.target.matches("[data-pc]")){p.cat=e.target.value;p.nature=FIXED_CATS.has(p.cat)?"fijo":"variable"; }
+    if(e.target.matches("[data-pc]")){p.cat=e.target.value; p.type=typeOfCat(p.cat)||p.type; p.nature=FIXED_CATS.has(p.cat)?"fijo":"variable"; p.userCat=true; p.ruleKey=p.type==="traspaso"?null:merchantKey(p.desc); renderPreview(); }
+    if(e.target.matches("[data-inc]")) renderPreview();
     $("#doImp").disabled=!state.imp.preview.some(p=>p.include); });
   $("#cancelImp").addEventListener("click",()=>{state.imp=null;$("#mapCard").hidden=true;$("#prevCard").hidden=true; if(!nextInQueue("Descartada.")) renderImpAccs(); });
   $("#impAccs").addEventListener("click",e=>{ const r=e.target.closest("[data-iacc]"); if(r){ state.impOpen=state.impOpen===r.dataset.iacc?null:r.dataset.iacc; renderImpAccs(); return }

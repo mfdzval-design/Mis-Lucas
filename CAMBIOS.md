@@ -2,6 +2,11 @@
 
 Cada versión publicada queda anotada aquí. El número de versión se ve al pie de la app.
 
+## Próxima versión · (sin publicar)
+- «Revisa antes de importar» rediseñado: arriba un resumen (leídos, con categoría, por categorizar, entre tus cuentas, ya anotados). Lo que la app no supo categorizar aparece agrupado por comercio en tarjetas «¿En qué categoría va?»: un toque en la categoría la aplica a todos los iguales y la app la recuerda para las próximas cartolas.
+- Cuando la app tiene una idea, la propone destacada («¿esta?»); luego tus 3 categorías más usadas y «Otra…» para ver todas, incluida «Entre mis cuentas». «No importar» para saltar un movimiento.
+- Lo que ya está listo (con categoría, entre tus cuentas, ya anotados, repetidos) queda en secciones plegadas para revisarlo solo si quieres. Botón «Importar N movimientos» al final.
+
 ## 1.9.0 beta · 1-oct-2026
 - La franja de indicadores ahora es un carrusel que avanza solo (se detiene al tocarla). El conversor funciona en ambos sentidos y entre cualquier par: pesos, dólares, euros, UF y UTM, con botón para invertir.
 - Transferencias entre tus propias cuentas: al subir la cartola de una cuenta, la app busca en tus otras cuentas el mismo monto en sentido contrario (±3 días) y marca ambos movimientos como traspaso, para que no cuenten como gasto ni ingreso. Incluye el pago de la tarjeta desde la cuenta corriente.

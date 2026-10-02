@@ -686,6 +686,7 @@ body.priv [data-tip]{pointer-events:auto}
 
 .ef>*{min-width:0}.freq{max-width:100%}
 @media (max-width:640px){ #syncText{display:none} }
+.ibx.on{border-color:var(--accent)}.ibrow{display:flex;gap:8px;margin-top:6px}.ibrow input{flex:1;min-width:0;border:1px solid var(--line-2);border-radius:10px;padding:9px 10px;font:inherit;font-size:14px;background:var(--surface);color:var(--ink)}.ibun{margin:12px 0;padding:10px;border-radius:12px;background:var(--surface-2)}.ibu{display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--line)}.ibu>div{flex:1;min-width:0}.ibu .t{font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ibu .m{font-size:12px;color:var(--muted)}
 .pbrow{display:grid;grid-template-columns:1fr 1fr;gap:8px}#eApPaste{grid-column:1/-1}.pbrow .pastebtn{display:flex;align-items:center;justify-content:center;cursor:pointer}
 .freebox{display:grid;grid-template-columns:1fr auto;gap:8px}.freebox textarea{font:inherit;font-size:15px;border:1.5px solid var(--accent);border-radius:12px;padding:12px;background:var(--surface);color:var(--ink);min-width:0;resize:none;min-height:48px;max-height:120px;line-height:1.35}.freebox{align-items:start}
 .paychips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}.paychips::-webkit-scrollbar{display:none}
@@ -1091,7 +1092,8 @@ body.priv [data-tip]{pointer-events:auto}
       <div id="catInBox"></div>
     </section>
     <section data-sec="captura" hidden>
-      <p class="note" style="margin-top:0">Seis formas de que tus gastos entren al momento, sin esperar la cartola. A fin de mes, cuando subes la cartola, la app junta cada gasto con su línea y no lo cuenta dos veces.</p>
+      <div id="inboxBox"></div>
+      <p class="note">Otras formas de que tus gastos entren al momento, sin esperar la cartola. A fin de mes, cuando subes la cartola, la app junta cada gasto con su línea y no lo cuenta dos veces.</p>
       <div class="guide"><h3>1 · Avisos del banco <small>cualquier banco</small></h3>
         <ol><li>Activa en la app o web de tu banco los avisos de compra por correo (sección Alertas o Notificaciones).</li>
         <li>Cuando te llegue un aviso, ábrelo, mantén presionado el texto, toca <b>Seleccionar todo</b> y <b>Copiar</b>.</li>
@@ -1418,6 +1420,8 @@ function alertList(){
   if(news.length) out.push({k:"new|"+news.map(r=>r.key).join(","),lvl:"info",i:"🔁",t:news.length===1?`Nuevo pago que se repite: ${news[0].name}`:`${news.length} pagos nuevos que se repiten`,d:news.length===1?`${money(news[0].amount)} al mes${news[0].account?" en "+news[0].account:""}. ¿Lo reconoces?`:news.map(r=>r.name+" "+money(r.amount)).join(" · ")+". ¿Los reconoces?",a:'data-goto="budget"'});
   if(cur&&!state.example&&new Date().getDate()>=3){ const pm=shiftYM(ym,-1); const miss=accList().filter(a=>a.type!=="efectivo").filter(a=>{ const st=accStats(a.name); return st.last&&st.last<pm; });
     if(miss.length) out.push({k:"cart|"+pm+"|"+miss.map(a=>a.name).join(","),lvl:"warn",i:"📄",t:`Falta la cartola de ${ymLabel(pm).split(" ")[0].toLowerCase()}${miss.length===1?` de ${miss[0].name}`:` (${miss.length} cuentas)`}`,d:miss.length===1?"Súbela para cerrar el mes y cuadrar lo que anotaste.":miss.map(a=>a.name).join(" · "),a:`data-goto="import" data-impacc="${esc(miss[0].name)}"`}); }
+  const IB=inboxCfg(); if(IB&&!state.example&&(IB.unread||[]).length){ const n=IB.unread.length; out.push({k:"inbox|"+IB.unread[IB.unread.length-1].id,lvl:"info",i:"📬",t:`${n} correo${n===1?"":"s"} del banco que no pude leer`,d:"Tócalo para verlos y anotarlos a mano.",a:'data-acct="captura"'}); }
+  if(IB&&!state.example&&IB.err&&IB.at&&Date.now()-IB.at>2*864e5) out.push({k:"inboxerr|"+todayYM(),lvl:"warn",i:"📬",t:"El buzón no responde hace días",d:"Revisa que siga conectado.",a:'data-acct="captura"'});
   const P=state.prof||{}; if(!state.example&&P.lastBackup&&daysAgo(P.lastBackup.slice(0,10))>14) out.push({k:"bk|"+todayYM(),lvl:"info",i:"💾",t:`Hace ${daysAgo(P.lastBackup.slice(0,10))} días que no descargas un respaldo`,d:"Tus datos viven solo en este teléfono: un respaldo te protege si lo pierdes.",a:'data-acct="datos"'});
   const off=new Set(P.dismissed||[]); const R={crit:0,warn:1,info:2}; return out.filter(x=>!off.has(x.k)).sort((a,b)=>R[a.lvl]-R[b.lvl]);
 }
@@ -1707,6 +1711,77 @@ function parseFree(txt){
   if(!cat){ const hit=(inc?NL_INC:NL_CATS).find(([re])=>re.test(T)); if(hit)cat=normCat(hit[1]); }
   if(!cat) cat=inc?"Otros ingresos":"Otros gastos";
   return {amount:a.v,date,desc,type,cat,account:accHint,fx:fxInfo,approx:/\b(LUCAS|LUCA|MIL|K|PALO|PALOS|MILLON|MILLONES|APROX)\b/.test(T)}; }
+/* ---------- Buzón automático (Google Apps Script en la cuenta de la persona) ---------- */
+let inboxBusy=false;
+const inboxCfg=()=>((state.config||{}).inbox)||null;
+const INBOX_RX=/compra|cargo|transfer|abono|pago|giro|recib|dep[oó]sito|comprobante/i;
+function inboxImport(items){ const have=new Set(allRefs().map(r=>r.t.extId).filter(Boolean)); let add=0,skip=0; const unread=[]; const byYm={}; const lines=[];
+  items.forEach(it=>{ if(it.kind==="ap"||it.kind==="voz"||it.kind==="texto"){ lines.push(String(it.text||"")); return }
+    if(it.kind!=="mail")return; const ext="bz|"+it.id; if(have.has(ext)){skip++;return} have.add(ext);
+    const full=`${it.subject||""} · ${it.text||""}`; const when=new Date(+it.date||Date.now()); const d0=`${when.getFullYear()}-${pad(when.getMonth()+1)}-${pad(when.getDate())}`;
+    const a=INBOX_RX.test(full)?parseAlert(full):null;
+    let amount=a&&a.amount, fx=null; if(a&&a.usd){ const r=fxRate("USD"); if(r){ amount=Math.round(a.xval*r); fx=`US$${fmtN(a.xval,a.xval%1?2:0)} × ${fmtP(r)}`; } else amount=0; }
+    if(!a||!amount){ unread.push({id:it.id,subject:String(it.subject||"Correo del banco").slice(0,90),date:d0,text:String(it.text||"").slice(0,700)}); return }
+    const dm=String(it.text||"").match(/\b(\d{4}-\d{2}-\d{2}|\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{2,4}|\d{1,2}\s+de\s+[a-záéíóú]{3,})/i); const date=dm?a.date:d0;
+    const c=catFor(a.desc,a.type);
+    let acc=accForCard(a.last4,full); if(!acc&&a.transfer){ const x=accList().find(x=>x.type==="cc"||x.type==="vista"); if(x)acc=x.name; } if(!acc) acc=(accList().find(x=>x.type!=="efectivo")||accList()[0]).name;
+    const twin=allRefs().some(({t})=>["applepay","aviso","captura","voz","manual"].includes(t.source)&&t.amount===amount&&t.type===c.type&&Math.abs((new Date(t.date)-new Date(date))/864e5)<=1&&!t.checked);
+    if(twin){ skip++; return }
+    const t={id:uid(),date,desc:a.desc,amount,type:c.type,cat:c.cat,account:acc,nature:FIXED_CATS.has(c.cat)?"fijo":"variable",source:"aviso",extId:ext,checked:false}; if(fx)t.fx=fx;
+    (byYm[ymOf(date)]=byYm[ymOf(date)]||[]).push(t); add++; });
+  Object.entries(byYm).forEach(([ym,L])=>mutateMonth(ym,cur=>cur.tx.push(...L)));
+  if(lines.length){ const txt=lines.join("\n"); const r1=importML(parseMLLines(txt)), r2=importVoice(parseVoiceLines(txt).filter(x=>!x.bad)); add+=r1.add+r2.add; skip+=r1.skip+r2.skip; }
+  return {add,skip,unread}; }
+async function inboxSync(manual){ const ib=inboxCfg(); if(!ib||inboxBusy||state.example)return; if(!manual&&ib.at&&Date.now()-ib.at<45e3)return; inboxBusy=true; if(manual) renderInbox(true);
+  try{ const r=await fetch(`${ib.url}?a=${manual?"check":"get"}&k=${encodeURIComponent(ib.key)}&since=${ib.since||0}`,{cache:"no-store"}); const j=await r.json(); if(!j.ok) throw new Error(j.error==="clave"?"La clave del buzón no coincide: vuelve a conectarlo.":j.error||"error");
+    const items=j.items||[]; const res=inboxImport(items); const mx=items.reduce((m,i)=>Math.max(m,+i.rec||0),ib.since||0);
+    mutateConfig(c=>{ if(!c.inbox)return; c.inbox.since=mx; c.inbox.at=Date.now(); c.inbox.n=(c.inbox.n||0)+res.add; delete c.inbox.err; if(res.unread.length) c.inbox.unread=(c.inbox.unread||[]).concat(res.unread).slice(-30); });
+    if(res.add){ okToast(`📬 ${res.add} movimiento${res.add===1?"":"s"} nuevo${res.add===1?"":"s"} desde el buzón${res.unread.length?` · ${res.unread.length} correo${res.unread.length===1?"":"s"} por revisar`:""}`); render(); }
+    else if(res.unread.length){ toast(`📬 ${res.unread.length} correo${res.unread.length===1?"":"s"} del banco que no pude leer: míralos en Anotar gastos al instante`); renderAlerts&&renderAlerts(); }
+    else if(manual) okToast("📬 Buzón al día: nada nuevo");
+  }catch(e){ mutateConfig(c=>{ if(c.inbox) c.inbox.err=String(e&&e.message||e).slice(0,120); }); if(manual) toast(/clave/.test(String(e&&e.message))?e.message:"No pude revisar el buzón. Revisa tu conexión e inténtalo de nuevo."); }
+  finally{ inboxBusy=false; renderInbox(); } }
+async function inboxPair(){ let url=($("#ibUrl")&&$("#ibUrl").value||"").trim().replace(/[?#].*$/,"");
+  if(!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(url)){ toast("Pega la URL de la aplicación web: empieza con https://script.google.com/macros/s/ y termina en /exec"); return }
+  if(state.example){ toast("Primero crea tu espacio (o restaura tu respaldo) para conectar el buzón."); return }
+  const b=$("#ibGo"); if(b){ b.disabled=true; b.textContent="Conectando…"; }
+  try{ const r=await fetch(url+"?a=pair",{cache:"no-store"}); const j=await r.json();
+    if(!j.ok){ toast(j.error==="cerrado"?"El buzón no acepta conexiones: en script.google.com vuelve a ejecutar «instalar» y conéctalo antes de 30 minutos.":"El buzón respondió con un error."); return }
+    mutateConfig(c=>{ c.inbox={url,key:j.key,since:0,at:0,n:0}; }); okToast("📬 Buzón conectado"); inboxSync(true);
+  }catch(e){ toast("No pude conectar. Revisa que la implementación sea «Aplicación web» con acceso «Cualquier usuario»."); }
+  finally{ const b2=$("#ibGo"); if(b2){ b2.disabled=false; b2.textContent="Conectar"; } renderInbox(); } }
+function renderInbox(busy){ const box=$("#inboxBox"); if(!box)return; const ib=inboxCfg();
+  if(!ib){ box.innerHTML=`<div class="guide ibx"><h3>📬 Buzón automático <small>recomendado</small></h3>
+    <p class="note">Tus compras con <b>Apple Pay</b> y los <b>correos de tu banco</b> (compras, transferencias, abonos) entran solos a la app, sin copiar ni pegar. Vive en tu propia cuenta de Google: nadie más ve tus datos. Se configura una vez, idealmente desde el computador (10 minutos).</p>
+    <ol><li>Entra a <b>script.google.com</b> con tu cuenta de Gmail → <b>Nuevo proyecto</b>. Arriba, cámbiale el nombre a «Mis Lucas buzón».</li>
+    <li>Borra lo que viene escrito y pega el código del buzón: <button type="button" class="btn sm" id="ibCopy">📋 Copiar código</button> <a href="buzon/codigo-buzon.txt" target="_blank" rel="noopener">o ábrelo aquí</a>. Toca 💾 <b>Guardar</b>.</li>
+    <li>Arriba elige la función <b>instalar</b> y toca <b>▶ Ejecutar</b>. Google pide permisos: <b>Revisar permisos</b> → tu cuenta → <b>Configuración avanzada</b> → <b>Ir a Mis Lucas buzón</b> → <b>Permitir</b>. Dice «no verificada» porque la app la creaste tú.</li>
+    <li><b>Implementar</b> → <b>Nueva implementación</b> → ⚙️ <b>Aplicación web</b>. Ejecutar como: <b>Yo</b>. Quién tiene acceso: <b>Cualquier usuario</b>. Toca <b>Implementar</b> y copia la <b>URL de la aplicación web</b>.</li>
+    <li>Pégala aquí (antes de 30 minutos):<div class="ibrow"><input id="ibUrl" type="url" inputmode="url" autocomplete="off" placeholder="https://script.google.com/macros/s/…/exec"><button type="button" class="btn primary" id="ibGo">Conectar</button></div></li></ol></div>`; return }
+  const ago=ib.at?(()=>{ const m=Math.round((Date.now()-ib.at)/6e4); return m<1?"recién":m<60?`hace ${m} min`:m<1440?`hace ${Math.round(m/60)} h`:`hace ${Math.round(m/1440)} días`; })():"todavía no";
+  const U=ib.unread||[]; const sc=`${ib.url}?k=${ib.key}`;
+  box.innerHTML=`<div class="guide ibx on"><h3>📬 Buzón automático <small>${ib.err?"⚠️ con problema":"✓ conectado"}</small></h3>
+    <p class="note" style="margin:0 0 10px">${busy?"Revisando…":`Última revisión ${ago} · ${ib.n||0} movimiento${ib.n===1?"":"s"} traídos. Se revisa solo cada vez que abres la app.`}${ib.err?`<br><span style="color:var(--crit)">${esc(ib.err)}</span>`:""}</p>
+    <div class="abtns"><button type="button" class="btn primary sm" id="ibSync"${busy?" disabled":""}>Revisar ahora</button><button type="button" class="btn sm" id="ibOff">Desconectar</button></div>
+    ${U.length?`<div class="ibun"><b>Correos que no pude leer (${U.length})</b><p class="note" style="margin:2px 0 6px">Ábrelos para anotarlos a mano, o descártalos si no son movimientos.</p>${U.slice().reverse().map(u=>`<div class="ibu"><div><div class="t">${esc(u.subject)}</div><div class="m">${esc(dmy(u.date))}</div></div><button type="button" class="btn sm" data-ibadd="${esc(u.id)}">Anotar</button><button type="button" class="iconbtn" data-ibdel="${esc(u.id)}" aria-label="Descartar">✕</button></div>`).join("")}</div>`:""}
+    <b class="gsub">Apple Pay sin copiar ni pegar</b>
+    <ol><li>En <b>Atajos</b> abre tu automatización de Wallet. Al final, después de <b>Append to Text File</b>, agrega <b>Get Contents of URL</b>.</li>
+    <li>En la URL pega esta dirección: <button type="button" class="btn sm" id="ibCopyUrl">📋 Copiar dirección</button></li>
+    <li>Toca la flechita: <b>Method</b> → <b>POST</b>, <b>Request Body</b> → <b>Form</b>. Toca <b>Add new field</b> → <b>Text</b>: en <b>Key</b> escribe <code>l</code> y en <b>Text</b> inserta la variable <b>Text</b> (la línea ML|…).</li>
+    <li>Listo: cada compra con Apple Pay llega al buzón al instante y aparece al abrir Mis Lucas. Si no hay internet en ese momento, queda en el archivo y la traes con «📲 Traer Apple Pay».</li></ol></div>`;
+  box.dataset.sc=sc; }
+function bindInbox(){ const box=$("#inboxBox"); if(!box)return;
+  box.addEventListener("click",async e=>{ const b=e.target.closest("button"); if(!b)return;
+    if(b.id==="ibGo"){ inboxPair(); return }
+    if(b.id==="ibSync"){ inboxSync(true); return }
+    if(b.id==="ibCopy"){ try{ const t=await (await fetch("buzon/codigo-buzon.txt",{cache:"no-store"})).text(); await navigator.clipboard.writeText(t); okToast("Código copiado: pégalo en script.google.com"); }catch(err){ toast("No pude copiarlo: usa «ábrelo aquí» y cópialo desde ahí."); } return }
+    if(b.id==="ibCopyUrl"){ try{ await navigator.clipboard.writeText(box.dataset.sc||""); okToast("Dirección copiada: pégala en «Get Contents of URL»"); }catch(err){ toast("No pude copiarla."); } return }
+    if(b.id==="ibOff"){ if(!b.dataset.armed){ b.dataset.armed="1"; b.textContent="¿Desconectar? Toca de nuevo"; setTimeout(()=>{ if(b.isConnected){ delete b.dataset.armed; b.textContent="Desconectar"; } },3500); return } mutateConfig(c=>{ delete c.inbox; }); renderInbox(); okToast("Buzón desconectado"); return }
+    if(b.dataset.ibdel){ mutateConfig(c=>{ if(c.inbox) c.inbox.unread=(c.inbox.unread||[]).filter(u=>u.id!==b.dataset.ibdel); }); renderInbox(); renderAlerts(); return }
+    if(b.dataset.ibadd){ const u=((inboxCfg()||{}).unread||[]).find(x=>x.id===b.dataset.ibadd); if(!u)return; mutateConfig(c=>{ if(c.inbox) c.inbox.unread=(c.inbox.unread||[]).filter(x=>x.id!==u.id); }); hideSheet("#acct"); openEdit(null); setTimeout(()=>{ if(ed&&ed.v){ ed.v.desc=u.subject.slice(0,60); ed.v.date=u.date; renderEdit(); } toast("Completa el monto con lo que dice el correo y toca Agregar"); },300); renderAlerts(); return } });
+  document.addEventListener("visibilitychange",()=>{ if(!document.hidden) inboxSync(false); });
+  setInterval(()=>{ if(!document.hidden) inboxSync(false); },180000);
+  setTimeout(()=>inboxSync(false),1500); }
 async function apPaste(){ let txt=""; try{ txt=await navigator.clipboard.readText(); }catch(e){ txt=""; }
   if(!parseMLLines(txt).length&&!parseVoiceLines(txt).length){ toast("No encontré compras de Apple Pay en lo copiado. Primero toca el atajo «Pasar a Mis Lucas» en tu iPhone y vuelve."); return }
   pasteAlert(txt); }
@@ -1859,7 +1934,7 @@ function loadLocal(){
 }
 function boot(){
   loadLocal(); bindUI(); bindLocal(); bindAccount(); bindPlan();
-  renderIndStrip(); fetchInd().then(renderIndStrip); document.addEventListener("visibilitychange",()=>{ if(!document.hidden) fetchInd().then(renderIndStrip); });
+  bindInbox(); renderIndStrip(); fetchInd().then(renderIndStrip); document.addEventListener("visibilitychange",()=>{ if(!document.hidden) fetchInd().then(renderIndStrip); });
   $("#bkbarGo").addEventListener("click",()=>{ $("#bkExport").click(); setTimeout(renderBkBar,300); });
   $("#bkbarX").addEventListener("click",()=>{ saveProfile({bkSnooze:Date.now()+864e5}); renderBkBar(); });
   $("#homeBtn").addEventListener("click",e=>{ e.preventDefault(); closeNotif(); closeUMenu(); document.querySelectorAll(".bsheet.show").forEach(x=>hideSheet("#"+x.id)); setTab("resumen"); window.scrollTo({top:0,behavior:"smooth"}); });
@@ -1903,6 +1978,7 @@ function openAcct(sec){ closeUMenu(); const P=state.prof||{};
   if(sec==="seguridad"){ state.secType=P.mode==="pass"?"pass":"pin"; renderSec(); renderBioRow(); ["#secCur","#secNew","#secNew2"].forEach(k=>$(k).value=""); $("#secAuto").value=String(P.autoLock==null?5:P.autoLock); }
   if(sec==="apariencia"){ document.querySelectorAll("#thSeg [data-th]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.th===(P.theme||"auto"))); }
   if(sec==="datos"){ renderData(); }
+  if(sec==="captura"){ renderInbox(); }
   if(sec==="categorias"){ renderCatEdit(); if(!P.catsSeen) saveProfile({catsSeen:1}); }
   if(sec==="cuentas"){ renderAccounts(); if(!accFormCb) closeAccForm(); }
   if(sec==="acerca"){ $("#abVer").textContent=APP_VERSION; $("#abMsg").textContent=""; }

@@ -1,0 +1,118 @@
+/**
+ * Mis Lucas · Buzón automático
+ * --------------------------------------------------------------
+ * Vive en TU cuenta de Google (nadie más lo ve). Hace dos cosas:
+ *  1. Recibe al instante las compras con Apple Pay que manda el atajo del iPhone.
+ *  2. Cada 5 minutos revisa en tu Gmail los correos de tu banco
+ *     (compras, transferencias, abonos) y los guarda.
+ * La app Mis Lucas los recoge cuando la abres. Todo queda en una hoja
+ * «Mis Lucas · buzón» en tu Google Drive.
+ *
+ * Instalación: pega este código, guarda, elige la función «instalar»
+ * y toca «Ejecutar». Luego: Implementar → Nueva implementación →
+ * Aplicación web (Ejecutar como: yo · Acceso: cualquier usuario).
+ */
+
+// Correos que se revisan: de bancos y medios de pago, con asunto de movimiento.
+var REMITENTES = 'santander.cl OR bancochile.cl OR bancoedwards.cl OR bancoestado.cl OR bci.cl OR itau.cl OR scotiabank.cl OR bancofalabella.cl OR bancoripley.cl OR security.cl OR bice.cl OR bancointernacional.cl OR consorcio.cl OR tenpo.cl OR machbank.cl OR mercadopago.com OR mercadopago.cl OR mach.cl OR coopeuch.cl OR cmrfalabella.com OR lider.cl OR tapp.cl OR fintual.com';
+var ASUNTOS = 'compra OR transferencia OR transferiste OR comprobante OR cargo OR abono OR pago OR giro OR recibiste OR "has recibido" OR deposito OR depósito';
+var BUSQUEDA = 'from:(' + REMITENTES + ') subject:(' + ASUNTOS + ') newer_than:3d';
+var MAX_FILAS = 3000;
+
+function instalar() {
+  var p = PropertiesService.getScriptProperties();
+  if (!p.getProperty('KEY')) p.setProperty('KEY', Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '').slice(0, 8));
+  p.setProperty('PAIR_UNTIL', String(Date.now() + 30 * 60 * 1000));
+  p.deleteProperty('PAIRED');
+  hoja_();
+  ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'revisarCorreo') ScriptApp.deleteTrigger(t); });
+  ScriptApp.newTrigger('revisarCorreo').timeBased().everyMinutes(5).create();
+  revisarCorreo();
+  Logger.log('✅ Buzón instalado. Ahora: Implementar → Nueva implementación → Aplicación web. Tienes 30 minutos para conectarlo desde Mis Lucas.');
+}
+
+function hoja_() {
+  var p = PropertiesService.getScriptProperties();
+  var id = p.getProperty('SHEET');
+  var ss = null;
+  if (id) { try { ss = SpreadsheetApp.openById(id); } catch (e) { ss = null; } }
+  if (!ss) {
+    ss = SpreadsheetApp.create('Mis Lucas · buzón');
+    p.setProperty('SHEET', ss.getId());
+    ss.getSheets()[0].appendRow(['id', 'recibido', 'fecha', 'tipo', 'texto', 'asunto', 'de']);
+  }
+  return ss.getSheets()[0];
+}
+
+// Las fechas se guardan como número (milisegundos) y los textos protegidos para que la hoja no los transforme.
+function txt_(v) { v = String(v == null ? '' : v); return /^[=+\-@']/.test(v) ? "'" + v : v; }
+function guardar_(fila) {
+  var sh = hoja_();
+  sh.appendRow([txt_(fila[0]), Number(fila[1]), Number(fila[2]), txt_(fila[3]), txt_(fila[4]), txt_(fila[5]), txt_(fila[6])]);
+  var n = sh.getLastRow();
+  if (n > MAX_FILAS + 1) sh.deleteRows(2, n - MAX_FILAS - 1);
+}
+
+function revisarCorreo() {
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(20000)) return;
+  try {
+    var sh = hoja_();
+    var n = sh.getLastRow();
+    var vistos = {};
+    if (n > 1) sh.getRange(Math.max(2, n - 1500), 1, Math.min(1500, n - 1), 1).getValues().forEach(function (r) { vistos[r[0]] = 1; });
+    GmailApp.search(BUSQUEDA, 0, 40).forEach(function (th) {
+      th.getMessages().forEach(function (m) {
+        var id = 'm' + m.getId();
+        if (vistos[id]) return;
+        if (Date.now() - m.getDate().getTime() > 4 * 864e5) return;
+        var cuerpo = (m.getPlainBody() || '').replace(/\s+/g, ' ').slice(0, 3000);
+        guardar_([id, Date.now(), m.getDate().getTime(), 'mail', cuerpo, m.getSubject() || '', m.getFrom() || '']);
+        vistos[id] = 1;
+      });
+    });
+  } finally { lock.releaseLock(); }
+}
+
+function json_(o) { return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }
+
+function okKey_(e) {
+  var k = PropertiesService.getScriptProperties().getProperty('KEY');
+  return k && e && e.parameter && e.parameter.k === k;
+}
+
+// El atajo de Apple Pay manda aquí cada compra (campo «l» = la línea ML|…).
+function doPost(e) {
+  if (!okKey_(e)) return json_({ ok: false, error: 'clave' });
+  var l = (e.parameter && (e.parameter.l || e.parameter.linea)) || (e.postData && e.postData.contents) || '';
+  l = String(l).trim();
+  if (!l) return json_({ ok: false, error: 'vacío' });
+  var tipo = /^MLV\s*\|/.test(l) ? 'voz' : /^ML\s*\|/.test(l) ? 'ap' : 'texto';
+  guardar_(['p' + Utilities.getUuid().slice(0, 13), Date.now(), Date.now(), tipo, l.slice(0, 1000), '', 'atajo']);
+  return json_({ ok: true });
+}
+
+// La app pide lo nuevo: ?a=get&k=CLAVE&since=FECHA · conectar: ?a=pair
+function doGet(e) {
+  var a = (e && e.parameter && e.parameter.a) || '';
+  var p = PropertiesService.getScriptProperties();
+  if (a === 'pair') {
+    var until = +(p.getProperty('PAIR_UNTIL') || 0);
+    if (p.getProperty('PAIRED') || Date.now() > until) return json_({ ok: false, error: 'cerrado' });
+    p.setProperty('PAIRED', '1');
+    return json_({ ok: true, key: p.getProperty('KEY'), v: 1 });
+  }
+  if (!okKey_(e)) return json_({ ok: false, error: 'clave' });
+  if (a === 'check') { revisarCorreo(); }
+  var since = Number(e.parameter.since || 0);
+  var sh = hoja_(), n = sh.getLastRow(), items = [];
+  if (n > 1) {
+    var desde = Math.max(2, n - 500);
+    sh.getRange(desde, 1, n - desde + 1, 7).getValues().forEach(function (r) {
+      var rec = Number(r[1]) || 0;
+      if (since && rec <= since) return;
+      items.push({ id: String(r[0]), rec: rec, date: Number(r[2]) || rec, kind: String(r[3]), text: String(r[4]), subject: String(r[5]), from: String(r[6]) });
+    });
+  }
+  return json_({ ok: true, items: items, now: Date.now(), v: 1 });
+}

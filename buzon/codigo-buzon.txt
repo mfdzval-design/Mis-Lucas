@@ -8,6 +8,7 @@
  * La app Mis Lucas los recoge cuando la abres. Todo queda en una hoja
  * «Mis Lucas · buzón» en tu Google Drive.
  *
+ * Necesita el servicio avanzado «Gmail API» activado (solo lectura).
  * Instalación: pega este código, guarda, elige la función «instalar»
  * y toca «Ejecutar». Luego: Implementar → Nueva implementación →
  * Aplicación web (Ejecutar como: yo · Acceso: cualquier usuario).
@@ -53,6 +54,7 @@ function guardar_(fila) {
   if (n > MAX_FILAS + 1) sh.deleteRows(2, n - MAX_FILAS - 1);
 }
 
+// Lee los correos con permiso de SOLO LECTURA (servicio avanzado Gmail): no puede enviar, borrar ni cambiar nada.
 function revisarCorreo() {
   var lock = LockService.getScriptLock();
   if (!lock.tryLock(20000)) return;
@@ -61,17 +63,39 @@ function revisarCorreo() {
     var n = sh.getLastRow();
     var vistos = {};
     if (n > 1) sh.getRange(Math.max(2, n - 1500), 1, Math.min(1500, n - 1), 1).getValues().forEach(function (r) { vistos[r[0]] = 1; });
-    GmailApp.search(BUSQUEDA, 0, 40).forEach(function (th) {
-      th.getMessages().forEach(function (m) {
-        var id = 'm' + m.getId();
-        if (vistos[id]) return;
-        if (Date.now() - m.getDate().getTime() > 4 * 864e5) return;
-        var cuerpo = (m.getPlainBody() || '').replace(/\s+/g, ' ').slice(0, 3000);
-        guardar_([id, Date.now(), m.getDate().getTime(), 'mail', cuerpo, m.getSubject() || '', m.getFrom() || '']);
-        vistos[id] = 1;
-      });
+    var res = Gmail.Users.Messages.list('me', { q: BUSQUEDA, maxResults: 40 });
+    (res.messages || []).forEach(function (x) {
+      var id = 'm' + x.id;
+      if (vistos[id]) return;
+      var m = Gmail.Users.Messages.get('me', x.id, { format: 'full' });
+      var fecha = Number(m.internalDate) || Date.now();
+      if (Date.now() - fecha > 4 * 864e5) return;
+      var h = {};
+      ((m.payload && m.payload.headers) || []).forEach(function (z) { h[String(z.name).toLowerCase()] = z.value; });
+      var cuerpo = texto_(m.payload) || m.snippet || '';
+      guardar_([id, Date.now(), fecha, 'mail', cuerpo, h.subject || '', h.from || '']);
+      vistos[id] = 1;
     });
   } finally { lock.releaseLock(); }
+}
+
+// Saca el texto del correo (texto plano si viene; si no, el HTML sin etiquetas).
+function texto_(payload) {
+  var plano = '', html = '';
+  (function recorrer(q) {
+    if (!q) return;
+    if (q.body && q.body.data) {
+      var s = Utilities.newBlob(Utilities.base64DecodeWebSafe(q.body.data)).getDataAsString('UTF-8');
+      if (q.mimeType === 'text/plain') plano += s + ' ';
+      else if (q.mimeType === 'text/html') html += s + ' ';
+    }
+    (q.parts || []).forEach(recorrer);
+  })(payload);
+  if (!plano && html) {
+    plano = html.replace(/<(style|script)[\s\S]*?<\/\1>/gi, ' ').replace(/<br\s*\/?>|<\/(p|div|tr|td|li)>/gi, ' ').replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/gi, ' ').replace(/&amp;/gi, '&').replace(/&#36;|&dollar;/gi, '$').replace(/&aacute;/gi, 'á').replace(/&eacute;/gi, 'é').replace(/&iacute;/gi, 'í').replace(/&oacute;/gi, 'ó').replace(/&uacute;/gi, 'ú').replace(/&ntilde;/gi, 'ñ').replace(/&#(\d+);/g, function (_, c) { return String.fromCharCode(+c); });
+  }
+  return plano.replace(/\s+/g, ' ').trim().slice(0, 3000);
 }
 
 function json_(o) { return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }
@@ -92,7 +116,7 @@ function doPost(e) {
   return json_({ ok: true });
 }
 
-// La app pide lo nuevo: ?a=get&k=CLAVE&since=FECHA · conectar: ?a=pair
+// La app pide lo nuevo: ?a=get&k=CLAVE&since=MILISEGUNDOS · conectar: ?a=pair
 function doGet(e) {
   var a = (e && e.parameter && e.parameter.a) || '';
   var p = PropertiesService.getScriptProperties();

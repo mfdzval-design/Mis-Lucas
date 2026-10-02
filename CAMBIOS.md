@@ -2,11 +2,27 @@
 
 Cada versión publicada queda anotada aquí. El número de versión se ve al pie de la app.
 
-## Próxima versión · (sin publicar)
+## 1.10.0 beta · 2-oct-2026
 - «Revisa antes de importar» rediseñado: arriba un resumen (leídos, con categoría, por categorizar, entre tus cuentas, ya anotados). Lo que la app no supo categorizar aparece agrupado por comercio, con un botón «Elegir categoría». Si la app tiene una idea, la propone al lado («¿Es Supermercado?») para aceptarla con un toque.
 - Nueva hoja «Elige una categoría»: buscador, pestañas Gastos / Ingresos / Traspaso y todas las categorías con su ícono. Abajo, «Recordar: los movimientos que digan ___ van siempre a esta categoría», con el texto editable; se aplica también a los demás movimientos de la cartola que lo digan.
 - «+ Nueva categoría» desde ahí mismo: nombre, si es gasto o ingreso, si normalmente es fijo o variable, e ícono. «Crear y usar» la deja creada y asignada. También se pueden crear categorías de ingresos.
 - Lo que ya está listo queda en secciones plegadas; cada movimiento muestra su categoría y se cambia con un toque. «No importar» para saltar un comercio. Botón «Importar N movimientos» al final.
+
+- Se puede crear una categoría también desde un movimiento (botón «＋ Nueva» en la lista de categorías). Las categorías de ingresos propias aparecen en el menú «Categorías de gastos» para borrarlas.
+- Si la app no sabe de qué cuenta es un Excel o CSV, ahora lo pregunta (antes lo dejaba en Efectivo).
+- Al cambiar la cuenta en la revisión ya no se pierde lo que habías categorizado.
+- Volver a subir una cartola que se cruza con otra ya no duplica movimientos que habías anotado y que ya calzaron con el banco.
+- «Eliminar» funciona directo desde la ficha de un movimiento.
+- Eliminar una cuenta con movimientos: ahora ofrece pasarlos a otra cuenta o borrarlos junto con ella. Renombrar una cuenta mantiene su historial de cartolas.
+- Si una cartola de la cola falla, la app sigue con la siguiente.
+- La clave de un PDF puede tener letras (antes se borraban).
+- «Borrar todo» también borra la clave guardada de los PDF y las fotos de boletas.
+- «Entre mis cuentas» reemplaza a «Traspaso / pago TC» en toda la app.
+- Textos más claros: «te sobró» en el anillo del inicio, «Ahorros e inversiones» en el acceso a Patrimonio, «Bloquear ahora» en el menú, «Leer» en el cuadro para escribir o pegar, y la guía «Anotar gastos al instante» numerada del 1 al 6.
+- Primeros pasos en un orden más lógico (subir cartola → revisar categorías → ordenar).
+- La proyección «a este ritmo terminarías el mes en…» solo aparece cuando ya hay meses anteriores para comparar.
+- Las reglas automáticas y los datos de ejemplo usan las categorías nuevas; se limpiaron reglas antiguas que apuntaban a «Otros gastos».
+- Arreglos internos: la pantalla Patrimonio quedaba fuera del ancho normal en computador; la app funciona sin internet también al leer PDF; los indicadores ya no muestran valores viejos como recientes.
 
 ## 1.9.0 beta · 1-oct-2026
 - La franja de indicadores ahora es un carrusel que avanza solo (se detiene al tocarla). El conversor funciona en ambos sentidos y entre cualquier par: pesos, dólares, euros, UF y UTM, con botón para invertir.

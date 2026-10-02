@@ -1335,7 +1335,12 @@ function summarize(tx){
     }
   });
   r.expGross=r.exp;
-  if(r.refund){ const cut=Math.min(r.refund,r.exp); const cv=Math.min(cut,r.expVar); r.expVar-=cv; r.expFix-=cut-cv; r.exp-=cut; }
+  r.refCut=0; r.refExtra=0;
+  if(r.refund){ /* Lo que te devuelve la oficina descuenta los gastos de oficina del mismo mes (es plata que solo pasa por ti).
+       Todo lo demás que te devuelven (amigos, seguros, o la oficina por gastos de otros meses o de otra tarjeta) cuenta como plata que entró:
+       así «Salió» siempre muestra lo que de verdad pagaste. */
+    const cut=Math.min(r.refOff,r.offOut); const cv=Math.min(cut,r.expVar); r.expVar-=cv; r.expFix-=cut-cv; r.exp-=cut; r.refCut=cut;
+    r.refExtra=r.refund-cut; if(r.refExtra>0){ r.inc+=r.refExtra; r.incVar+=r.refExtra; } }
   r.netSav=r.sav-r.resc; r.bal=r.inc-r.exp-r.netSav; r.saveRate=r.inc?(r.inc-r.exp)/r.inc:null; return r;
 }
 function fullMonth(ym){ const M=allMonths(); const n=((M[ym]||{}).tx||[]).length; if(!n)return false; const mx=Math.max(...Object.values(M).map(m=>(m.tx||[]).length)); return n>=Math.max(5,mx*.4); }
@@ -2119,7 +2124,7 @@ function renderResumen(){ renderTodo(); renderBkBar();
     <div style="position:relative;z-index:1;min-width:0"><div class="hi">Hola${firstName()?", "+esc(firstName()):""} · ${esc(ymLabel(state.ym))}</div><div class="hi" style="margin-top:10px">${left>=0?"Te queda este mes":s.inc>=s.exp?"Usaste parte de tus saldos":"Te pasaste este mes"}</div><div class="big num">${money(Math.abs(left))}</div><div class="msg">${esc(msg)}</div><div class="chips">${(()=>{const n=tx.filter(needsReview).length; return n?`<button class="owe" type="button" data-review="1">🏷️ ${n} por categorizar ›</button>`:""})()}${OB.owed>0?`<button class="owe" type="button" data-drill="cat:${esc(OFFICE)}">🧾 La oficina te debe <b class="num">${money(OB.owed)}</b> ›</button>`:""}${PJ&&PJ.hasHist?`<button class="owe" type="button" data-proj="1">🔮 A fin de mes te quedarían <b class="num">${PJ.left<0?"−":""}${money(Math.abs(PJ.left))}</b> ›</button>`:""}${W.total?`<button class="owe" type="button" data-goto="ahorro">📈 Ahorros e inversiones <b class="num">${money(W.total)}</b> ›</button>`:""}</div></div>
     <div class="ring" data-tip="Lo que te sobró: ingresos menos gastos, sobre tus ingresos"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="10"/>${rate>0.005?`<circle cx="50" cy="50" r="44" fill="none" stroke="#ffffff" stroke-width="10" stroke-linecap="round" stroke-dasharray="${(C*rate).toFixed(1)} ${C.toFixed(1)}"/>`:""}</svg><div class="lbl"><div><b class="num">${s.saveRate==null?"—":Math.round(s.saveRate*100)+"%"}</b><span>te sobró</span></div></div></div>
     <div class="stats">
-      <div class="st"><div class="k"><i>↓</i>Entró</div><div class="v num">${money(s.inc)}</div><div class="d num">Fijo ${compact(s.incFix)} · variable ${compact(s.incVar)}</div></div>
+      <div class="st"><div class="k"><i>↓</i>Entró</div><div class="v num">${money(s.inc)}</div><div class="d num">${s.refExtra>0?`Incluye ${compact(s.refExtra)} de devoluciones`:`Fijo ${compact(s.incFix)} · variable ${compact(s.incVar)}`}</div></div>
       <div class="st"><div class="k"><i>↑</i>Salió</div><div class="v num">${money(s.exp)}</div><div class="d num">${delta(s.exp,prev.exp)||"Fijo "+compact(s.expFix)+" · variable "+compact(s.expVar)}</div></div>
       <div class="st"><div class="k"><i>🐷</i>Guardado</div><div class="v num">${money(s.netSav)}</div><div class="d num">${s.resc?`Aportes ${compact(s.sav)} · retiros ${compact(s.resc)}`:"Ahorro e inversión"}</div></div>
     </div></div>${flowCard(s)}`;
@@ -2207,20 +2212,20 @@ function openDrill(key){
   let title="",sub="",list=[],neg=[],calc="",group=true;
   if(key==="fijo"||key==="variable"){ title=key==="fijo"?"Gastos fijos":"Gastos variables"; list=tx.filter(t=>personal(t)&&(t.nature==="fijo")===(key==="fijo"));
     sub=key==="fijo"?"Lo que se repite todos los meses: dividendo, seguros, suscripciones, créditos.":"Lo que cambia mes a mes.";
-    if(key==="variable"&&s.refund){ neg=tx.filter(t=>t.type==="ingreso"&&(t.cat==="Reembolsos"||t.cat===OFFICE_IN)); } }
+    if(key==="variable"&&s.refCut){ neg=tx.filter(t=>t.type==="ingreso"&&t.cat===OFFICE_IN); } }
   else if(key==="ahorro"){ title="Ahorro e inversión"; sub="Plata que moviste a ahorro o inversiones este mes."; list=tx.filter(t=>t.cat===SAVINGS); neg=tx.filter(t=>t.cat===RESCUE); group=false; }
   else if(key==="queda"){ title=s.inc-s.exp-s.netSav>=0?"Te queda":"Resultado del mes"; sub="Lo que entró menos lo que gastaste y ahorraste."; list=tx.filter(t=>t.type==="ingreso"&&t.cat!==RESCUE&&t.cat!=="Reembolsos"&&t.cat!==OFFICE_IN);
-    calc=`<div class="dcalc"><span>Entró</span><b class="num">${money(s.inc)}</b><span>− Gastos fijos</span><b class="num">${money(s.expFix)}</b><span>− Gastos variables</span><b class="num">${money(s.expVar)}</b>${s.netSav>=0?`<span>− Ahorro e inversión</span><b class="num">${money(s.netSav)}</b>`:`<span>+ Sacaste de tus ahorros</span><b class="num">${money(-s.netSav)}</b>`}<span class="tot">= Resultado</span><b class="tot num">${(s.inc-s.exp-s.netSav)<0?"−":""}${money(Math.abs(s.inc-s.exp-s.netSav))}</b></div><div class="dgrp-h" style="margin-top:14px"><span>De dónde vino lo que entró</span></div>`; }
+    calc=`<div class="dcalc"><span>Entró</span><b class="num">${money(s.inc-s.refExtra)}</b>${s.refExtra>0?`<span>+ Te devolvieron</span><b class="num">${money(s.refExtra)}</b>`:""}<span>− Gastos fijos</span><b class="num">${money(s.expFix)}</b><span>− Gastos variables</span><b class="num">${money(s.expVar)}</b>${s.netSav>=0?`<span>− Ahorro e inversión</span><b class="num">${money(s.netSav)}</b>`:`<span>+ Sacaste de tus ahorros</span><b class="num">${money(-s.netSav)}</b>`}<span class="tot">= Resultado</span><b class="tot num">${(s.inc-s.exp-s.netSav)<0?"−":""}${money(Math.abs(s.inc-s.exp-s.netSav))}</b></div><div class="dgrp-h" style="margin-top:14px"><span>De dónde vino lo que entró</span></div>`; }
   else if(key.startsWith("cat:")){ const c=key.slice(4); title=c; sub=c===OFFICE?"Lo que pagaste por la oficina y lo que te devolvieron.":"Gastos de esta categoría en el mes."; list=tx.filter(t=>personal(t)&&t.cat===c); if(c===OFFICE)neg=tx.filter(t=>t.cat===OFFICE_IN); group=false; }
   else if(key.startsWith("acct:")){ const a=key.slice(5); title=a; sub="Gastos personales pagados con este medio."; list=tx.filter(t=>personal(t)&&(t.account||"Sin cuenta")===a); }
-  const tot=list.reduce((x,t)=>x+t.amount,0)-neg.reduce((x,t)=>x+t.amount,0);
+  const tot=list.reduce((x,t)=>x+t.amount,0)-(key==="variable"?s.refCut:neg.reduce((x,t)=>x+t.amount,0));
   const item=(t,minus)=>`<div class="ditem" data-go="${t.id}"><div class="t">${ICON[t.cat]||"•"} ${esc(t.desc)}</div><div class="m num">${dmy(t.date)} · ${esc(t.cat)}${t.account?" · "+esc(t.account):""}</div><div class="a num"${minus?' style="color:var(--good-text)"':""}>${minus?"−":""}${money(t.amount)}</div></div>`;
   let html=calc;
   if(!list.length&&!neg.length) html+=`<div class="empty" style="padding:24px 0">No hay movimientos en este bloque este mes.</div>`;
   else if(group){ const g={}; list.forEach(t=>(g[t.cat]=g[t.cat]||[]).push(t));
     html+=Object.entries(g).sort((a,b)=>b[1].reduce((x,t)=>x+t.amount,0)-a[1].reduce((x,t)=>x+t.amount,0)).map(([c,a])=>`<div class="dgrp"><div class="dgrp-h"><span>${ICON[c]||"•"} ${esc(c)} · ${a.length}</span><span class="num">${money(a.reduce((x,t)=>x+t.amount,0))}</span></div>${a.sort((x,y)=>y.amount-x.amount).map(t=>item(t)).join("")}</div>`).join(""); }
   else html+=list.slice().sort((x,y)=>y.amount-x.amount).map(t=>item(t)).join("");
-  if(neg.length) html+=`<div class="dgrp"><div class="dgrp-h"><span>${key==="ahorro"?"Rescates (se restan)":"Te devolvieron (se restan)"}</span><span class="num">−${money(neg.reduce((x,t)=>x+t.amount,0))}</span></div>${neg.map(t=>item(t,true)).join("")}</div>`;
+  if(neg.length) html+=`<div class="dgrp"><div class="dgrp-h"><span>${key==="ahorro"?"Rescates (se restan)":"Te devolvieron (se restan)"}</span><span class="num">−${money(key==="variable"?s.refCut:neg.reduce((x,t)=>x+t.amount,0))}</span></div>${neg.map(t=>item(t,true)).join("")}</div>`;
   $("#drillTitle").textContent=title; const shown=key==="queda"?s.inc-s.exp-s.netSav:tot; $("#drillTot").textContent=(shown<0?"−":"")+money(Math.abs(shown));
   $("#drillSub").textContent=`${sub} ${list.length+neg.length} movimiento${list.length+neg.length===1?"":"s"} · ${ymLabel(state.ym)}. Toca uno para editarlo.`;
   $("#drillBody").innerHTML=html; showSheet("#drill"); $("#drillBody").scrollTop=0;
@@ -2385,7 +2390,7 @@ function flowCard(s){
     <div class="flow">${seg.map(([n,v,c])=>`<div style="flex:${v};background:${c}" data-drill="${DRILL_KEY[n]}" data-tip="${esc(`<b>${esc(n)}</b><br>${money(v)} · ${pct(v)} de tus ingresos`)}"></div>`).join("")}</div>
     <div class="flowleg">${seg.map(([n,v,c])=>`<div data-drill="${DRILL_KEY[n]}" role="button" tabindex="0"><i style="background:${c}"></i><span>${esc(n)}</span><b class="num">${money(v)}</b><small class="num">${pct(v)}</small></div>`).join("")}</div>
     ${over<0?(s.inc>=s.exp?`<p class="note" data-drill="queda" role="button" tabindex="0" style="margin:10px 0 0">Ahorraste ${money(Math.max(s.netSav,0))}, más de lo que te sobró (${money(s.inc-s.exp)}). Los ${money(-over)} de diferencia salieron de tus saldos o de la tarjeta. Ver detalle ›</p>`:`<p class="note" data-drill="queda" role="button" tabindex="0" style="margin:10px 0 0;color:var(--crit)">▲ Gastaste ${money(-over)} más de lo que entró este mes. Ver detalle ›</p>`):""}
-    ${s.refund?`<p class="note" data-drill="variable" role="button" tabindex="0" style="margin:10px 0 0">Te devolvieron ${money(s.refund)}${s.refOff?` (oficina ${money(s.refOff)}${s.refund>s.refOff?`, amigos y otros ${money(s.refund-s.refOff)}`:""})`:" (amigos, seguros, etc.)"}: ya está descontado de tus gastos. Ver detalle ›</p>`:""}
+    ${s.refund?`<p class="note" data-drill="${s.refCut?"variable":"queda"}" role="button" tabindex="0" style="margin:10px 0 0">Te devolvieron ${money(s.refund)}${s.refOff?` (oficina ${money(s.refOff)}${s.refund>s.refOff?`, amigos y otros ${money(s.refund-s.refOff)}`:""})`:" (amigos, seguros, etc.)"}: ${s.refCut&&s.refExtra>0?`${money(s.refCut)} descuenta tus gastos de oficina de este mes y ${money(s.refExtra)} se suma a lo que entró`:s.refCut?"descuenta tus gastos de oficina de este mes":"se suma a lo que entró"}. Ver detalle ›</p>`:""}
 </div>`;
 }
 

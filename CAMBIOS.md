@@ -2,6 +2,9 @@
 
 Cada versión publicada queda anotada aquí. El número de versión se ve al pie de la app.
 
+## Próxima versión · (sin publicar)
+- Arreglo del cálculo del mes: lo que te devuelven (amigos, seguros, reembolsos de oficina) ya no puede dejar «Salió» en $0. Ahora el reembolso de oficina solo descuenta los gastos de oficina del mismo mes, y el resto de lo que te devuelven se suma a «Entró» (se ve como «Incluye $X de devoluciones»). Así «Salió» siempre muestra lo que de verdad pagaste.
+
 ## 1.10.0 beta · 2-oct-2026
 - «Revisa antes de importar» rediseñado: arriba un resumen (leídos, con categoría, por categorizar, entre tus cuentas, ya anotados). Lo que la app no supo categorizar aparece agrupado por comercio, con un botón «Elegir categoría». Si la app tiene una idea, la propone al lado («¿Es Supermercado?») para aceptarla con un toque.
 - Nueva hoja «Elige una categoría»: buscador, pestañas Gastos / Ingresos / Traspaso y todas las categorías con su ícono. Abajo, «Recordar: los movimientos que digan ___ van siempre a esta categoría», con el texto editable; se aplica también a los demás movimientos de la cartola que lo digan.

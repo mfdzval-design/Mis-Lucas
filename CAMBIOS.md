@@ -2,6 +2,9 @@
 
 Cada versión publicada queda anotada aquí. El número de versión se ve al pie de la app.
 
+## Próxima versión · (sin publicar)
+- Botón «📲 Traer Apple Pay» al tocar +: lee lo que copió el atajo «Pasar a Mis Lucas» y agrega las compras nuevas de una vez (sin pegar a mano). Guía actualizada.
+
 ## 1.10.1 beta · 2-oct-2026
 - Arreglo del cálculo del mes: lo que te devuelven (amigos, seguros, reembolsos de oficina) ya no puede dejar «Salió» en $0. Ahora el reembolso de oficina solo descuenta los gastos de oficina del mismo mes, y el resto de lo que te devuelven se suma a «Entró» (se ve como «Incluye $X de devoluciones»). Así «Salió» siempre muestra lo que de verdad pagaste.
 

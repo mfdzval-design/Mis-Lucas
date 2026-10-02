@@ -686,7 +686,7 @@ body.priv [data-tip]{pointer-events:auto}
 
 .ef>*{min-width:0}.freq{max-width:100%}
 @media (max-width:640px){ #syncText{display:none} }
-.pbrow{display:grid;grid-template-columns:1fr 1fr;gap:8px}.pbrow .pastebtn{display:flex;align-items:center;justify-content:center;cursor:pointer}
+.pbrow{display:grid;grid-template-columns:1fr 1fr;gap:8px}#eApPaste{grid-column:1/-1}.pbrow .pastebtn{display:flex;align-items:center;justify-content:center;cursor:pointer}
 .freebox{display:grid;grid-template-columns:1fr auto;gap:8px}.freebox textarea{font:inherit;font-size:15px;border:1.5px solid var(--accent);border-radius:12px;padding:12px;background:var(--surface);color:var(--ink);min-width:0;resize:none;min-height:48px;max-height:120px;line-height:1.35}.freebox{align-items:start}
 .paychips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}.paychips::-webkit-scrollbar{display:none}
 .paychips button{flex:none;border:1px solid var(--line-2);background:var(--surface);color:var(--ink);border-radius:999px;padding:9px 13px;font:inherit;font-size:13.5px;cursor:pointer;white-space:nowrap}
@@ -1114,7 +1114,7 @@ body.priv [data-tip]{pointer-events:auto}
         <li>Agrega la acción <b>Añadir a archivo de texto</b>: archivo <code>MisLucas.txt</code>, activa <b>Crear nueva línea</b>. Toca <b>OK</b>.</li></ol>
         <b class="gsub">B. El botón para pasarlas a la app</b>
         <ol start="6"><li>En <b>Atajos</b> → <b>+</b>, agrega <b>Obtener archivo</b> (archivo <code>MisLucas.txt</code>, sin mostrar selector) y luego <b>Copiar al portapapeles</b>. Llámalo <b>Pasar a Mis Lucas</b> y agrégalo a tu pantalla de inicio.</li>
-        <li>Cuando quieras actualizar: toca <b>Pasar a Mis Lucas</b>, abre la app, toca <b>+</b>, mantén presionado el cuadro de arriba → <b>Pegar</b> → <b>Leer</b>. Entran todas las compras nuevas; las que ya estaban se ignoran solas, así que nunca tienes que borrar la lista.</li></ol></div>
+        <li>Cuando quieras actualizar: toca <b>Pasar a Mis Lucas</b>, abre Mis Lucas, toca <b>+</b> → <b>📲 Traer Apple Pay</b> (si el iPhone pregunta, toca <b>Permitir pegar</b>). Entran todas las compras nuevas; las que ya estaban se ignoran solas, así que nunca tienes que borrar la lista.</li></ol></div>
       <div class="guide"><h3>5 · Con Siri: «Anotar gasto» <small>iPhone</small></h3>
         <p class="note">Le dices a Siri lo que gastaste, como a una persona, y queda en la misma lista del atajo de Apple Pay.</p>
         <ol><li>En <b>Atajos</b> → <b>+</b>, agrega la acción <b>Dictar texto</b> (idioma Español).</li>
@@ -1122,7 +1122,7 @@ body.priv [data-tip]{pointer-events:auto}
         <li>Agrega <b>Texto</b> con esta línea: <code>MLV|</code>Fecha formateada<code>|</code>Texto dictado</li>
         <li>Agrega <b>Añadir a archivo de texto</b>: archivo <code>MisLucas.txt</code>, con <b>Crear nueva línea</b>. Si quieres, suma <b>Mostrar notificación</b> «Anotado».</li>
         <li>Llámalo <b>Anotar gasto</b>. Úsalo diciendo: «Oye Siri, anotar gasto» → «gasté 20 mil en el Jumbo con la de crédito».</li>
-        <li>Para pasarlo a la app usa el mismo botón <b>Pasar a Mis Lucas</b> → <b>+</b> → pegar en el cuadro de arriba → <b>Leer</b> → <b>Agregar</b>.</li></ol>
+        <li>Para pasarlo a la app usa el mismo botón <b>Pasar a Mis Lucas</b> → abre Mis Lucas → <b>+</b> → <b>📲 Traer Apple Pay</b>.</li></ol>
         <p class="note" style="margin:6px 0 0">Entiende «20 mil», «20 lucas», «1,5 palos», «ayer», «con la de débito», «en efectivo», «me pagaron el arriendo 450.000».</p></div>
       <div class="guide"><h3>6 · A mano en segundos</h3>
         <p class="note" style="margin:0">Toca <b>+</b> y escribe o dicta con el micrófono del teclado: «almuerzo 12.500 ayer». La app arma el movimiento. También puedes tocar un comercio frecuente y solo poner el monto.</p></div>
@@ -1707,6 +1707,9 @@ function parseFree(txt){
   if(!cat){ const hit=(inc?NL_INC:NL_CATS).find(([re])=>re.test(T)); if(hit)cat=normCat(hit[1]); }
   if(!cat) cat=inc?"Otros ingresos":"Otros gastos";
   return {amount:a.v,date,desc,type,cat,account:accHint,fx:fxInfo,approx:/\b(LUCAS|LUCA|MIL|K|PALO|PALOS|MILLON|MILLONES|APROX)\b/.test(T)}; }
+async function apPaste(){ let txt=""; try{ txt=await navigator.clipboard.readText(); }catch(e){ txt=""; }
+  if(!parseMLLines(txt).length&&!parseVoiceLines(txt).length){ toast("No encontré compras de Apple Pay en lo copiado. Primero toca el atajo «Pasar a Mis Lucas» en tu iPhone y vuelve."); return }
+  pasteAlert(txt); }
 function freeGo(){ const el=$("#eFree"); const v=(el&&el.value||"").trim(); if(!v){ toast("Escribe el gasto, por ejemplo «gasté 20 mil en el Jumbo»"); return } pasteAlert(v); }
 const fxLabel=f=>f&&f.fx?`${f.fx.cur==="USD"?"US$":f.fx.cur==="EUR"?"€":""}${fmtN(f.fx.x,f.fx.x%1?2:0)}${f.fx.cur==="UF"||f.fx.cur==="UTM"?" "+f.fx.cur:""} × ${fmtP(f.fx.rate)}`:"";
 function fillFromFree(txt){ const f=parseFree(txt); if(f&&f.needFx){ toast("No tengo el valor de esa moneda: conéctate a internet un momento y vuelve a intentarlo."); return true; } if(!f)return false; if(!ed||!ed.isNew||$("#edit").hidden||!$("#edit").classList.contains("show")) openEdit(null);
@@ -2297,7 +2300,7 @@ function renderEdit0(){
   $("#editSub").textContent=(v.bankDesc&&v.bankDesc!==v.desc?"Banco: "+v.bankDesc+" · ":"")+(ed.isNew?"Para efectivo o para anotar al día":v.checked?"En cartola":"Anotado a mano");
   const FQ=ed.isNew&&!ed.fromAlert?freqList():[];
   $("#editBody").innerHTML=`<div class="ef">
-    ${ed.isNew?`<div class="pastebox"><div class="freebox"><textarea id="eFree" rows="1" autocomplete="off" enterkeyhint="done" placeholder="Ej: gasté 20 mil en el Jumbo"></textarea><button type="button" class="btn primary" id="eFreeGo">Leer</button></div><div class="pbrow"><button type="button" class="btn pastebtn" data-goto="import">📄 Subir cartola</button><label class="btn pastebtn" for="eShot">📷 Boleta o captura</label><input type="file" id="eShot" accept="image/*" multiple hidden></div>
+    ${ed.isNew?`<div class="pastebox"><div class="freebox"><textarea id="eFree" rows="1" autocomplete="off" enterkeyhint="done" placeholder="Ej: gasté 20 mil en el Jumbo"></textarea><button type="button" class="btn primary" id="eFreeGo">Leer</button></div><div class="pbrow"><button type="button" class="btn pastebtn" data-goto="import">📄 Subir cartola</button><label class="btn pastebtn" for="eShot">📷 Boleta o captura</label><input type="file" id="eShot" accept="image/*" multiple hidden><button type="button" class="btn pastebtn" id="eApPaste">📲 Traer Apple Pay</button></div>
       ${ed.fromAlert&&ed.fromAlert.receipt?`<div class="rcpt">${ed.photoUrl?`<img src="${ed.photoUrl}" alt="Boleta">`:""}<div class="note okn" style="margin:0">🧾 Boleta leída${ed.fromAlert.method?` · pagada con ${ed.fromAlert.method==="efectivo"?"efectivo":ed.fromAlert.method==="credito"?"crédito":"débito"}`:""}. ${ed.fromAlert.matched?"Revisa y toca <b>Agregar</b>.":"Elige con qué pagaste y toca <b>Agregar</b>."} La foto queda guardada en el movimiento.</div></div>`:ed.fromAlert&&ed.fromAlert.free?`<div class="note okn">✓ Lo entendí así${v.fx?` · ${esc(v.fx)} = ${esc(fmtP(v.amount))}`:""}. Revisa y toca <b>Agregar</b>.</div>`:ed.fromAlert?`<div class="note okn">✓ Leído del aviso${ed.fromAlert.matched?"":" · no reconocí la tarjeta, elige la cuenta"}${ed.fromAlert.usd?" · venía en dólares: corrige el monto en pesos":""}. Revisa y toca <b>Agregar</b>.</div>`:""}</div>`:""}
     ${FQ.length?`<div><div class="eflabel">Frecuentes · toca uno y solo pon el monto</div><div class="freq">${FQ.map(t=>`<button type="button" data-fq="${t.id}">${ICON[t.cat]||"•"} ${esc(String(t.desc).slice(0,22))}</button>`).join("")}</div></div>`:""}
     <label class="field">Nombre<input id="eDesc" type="text" value="${esc(v.desc)}" autocomplete="off"></label>
@@ -2370,6 +2373,7 @@ function bindEdit(){
   $("#editBody").addEventListener("change",e=>{ if(e.target.id==="eShot"){ const f=[...e.target.files]; e.target.value=""; if(f.length) screensToImport(f); return; } if(e.target.id==="eAcct"&&e.target.value==="__new"){ readEditInputs(); e.target.value=ed.v.account; openAccForm(null,name=>{ ed.v.account=name; renderEdit(); markDirty($("#eSave")); }); } });
   $("#editBody").addEventListener("click",e=>{
     if(e.target.closest("#eFreeGo")){ freeGo(); return }
+    if(e.target.closest("#eApPaste")){ apPaste(); return }
     if(e.target.closest("#eOnly")){ readEditInputs(); ed.onlyThis=!ed.onlyThis; const st=$("#editBody").scrollTop; renderEdit(); $("#editBody").scrollTop=st; return }
     if(e.target.closest("#eKeyBtn")){ $("#eKeyWrap").hidden=false; $("#eKey").focus(); return }
     const py=e.target.closest("[data-pay]"); if(py){ readEditInputs(); ed.v.account=py.dataset.pay; ed.askPay=false; const st=$("#editBody").scrollTop; renderEdit(); $("#editBody").scrollTop=st; markDirty($("#eSave")); return }

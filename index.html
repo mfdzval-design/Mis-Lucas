@@ -1712,7 +1712,7 @@ function parseFree(txt){
   if(!cat) cat=inc?"Otros ingresos":"Otros gastos";
   return {amount:a.v,date,desc,type,cat,account:accHint,fx:fxInfo,approx:/\b(LUCAS|LUCA|MIL|K|PALO|PALOS|MILLON|MILLONES|APROX)\b/.test(T)}; }
 /* ---------- Buzón automático (servidor de Mis Lucas: cada persona tiene su dirección propia) ---------- */
-const BUZON_API="https://buzon.mislucas.app";
+const BUZON_API="https://buzon.mislucas.com";
 const BANCOS_Q="from:(santander.cl OR bancochile.cl OR bancoedwards.cl OR bancoestado.cl OR bci.cl OR itau.cl OR scotiabank.cl OR bancofalabella.cl OR bancoripley.cl OR security.cl OR bice.cl OR bancointernacional.cl OR consorcio.cl OR tenpo.cl OR machbank.cl OR mercadopago.com OR mercadopago.cl OR coopeuch.cl OR cmrfalabella.com OR lider.cl OR tapp.cl)";
 let inboxBusy=false;
 const inboxCfg=()=>((state.config||{}).inbox)||null;
@@ -1737,7 +1737,8 @@ function inboxImport(items){ const have=new Set(allRefs().map(r=>r.t.extId).filt
 async function inboxSync(manual){ const ib=inboxCfg(); if(!ib||!ib.code||inboxBusy||state.example)return; if(!manual&&ib.at&&Date.now()-ib.at<45e3)return; inboxBusy=true; if(manual) renderInbox(true);
   try{ const api=ib.api||BUZON_API; const r=await fetch(`${api}/api/buzon?c=${ib.code}&k=${encodeURIComponent(ib.key)}`,{cache:"no-store"}); const j=await r.json().catch(()=>({}));
     if(!j.ok) throw new Error(j.error==="clave"?"Tu buzón ya no existe en el servidor: desactívalo y vuelve a activarlo.":j.error||"error");
-    const items=j.items||[]; const conf=items.filter(i=>i.kind==="confirm"); const res=inboxImport(items.filter(i=>i.kind!=="confirm"));
+    const raw=j.items||[]; const items=[]; for(const it of raw){ try{ items.push(await inboxOpen(it,ib.priv)); }catch(e){ console.warn("buzón: no pude descifrar",it.id); } }
+    const conf=items.filter(i=>i.kind==="confirm"); const res=inboxImport(items.filter(i=>i.kind!=="confirm"));
     mutateConfig(c=>{ if(!c.inbox)return; c.inbox.at=Date.now(); c.inbox.n=(c.inbox.n||0)+res.add; delete c.inbox.err; if(res.unread.length) c.inbox.unread=(c.inbox.unread||[]).concat(res.unread).slice(-30); if(conf.length){ const x=conf[conf.length-1]; c.inbox.gconf={code:(x.extra||{}).code||"",link:(x.extra||{}).link||"",at:Date.now()}; } if(items.some(i=>i.kind==="mail")) c.inbox.mailOk=true; if(items.some(i=>i.kind==="ap")) c.inbox.apOk=true; });
     if(items.length) fetch(`${api}/api/buzon/ok`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({c:ib.code,k:ib.key,ids:items.map(i=>i.id)})}).catch(()=>{});
     if(conf.length) okToast("📬 Llegó el código de confirmación de Gmail: míralo en el buzón");
@@ -1746,22 +1747,33 @@ async function inboxSync(manual){ const ib=inboxCfg(); if(!ib||!ib.code||inboxBu
     else if(manual&&!conf.length) okToast("📬 Buzón al día: nada nuevo");
   }catch(e){ mutateConfig(c=>{ if(c.inbox) c.inbox.err=String(e&&e.message||e).slice(0,140); }); if(manual) toast(/buzón/.test(String(e&&e.message))?e.message:"No pude revisar el buzón. Revisa tu conexión e inténtalo de nuevo."); }
   finally{ inboxBusy=false; renderInbox(); } }
+/* Cifrado: la llave privada solo vive en este teléfono (y en tus respaldos) */
+const unb64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+async function inboxKeys(){ const kp=await crypto.subtle.generateKey({name:"RSA-OAEP",modulusLength:2048,publicExponent:new Uint8Array([1,0,1]),hash:"SHA-256"},true,["encrypt","decrypt"]);
+  return {pub:await crypto.subtle.exportKey("jwk",kp.publicKey),priv:await crypto.subtle.exportKey("jwk",kp.privateKey)}; }
+let _ibPriv=null;
+async function inboxOpen(it,privJwk){ if(!it.enc)return it; if(!privJwk) throw new Error("sin llave");
+  if(!_ibPriv||_ibPriv.j!==privJwk.n) _ibPriv={j:privJwk.n,k:await crypto.subtle.importKey("jwk",privJwk,{name:"RSA-OAEP",hash:"SHA-256"},false,["decrypt"])};
+  const raw=await crypto.subtle.decrypt({name:"RSA-OAEP"},_ibPriv.k,unb64(it.enc.k)); const aes=await crypto.subtle.importKey("raw",raw,{name:"AES-GCM"},false,["decrypt"]);
+  const pt=await crypto.subtle.decrypt({name:"AES-GCM",iv:unb64(it.enc.iv)},aes,unb64(it.enc.ct)); const d=JSON.parse(new TextDecoder().decode(pt));
+  const o={...it,...d}; delete o.enc; return o; }
 async function inboxActivate(){ if(state.example){ toast("Primero crea tu espacio (o restaura tu respaldo) para activar el buzón."); return }
   const b=$("#ibGo"); if(b){ b.disabled=true; b.textContent="Activando…"; }
-  try{ const r=await fetch(`${BUZON_API}/api/registro`,{method:"POST"}); const j=await r.json();
+  try{ let ks=null; try{ ks=await inboxKeys(); }catch(e){ ks=null; }
+    const r=await fetch(`${BUZON_API}/api/registro`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(ks?{pub:ks.pub}:{})}); const j=await r.json();
     if(!j.ok){ toast(j.error?`No pude activarlo: ${j.error}`:"No pude activarlo."); return }
-    mutateConfig(c=>{ c.inbox={api:BUZON_API,code:j.code,key:j.key,addr:j.address,n:0,at:0}; }); okToast("📬 Buzón activado"); renderAlerts();
+    mutateConfig(c=>{ c.inbox={api:BUZON_API,code:j.code,key:j.key,addr:j.address,n:0,at:0}; if(ks&&j.cifrado) c.inbox.priv=ks.priv; }); okToast("📬 Buzón activado"); renderAlerts();
   }catch(e){ toast("No pude conectarme al servidor del buzón. Revisa tu conexión."); }
   finally{ renderInbox(); } }
 const copyTxt=async(t,ok)=>{ try{ await navigator.clipboard.writeText(t); okToast(ok); }catch(e){ toast("No pude copiarlo: mantén presionado el texto para copiarlo a mano."); } };
 function renderInbox(busy){ const box=$("#inboxBox"); if(!box)return; const ib=inboxCfg();
   if(!ib||!ib.code){ box.innerHTML=`<div class="guide ibx"><h3>📬 Buzón automático <small>recomendado</small></h3>
-    <p class="note">Tus compras con <b>Apple Pay</b> y los <b>correos de tu banco</b> (compras, transferencias, abonos) entran solos a Mis Lucas, sin copiar ni pegar. Te damos una dirección de correo propia: tu Gmail le reenvía los avisos del banco y la app los lee. El servidor solo guarda cada correo hasta que tu app lo recoge, y después lo borra.</p>
+    <p class="note">Tus compras con <b>Apple Pay</b> y los <b>correos de tu banco</b> (compras, transferencias, abonos) entran solos a Mis Lucas, sin copiar ni pegar. Te damos una dirección de correo propia: tu Gmail le reenvía los avisos del banco y la app los lee. Todo viaja <b>cifrado con una llave que solo tiene tu teléfono</b>: ni el servidor ni quien lo administra pueden leer tus correos. Cada aviso se borra apenas tu app lo recoge.</p>
     <button type="button" class="btn primary" id="ibGo">Activar mi buzón</button></div>`; return }
   const ago=ib.at?(()=>{ const m=Math.round((Date.now()-ib.at)/6e4); return m<1?"recién":m<60?`hace ${m} min`:m<1440?`hace ${Math.round(m/60)} h`:`hace ${Math.round(m/1440)} días`; })():"todavía no";
   const U=ib.unread||[], G=ib.gconf, apUrl=`${ib.api||BUZON_API}/api/ap?c=${ib.code}&k=${ib.key}`; const st=(ok,t)=>`<span class="ibst${ok?" ok":""}">${ok?"✓":"○"} ${t}</span>`;
   box.innerHTML=`<div class="guide ibx on"><h3>📬 Buzón automático <small>${ib.err?"⚠️ con problema":"✓ activo"}</small></h3>
-    <p class="note" style="margin:0 0 8px">Tu dirección:</p>
+    <p class="note" style="margin:0 0 8px">Tu dirección${ib.priv?" · 🔒 cifrado: solo este teléfono puede leerlo":""}:</p>
     <div class="ibaddr"><code>${esc(ib.addr)}</code><button type="button" class="btn sm" data-copy="addr">📋 Copiar</button></div>
     <p class="note" style="margin:8px 0 10px">${busy?"Revisando…":`Última revisión ${ago} · ${ib.n||0} movimiento${ib.n===1?"":"s"} traídos. Se revisa solo cada vez que abres la app.`}${ib.err?`<br><span style="color:var(--crit)">${esc(ib.err)}</span>`:""}</p>
     <div class="ibsts">${st(ib.mailOk,"Correos del banco")}${st(ib.apOk,"Apple Pay")}</div>

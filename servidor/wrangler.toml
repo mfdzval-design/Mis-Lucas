@@ -4,7 +4,7 @@ main = "buzon.js"
 compatibility_date = "2026-09-01"
 
 [vars]
-DOMINIO = "mislucas.app"   # cambiar por el dominio comprado
+DOMINIO = "mislucas.com"
 
 [[kv_namespaces]]
 binding = "BUZON"

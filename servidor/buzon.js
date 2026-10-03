@@ -1,6 +1,10 @@
 /**
  * Mis Lucas · Servidor del buzón (Cloudflare Worker)
  * ------------------------------------------------------------
+ * CIFRADO: al activar, la app manda su llave pública. Cada cosa que llega
+ * se guarda cifrada con esa llave (AES-GCM + RSA-OAEP): solo la app de
+ * esa persona puede leerla. Ni el administrador del servidor puede.
+ *
  * Cada persona activa su buzón desde la app y recibe una dirección
  * propia (código@DOMINIO). Lo que llega ahí —correos del banco
  * reenviados desde Gmail, o compras con Apple Pay que manda el atajo—
@@ -35,11 +39,24 @@ async function autoriza(env, c, k) {
   return u;
 }
 
-async function guardar(env, c, item) {
+const b64 = buf => { let s = ""; const b = new Uint8Array(buf); for (let i = 0; i < b.length; i++) s += String.fromCharCode(b[i]); return btoa(s); };
+async function cifrar(pubJwk, obj) {
+  const pub = await crypto.subtle.importKey("jwk", pubJwk, { name: "RSA-OAEP", hash: "SHA-256" }, false, ["encrypt"]);
+  const aes = await crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true, ["encrypt"]);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, aes, new TextEncoder().encode(JSON.stringify(obj)));
+  const k = await crypto.subtle.encrypt({ name: "RSA-OAEP" }, pub, await crypto.subtle.exportKey("raw", aes));
+  return { k: b64(k), iv: b64(iv), ct: b64(ct) };
+}
+
+async function guardar(env, c, item, u) {
   const rec = Date.now();
   const id = rec.toString(36) + azar(4);
-  const it = { id, rec, date: item.date || rec, kind: item.kind, text: String(item.text || "").slice(0, MAX_TEXTO), subject: String(item.subject || "").slice(0, 200), from: String(item.from || "").slice(0, 200) };
-  if (item.extra) it.extra = item.extra;
+  const datos = { text: String(item.text || "").slice(0, MAX_TEXTO), subject: String(item.subject || "").slice(0, 200), from: String(item.from || "").slice(0, 200) };
+  if (item.extra) datos.extra = item.extra;
+  if (!u) u = await env.BUZON.get("u:" + c, "json");
+  const it = { id, rec, date: item.date || rec, kind: item.kind };
+  if (u && u.pub) it.enc = await cifrar(u.pub, datos); else Object.assign(it, datos);
   await env.BUZON.put(`m:${c}:${String(rec).padStart(14, "0")}:${id}`, JSON.stringify(it), { expirationTtl: TTL });
   return it;
 }
@@ -63,8 +80,13 @@ export default {
         if (!(await limite(env, "reg:" + ip, 10, 3600))) return json({ ok: false, error: "demasiados intentos, prueba en una hora" }, 429);
         let c; for (let i = 0; i < 5; i++) { c = azar(8); if (!(await env.BUZON.get("u:" + c))) break; }
         const k = azar(32, "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789");
-        await env.BUZON.put("u:" + c, JSON.stringify({ h: await sha(k), at: Date.now() }));
-        return json({ ok: true, code: c, key: k, address: `${c}@${env.DOMINIO}` });
+        const body = await req.json().catch(() => ({}));
+        let pub = null;
+        if (body && body.pub && body.pub.kty === "RSA" && body.pub.n && body.pub.e) {
+          try { await crypto.subtle.importKey("jwk", body.pub, { name: "RSA-OAEP", hash: "SHA-256" }, false, ["encrypt"]); pub = { kty: "RSA", n: body.pub.n, e: body.pub.e, alg: "RSA-OAEP-256", ext: true }; } catch (e) { pub = null; }
+        }
+        await env.BUZON.put("u:" + c, JSON.stringify({ h: await sha(k), at: Date.now(), pub }));
+        return json({ ok: true, code: c, key: k, address: `${c}@${env.DOMINIO}`, cifrado: !!pub });
       }
       // 2. La app pide lo nuevo
       if (p === "/api/buzon" && req.method === "GET") {
@@ -87,7 +109,8 @@ export default {
       // 4. Compras con Apple Pay desde el atajo del iPhone
       if (p === "/api/ap" && req.method === "POST") {
         const c = url.searchParams.get("c"), k = url.searchParams.get("k");
-        if (!(await autoriza(env, c, k))) return json({ ok: false, error: "clave" }, 403);
+        const u = await autoriza(env, c, k);
+        if (!u) return json({ ok: false, error: "clave" }, 403);
         const ct = req.headers.get("Content-Type") || "";
         let l = "";
         if (/form/.test(ct)) { const f = await req.formData(); l = f.get("l") || f.get("linea") || ""; }
@@ -97,7 +120,7 @@ export default {
         if (!l) return json({ ok: false, error: "vacío" }, 400);
         if (!(await limite(env, "ap:" + c, 300, 86400))) return json({ ok: false, error: "límite diario" }, 429);
         const kind = /^MLV\s*\|/.test(l) ? "voz" : /^ML\s*\|/.test(l) ? "ap" : "texto";
-        await guardar(env, c, { kind, text: l.slice(0, 1000), from: "atajo" });
+        await guardar(env, c, { kind, text: l.slice(0, 1000), from: "atajo" }, u);
         return json({ ok: true });
       }
       // 5. Desactivar (borra todo)
@@ -119,7 +142,8 @@ export default {
   // Correos que llegan a código@DOMINIO
   async email(message, env) {
     const c = String(message.to || "").split("@")[0].toLowerCase().replace(/\+.*$/, "");
-    if (!codigoOk(c) || !(await env.BUZON.get("u:" + c))) { message.setReject("Buzón no existe"); return; }
+    const u = codigoOk(c) ? await env.BUZON.get("u:" + c, "json") : null;
+    if (!u) { message.setReject("Buzón no existe"); return; }
     if (!(await limite(env, "mail:" + c, 500, 86400))) { message.setReject("Límite diario"); return; }
     const raw = new Uint8Array(await new Response(message.raw).arrayBuffer());
     const m = leerCorreo(raw);
@@ -131,10 +155,10 @@ export default {
     if (/forwarding-noreply@google\.com/i.test(from) || /gmail.*(forwarding|reenv[ií]o)/i.test(subject)) {
       const cod = (subject.match(/#\s?(\d{6,12})/) || texto.match(/(?:c[oó]digo de confirmaci[oó]n|confirmation code)[^\d]{0,20}(\d{6,12})/i) || [])[1] || "";
       const link = (texto.match(/https:\/\/mail(?:-settings)?\.google\.com\/mail\/[^\s"'<>]+/) || [])[0] || "";
-      await guardar(env, c, { kind: "confirm", subject, from, date: fecha, text: cod ? `Código ${cod}` : texto.slice(0, 300), extra: { code: cod, link } });
+      await guardar(env, c, { kind: "confirm", subject, from, date: fecha, text: cod ? `Código ${cod}` : texto.slice(0, 300), extra: { code: cod, link } }, u);
       return;
     }
-    await guardar(env, c, { kind: "mail", subject, from, date: fecha, text: texto });
+    await guardar(env, c, { kind: "mail", subject, from, date: fecha, text: texto }, u);
   },
 };
 

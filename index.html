@@ -1712,7 +1712,7 @@ function parseFree(txt){
   if(!cat) cat=inc?"Otros ingresos":"Otros gastos";
   return {amount:a.v,date,desc,type,cat,account:accHint,fx:fxInfo,approx:/\b(LUCAS|LUCA|MIL|K|PALO|PALOS|MILLON|MILLONES|APROX)\b/.test(T)}; }
 /* ---------- Buzón automático (servidor de Mis Lucas: cada persona tiene su dirección propia) ---------- */
-const BUZON_API="https://buzon.mislucas.com";
+const BUZON_API="https://buzon.mislucasapp.com";
 const BANCOS_Q="from:(santander.cl OR bancochile.cl OR bancoedwards.cl OR bancoestado.cl OR bci.cl OR itau.cl OR scotiabank.cl OR bancofalabella.cl OR bancoripley.cl OR security.cl OR bice.cl OR bancointernacional.cl OR consorcio.cl OR tenpo.cl OR machbank.cl OR mercadopago.com OR mercadopago.cl OR coopeuch.cl OR cmrfalabella.com OR lider.cl OR tapp.cl)";
 let inboxBusy=false;
 const inboxCfg=()=>((state.config||{}).inbox)||null;

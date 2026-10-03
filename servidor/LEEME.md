@@ -19,3 +19,9 @@ Guarda cada cosa **solo hasta que la app la recoge** (máximo 30 días) y luego 
 - `POST /api/buzon/ok {c,k,ids}` → borra lo ya recogido
 - `POST /api/ap?c=&k=` (form `l=ML|…`) → compra Apple Pay
 - `POST /api/baja {c,k}` → desactiva y borra todo
+
+## Estado actual (3-oct-2026)
+- Dominio: mislucasapp.com (Cloudflare Registrar, renovación automática).
+- Worker: `worker-lucky-mud-48f7` con dominio `buzon.mislucasapp.com`, KV `BUZON`, variable `DOMINIO`.
+- Email Routing: registros DNS listos; catch-all → Worker (activo).
+- Pendiente: regla `contacto@` → Gmail del dueño (requiere verificar la dirección).

@@ -1,0 +1,13 @@
+# Mis Lucas · servidor del buzón (Cloudflare Workers)
+name = "mislucas-buzon"
+main = "buzon.js"
+compatibility_date = "2026-09-01"
+
+[vars]
+DOMINIO = "mislucas.app"   # cambiar por el dominio comprado
+
+[[kv_namespaces]]
+binding = "BUZON"
+id = "PEGAR_ID_DEL_KV"     # se crea en Cloudflare → Storage → KV
+
+# Rutas: buzon.<dominio>/* → este Worker (se configura en Cloudflare)

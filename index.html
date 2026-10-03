@@ -686,7 +686,7 @@ body.priv [data-tip]{pointer-events:auto}
 
 .ef>*{min-width:0}.freq{max-width:100%}
 @media (max-width:640px){ #syncText{display:none} }
-.ibx.on{border-color:var(--accent)}.ibrow{display:flex;gap:8px;margin-top:6px}.ibrow input{flex:1;min-width:0;border:1px solid var(--line-2);border-radius:10px;padding:9px 10px;font:inherit;font-size:14px;background:var(--surface);color:var(--ink)}.ibun{margin:12px 0;padding:10px;border-radius:12px;background:var(--surface-2)}.ibu{display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--line)}.ibu>div{flex:1;min-width:0}.ibu .t{font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ibu .m{font-size:12px;color:var(--muted)}
+.ibx.on{border-color:var(--accent)}.ibaddr{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.ibaddr code{font-size:15px;font-weight:700;background:var(--surface-2);padding:6px 10px;border-radius:10px;word-break:break-all}.ibsts{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 10px}.ibst{font-size:12.5px;padding:4px 10px;border-radius:999px;background:var(--surface-2);color:var(--muted)}.ibst.ok{background:var(--accent-soft);color:var(--good-text);font-weight:600}.ibcode{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0;padding:10px 12px;border-radius:12px;border:2px solid var(--accent);background:var(--accent-soft)}.ibcode b{font-size:22px;letter-spacing:1px}.ibdet{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}.ibdet summary{cursor:pointer;font-weight:700}.ibdet summary small{font-weight:400;color:var(--muted)}.ibrow{display:flex;gap:8px;margin-top:6px}.ibrow input{flex:1;min-width:0;border:1px solid var(--line-2);border-radius:10px;padding:9px 10px;font:inherit;font-size:14px;background:var(--surface);color:var(--ink)}.ibun{margin:12px 0;padding:10px;border-radius:12px;background:var(--surface-2)}.ibu{display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--line)}.ibu>div{flex:1;min-width:0}.ibu .t{font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ibu .m{font-size:12px;color:var(--muted)}
 .pbrow{display:grid;grid-template-columns:1fr 1fr;gap:8px}#eApPaste{grid-column:1/-1}.pbrow .pastebtn{display:flex;align-items:center;justify-content:center;cursor:pointer}
 .freebox{display:grid;grid-template-columns:1fr auto;gap:8px}.freebox textarea{font:inherit;font-size:15px;border:1.5px solid var(--accent);border-radius:12px;padding:12px;background:var(--surface);color:var(--ink);min-width:0;resize:none;min-height:48px;max-height:120px;line-height:1.35}.freebox{align-items:start}
 .paychips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}.paychips::-webkit-scrollbar{display:none}
@@ -1711,7 +1711,9 @@ function parseFree(txt){
   if(!cat){ const hit=(inc?NL_INC:NL_CATS).find(([re])=>re.test(T)); if(hit)cat=normCat(hit[1]); }
   if(!cat) cat=inc?"Otros ingresos":"Otros gastos";
   return {amount:a.v,date,desc,type,cat,account:accHint,fx:fxInfo,approx:/\b(LUCAS|LUCA|MIL|K|PALO|PALOS|MILLON|MILLONES|APROX)\b/.test(T)}; }
-/* ---------- Buzón automático (Google Apps Script en la cuenta de la persona) ---------- */
+/* ---------- Buzón automático (servidor de Mis Lucas: cada persona tiene su dirección propia) ---------- */
+const BUZON_API="https://buzon.mislucas.app";
+const BANCOS_Q="from:(santander.cl OR bancochile.cl OR bancoedwards.cl OR bancoestado.cl OR bci.cl OR itau.cl OR scotiabank.cl OR bancofalabella.cl OR bancoripley.cl OR security.cl OR bice.cl OR bancointernacional.cl OR consorcio.cl OR tenpo.cl OR machbank.cl OR mercadopago.com OR mercadopago.cl OR coopeuch.cl OR cmrfalabella.com OR lider.cl OR tapp.cl)";
 let inboxBusy=false;
 const inboxCfg=()=>((state.config||{}).inbox)||null;
 const INBOX_RX=/compra|cargo|transfer|abono|pago|giro|recib|dep[oó]sito|comprobante/i;
@@ -1732,51 +1734,60 @@ function inboxImport(items){ const have=new Set(allRefs().map(r=>r.t.extId).filt
   Object.entries(byYm).forEach(([ym,L])=>mutateMonth(ym,cur=>cur.tx.push(...L)));
   if(lines.length){ const txt=lines.join("\n"); const r1=importML(parseMLLines(txt)), r2=importVoice(parseVoiceLines(txt).filter(x=>!x.bad)); add+=r1.add+r2.add; skip+=r1.skip+r2.skip; }
   return {add,skip,unread}; }
-async function inboxSync(manual){ const ib=inboxCfg(); if(!ib||inboxBusy||state.example)return; if(!manual&&ib.at&&Date.now()-ib.at<45e3)return; inboxBusy=true; if(manual) renderInbox(true);
-  try{ const r=await fetch(`${ib.url}?a=${manual?"check":"get"}&k=${encodeURIComponent(ib.key)}&since=${ib.since||0}`,{cache:"no-store"}); const j=await r.json(); if(!j.ok) throw new Error(j.error==="clave"?"La clave del buzón no coincide: vuelve a conectarlo.":j.error||"error");
-    const items=j.items||[]; const res=inboxImport(items); const mx=items.reduce((m,i)=>Math.max(m,+i.rec||0),ib.since||0);
-    mutateConfig(c=>{ if(!c.inbox)return; c.inbox.since=mx; c.inbox.at=Date.now(); c.inbox.n=(c.inbox.n||0)+res.add; delete c.inbox.err; if(res.unread.length) c.inbox.unread=(c.inbox.unread||[]).concat(res.unread).slice(-30); });
+async function inboxSync(manual){ const ib=inboxCfg(); if(!ib||!ib.code||inboxBusy||state.example)return; if(!manual&&ib.at&&Date.now()-ib.at<45e3)return; inboxBusy=true; if(manual) renderInbox(true);
+  try{ const api=ib.api||BUZON_API; const r=await fetch(`${api}/api/buzon?c=${ib.code}&k=${encodeURIComponent(ib.key)}`,{cache:"no-store"}); const j=await r.json().catch(()=>({}));
+    if(!j.ok) throw new Error(j.error==="clave"?"Tu buzón ya no existe en el servidor: desactívalo y vuelve a activarlo.":j.error||"error");
+    const items=j.items||[]; const conf=items.filter(i=>i.kind==="confirm"); const res=inboxImport(items.filter(i=>i.kind!=="confirm"));
+    mutateConfig(c=>{ if(!c.inbox)return; c.inbox.at=Date.now(); c.inbox.n=(c.inbox.n||0)+res.add; delete c.inbox.err; if(res.unread.length) c.inbox.unread=(c.inbox.unread||[]).concat(res.unread).slice(-30); if(conf.length){ const x=conf[conf.length-1]; c.inbox.gconf={code:(x.extra||{}).code||"",link:(x.extra||{}).link||"",at:Date.now()}; } if(items.some(i=>i.kind==="mail")) c.inbox.mailOk=true; if(items.some(i=>i.kind==="ap")) c.inbox.apOk=true; });
+    if(items.length) fetch(`${api}/api/buzon/ok`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({c:ib.code,k:ib.key,ids:items.map(i=>i.id)})}).catch(()=>{});
+    if(conf.length) okToast("📬 Llegó el código de confirmación de Gmail: míralo en el buzón");
     if(res.add){ okToast(`📬 ${res.add} movimiento${res.add===1?"":"s"} nuevo${res.add===1?"":"s"} desde el buzón${res.unread.length?` · ${res.unread.length} correo${res.unread.length===1?"":"s"} por revisar`:""}`); render(); }
-    else if(res.unread.length){ toast(`📬 ${res.unread.length} correo${res.unread.length===1?"":"s"} del banco que no pude leer: míralos en Anotar gastos al instante`); renderAlerts&&renderAlerts(); }
-    else if(manual) okToast("📬 Buzón al día: nada nuevo");
-  }catch(e){ mutateConfig(c=>{ if(c.inbox) c.inbox.err=String(e&&e.message||e).slice(0,120); }); if(manual) toast(/clave/.test(String(e&&e.message))?e.message:"No pude revisar el buzón. Revisa tu conexión e inténtalo de nuevo."); }
+    else if(res.unread.length){ toast(`📬 ${res.unread.length} correo${res.unread.length===1?"":"s"} del banco que no pude leer: míralos en Anotar gastos al instante`); renderAlerts(); }
+    else if(manual&&!conf.length) okToast("📬 Buzón al día: nada nuevo");
+  }catch(e){ mutateConfig(c=>{ if(c.inbox) c.inbox.err=String(e&&e.message||e).slice(0,140); }); if(manual) toast(/buzón/.test(String(e&&e.message))?e.message:"No pude revisar el buzón. Revisa tu conexión e inténtalo de nuevo."); }
   finally{ inboxBusy=false; renderInbox(); } }
-async function inboxPair(){ let url=($("#ibUrl")&&$("#ibUrl").value||"").trim().replace(/[?#].*$/,"");
-  if(!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(url)){ toast("Pega la URL de la aplicación web: empieza con https://script.google.com/macros/s/ y termina en /exec"); return }
-  if(state.example){ toast("Primero crea tu espacio (o restaura tu respaldo) para conectar el buzón."); return }
-  const b=$("#ibGo"); if(b){ b.disabled=true; b.textContent="Conectando…"; }
-  try{ const r=await fetch(url+"?a=pair",{cache:"no-store"}); const j=await r.json();
-    if(!j.ok){ toast(j.error==="cerrado"?"El buzón no acepta conexiones: en script.google.com vuelve a ejecutar «instalar» y conéctalo antes de 30 minutos.":"El buzón respondió con un error."); return }
-    mutateConfig(c=>{ c.inbox={url,key:j.key,since:0,at:0,n:0}; }); okToast("📬 Buzón conectado"); inboxSync(true);
-  }catch(e){ toast("No pude conectar. Revisa que la implementación sea «Aplicación web» con acceso «Cualquier usuario»."); }
-  finally{ const b2=$("#ibGo"); if(b2){ b2.disabled=false; b2.textContent="Conectar"; } renderInbox(); } }
+async function inboxActivate(){ if(state.example){ toast("Primero crea tu espacio (o restaura tu respaldo) para activar el buzón."); return }
+  const b=$("#ibGo"); if(b){ b.disabled=true; b.textContent="Activando…"; }
+  try{ const r=await fetch(`${BUZON_API}/api/registro`,{method:"POST"}); const j=await r.json();
+    if(!j.ok){ toast(j.error?`No pude activarlo: ${j.error}`:"No pude activarlo."); return }
+    mutateConfig(c=>{ c.inbox={api:BUZON_API,code:j.code,key:j.key,addr:j.address,n:0,at:0}; }); okToast("📬 Buzón activado"); renderAlerts();
+  }catch(e){ toast("No pude conectarme al servidor del buzón. Revisa tu conexión."); }
+  finally{ renderInbox(); } }
+const copyTxt=async(t,ok)=>{ try{ await navigator.clipboard.writeText(t); okToast(ok); }catch(e){ toast("No pude copiarlo: mantén presionado el texto para copiarlo a mano."); } };
 function renderInbox(busy){ const box=$("#inboxBox"); if(!box)return; const ib=inboxCfg();
-  if(!ib){ box.innerHTML=`<div class="guide ibx"><h3>📬 Buzón automático <small>recomendado</small></h3>
-    <p class="note">Tus compras con <b>Apple Pay</b> y los <b>correos de tu banco</b> (compras, transferencias, abonos) entran solos a la app, sin copiar ni pegar. Vive en tu propia cuenta de Google: nadie más ve tus datos. Se configura una vez, idealmente desde el computador (10 minutos).</p>
-    <ol><li>Entra a <b>script.google.com</b> con tu cuenta de Gmail → <b>Nuevo proyecto</b>. Arriba, cámbiale el nombre a «Mis Lucas buzón».</li>
-    <li>Borra lo que viene escrito y pega el código del buzón: <button type="button" class="btn sm" id="ibCopy">📋 Copiar código</button> <a href="buzon/codigo-buzon.txt" target="_blank" rel="noopener">o ábrelo aquí</a>. Toca 💾 <b>Guardar</b>.</li>
-    <li>Arriba elige la función <b>instalar</b> y toca <b>▶ Ejecutar</b>. Google pide permisos: <b>Revisar permisos</b> → tu cuenta → <b>Configuración avanzada</b> → <b>Ir a Mis Lucas buzón</b> → <b>Permitir</b>. Dice «no verificada» porque la app la creaste tú.</li>
-    <li><b>Implementar</b> → <b>Nueva implementación</b> → ⚙️ <b>Aplicación web</b>. Ejecutar como: <b>Yo</b>. Quién tiene acceso: <b>Cualquier usuario</b>. Toca <b>Implementar</b> y copia la <b>URL de la aplicación web</b>.</li>
-    <li>Pégala aquí (antes de 30 minutos):<div class="ibrow"><input id="ibUrl" type="url" inputmode="url" autocomplete="off" placeholder="https://script.google.com/macros/s/…/exec"><button type="button" class="btn primary" id="ibGo">Conectar</button></div></li></ol></div>`; return }
+  if(!ib||!ib.code){ box.innerHTML=`<div class="guide ibx"><h3>📬 Buzón automático <small>recomendado</small></h3>
+    <p class="note">Tus compras con <b>Apple Pay</b> y los <b>correos de tu banco</b> (compras, transferencias, abonos) entran solos a Mis Lucas, sin copiar ni pegar. Te damos una dirección de correo propia: tu Gmail le reenvía los avisos del banco y la app los lee. El servidor solo guarda cada correo hasta que tu app lo recoge, y después lo borra.</p>
+    <button type="button" class="btn primary" id="ibGo">Activar mi buzón</button></div>`; return }
   const ago=ib.at?(()=>{ const m=Math.round((Date.now()-ib.at)/6e4); return m<1?"recién":m<60?`hace ${m} min`:m<1440?`hace ${Math.round(m/60)} h`:`hace ${Math.round(m/1440)} días`; })():"todavía no";
-  const U=ib.unread||[]; const sc=`${ib.url}?k=${ib.key}`;
-  box.innerHTML=`<div class="guide ibx on"><h3>📬 Buzón automático <small>${ib.err?"⚠️ con problema":"✓ conectado"}</small></h3>
-    <p class="note" style="margin:0 0 10px">${busy?"Revisando…":`Última revisión ${ago} · ${ib.n||0} movimiento${ib.n===1?"":"s"} traídos. Se revisa solo cada vez que abres la app.`}${ib.err?`<br><span style="color:var(--crit)">${esc(ib.err)}</span>`:""}</p>
-    <div class="abtns"><button type="button" class="btn primary sm" id="ibSync"${busy?" disabled":""}>Revisar ahora</button><button type="button" class="btn sm" id="ibOff">Desconectar</button></div>
-    ${U.length?`<div class="ibun"><b>Correos que no pude leer (${U.length})</b><p class="note" style="margin:2px 0 6px">Ábrelos para anotarlos a mano, o descártalos si no son movimientos.</p>${U.slice().reverse().map(u=>`<div class="ibu"><div><div class="t">${esc(u.subject)}</div><div class="m">${esc(dmy(u.date))}</div></div><button type="button" class="btn sm" data-ibadd="${esc(u.id)}">Anotar</button><button type="button" class="iconbtn" data-ibdel="${esc(u.id)}" aria-label="Descartar">✕</button></div>`).join("")}</div>`:""}
-    <b class="gsub">Apple Pay sin copiar ni pegar</b>
-    <ol><li>En <b>Atajos</b> abre tu automatización de Wallet. Al final, después de <b>Append to Text File</b>, agrega <b>Get Contents of URL</b>.</li>
-    <li>En la URL pega esta dirección: <button type="button" class="btn sm" id="ibCopyUrl">📋 Copiar dirección</button></li>
-    <li>Toca la flechita: <b>Method</b> → <b>POST</b>, <b>Request Body</b> → <b>Form</b>. Toca <b>Add new field</b> → <b>Text</b>: en <b>Key</b> escribe <code>l</code> y en <b>Text</b> inserta la variable <b>Text</b> (la línea ML|…).</li>
-    <li>Listo: cada compra con Apple Pay llega al buzón al instante y aparece al abrir Mis Lucas. Si no hay internet en ese momento, queda en el archivo y la traes con «📲 Traer Apple Pay».</li></ol></div>`;
-  box.dataset.sc=sc; }
+  const U=ib.unread||[], G=ib.gconf, apUrl=`${ib.api||BUZON_API}/api/ap?c=${ib.code}&k=${ib.key}`; const st=(ok,t)=>`<span class="ibst${ok?" ok":""}">${ok?"✓":"○"} ${t}</span>`;
+  box.innerHTML=`<div class="guide ibx on"><h3>📬 Buzón automático <small>${ib.err?"⚠️ con problema":"✓ activo"}</small></h3>
+    <p class="note" style="margin:0 0 8px">Tu dirección:</p>
+    <div class="ibaddr"><code>${esc(ib.addr)}</code><button type="button" class="btn sm" data-copy="addr">📋 Copiar</button></div>
+    <p class="note" style="margin:8px 0 10px">${busy?"Revisando…":`Última revisión ${ago} · ${ib.n||0} movimiento${ib.n===1?"":"s"} traídos. Se revisa solo cada vez que abres la app.`}${ib.err?`<br><span style="color:var(--crit)">${esc(ib.err)}</span>`:""}</p>
+    <div class="ibsts">${st(ib.mailOk,"Correos del banco")}${st(ib.apOk,"Apple Pay")}</div>
+    <div class="abtns"><button type="button" class="btn primary sm" id="ibSync"${busy?" disabled":""}>Revisar ahora</button></div>
+    ${G&&G.code&&!ib.mailOk?`<div class="ibcode"><div>Código de confirmación de Gmail</div><b class="num">${esc(G.code)}</b><button type="button" class="btn sm" data-copy="gcode">📋 Copiar</button></div>`:""}
+    ${U.length?`<div class="ibun"><b>Correos que no pude leer (${U.length})</b><p class="note" style="margin:2px 0 6px">Anótalos a mano o descártalos si no son movimientos.</p>${U.slice().reverse().map(u=>`<div class="ibu"><div><div class="t">${esc(u.subject)}</div><div class="m">${esc(dmy(u.date))}</div></div><button type="button" class="btn sm" data-ibadd="${esc(u.id)}">Anotar</button><button type="button" class="iconbtn" data-ibdel="${esc(u.id)}" aria-label="Descartar">✕</button></div>`).join("")}</div>`:""}
+    <details class="ibdet"${ib.mailOk?"":" open"}><summary>Conectar tu Gmail <small>(una vez, desde el computador)</small></summary>
+    <ol><li>Abre <b>Gmail en el computador</b> → ⚙️ → <b>Ver toda la configuración</b> → pestaña <b>Reenvío y correo POP/IMAP</b> → <b>Agregar una dirección de reenvío</b>. Pega tu dirección (arriba) → <b>Siguiente</b> → <b>Continuar</b>.</li>
+    <li>Gmail le manda un código a tu buzón: <b>aparece aquí arriba en unos segundos</b> (toca «Revisar ahora»). Escríbelo en Gmail y toca <b>Verificar</b>. Deja marcado «Inhabilitar reenvío»: solo vamos a reenviar los del banco.</li>
+    <li>Arriba en Gmail, en la búsqueda, pega esto: <button type="button" class="btn sm" data-copy="q">📋 Copiar búsqueda</button> Luego toca el ícono de filtros (a la derecha de la búsqueda) → <b>Crear filtro</b> → marca <b>Reenviarlo a</b> y elige tu dirección → <b>Crear filtro</b>.</li>
+    <li>Listo: desde ahora los avisos de tu banco llegan solos a la app. También puedes reenviar cualquier correo a tu dirección desde el teléfono.</li></ol></details>
+    <details class="ibdet"${ib.apOk?"":" open"}><summary>Conectar Apple Pay <small>(una vez, en el iPhone)</small></summary>
+    <ol><li>En <b>Atajos</b> abre tu automatización de Wallet. Al final agrega <b>Get Contents of URL</b> (Obtener contenido de URL).</li>
+    <li>En la URL pega tu dirección de Apple Pay: <button type="button" class="btn sm" data-copy="ap">📋 Copiar dirección</button></li>
+    <li>Toca la flechita: <b>Method</b> → <b>POST</b>, <b>Request Body</b> → <b>Form</b>, <b>Add new field</b> → <b>Text</b>: en <b>Key</b> escribe <code>l</code> y en <b>Text</b> inserta la variable <b>Text</b> (la línea ML|…).</li>
+    <li>Listo: cada compra con Apple Pay llega al instante y aparece al abrir Mis Lucas.</li></ol></details>
+    <div class="abtns" style="margin-top:10px"><button type="button" class="btn sm" id="ibOff" style="color:var(--crit)">Desactivar buzón</button></div></div>`;
+  box._copy={addr:ib.addr,gcode:G&&G.code||"",q:BANCOS_Q,ap:apUrl}; }
 function bindInbox(){ const box=$("#inboxBox"); if(!box)return;
   box.addEventListener("click",async e=>{ const b=e.target.closest("button"); if(!b)return;
-    if(b.id==="ibGo"){ inboxPair(); return }
+    if(b.id==="ibGo"){ inboxActivate(); return }
     if(b.id==="ibSync"){ inboxSync(true); return }
-    if(b.id==="ibCopy"){ try{ const t=await (await fetch("buzon/codigo-buzon.txt",{cache:"no-store"})).text(); await navigator.clipboard.writeText(t); okToast("Código copiado: pégalo en script.google.com"); }catch(err){ toast("No pude copiarlo: usa «ábrelo aquí» y cópialo desde ahí."); } return }
-    if(b.id==="ibCopyUrl"){ try{ await navigator.clipboard.writeText(box.dataset.sc||""); okToast("Dirección copiada: pégala en «Get Contents of URL»"); }catch(err){ toast("No pude copiarla."); } return }
-    if(b.id==="ibOff"){ if(!b.dataset.armed){ b.dataset.armed="1"; b.textContent="¿Desconectar? Toca de nuevo"; setTimeout(()=>{ if(b.isConnected){ delete b.dataset.armed; b.textContent="Desconectar"; } },3500); return } mutateConfig(c=>{ delete c.inbox; }); renderInbox(); okToast("Buzón desconectado"); return }
+    if(b.dataset.copy){ const v=(box._copy||{})[b.dataset.copy]||""; copyTxt(v,{addr:"Dirección copiada",gcode:"Código copiado: pégalo en Gmail",q:"Búsqueda copiada: pégala en Gmail",ap:"Dirección copiada: pégala en el atajo"}[b.dataset.copy]); return }
+    if(b.id==="ibOff"){ if(!b.dataset.armed){ b.dataset.armed="1"; b.textContent="¿Desactivar? Toca de nuevo"; setTimeout(()=>{ if(b.isConnected){ delete b.dataset.armed; b.textContent="Desactivar buzón"; } },3500); return }
+      const ib=inboxCfg(); if(ib&&ib.code) fetch(`${ib.api||BUZON_API}/api/baja`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({c:ib.code,k:ib.key})}).catch(()=>{});
+      mutateConfig(c=>{ delete c.inbox; }); renderInbox(); renderAlerts(); okToast("Buzón desactivado. Recuerda quitar el filtro de reenvío en Gmail."); return }
     if(b.dataset.ibdel){ mutateConfig(c=>{ if(c.inbox) c.inbox.unread=(c.inbox.unread||[]).filter(u=>u.id!==b.dataset.ibdel); }); renderInbox(); renderAlerts(); return }
     if(b.dataset.ibadd){ const u=((inboxCfg()||{}).unread||[]).find(x=>x.id===b.dataset.ibadd); if(!u)return; mutateConfig(c=>{ if(c.inbox) c.inbox.unread=(c.inbox.unread||[]).filter(x=>x.id!==u.id); }); hideSheet("#acct"); openEdit(null); setTimeout(()=>{ if(ed&&ed.v){ ed.v.desc=u.subject.slice(0,60); ed.v.date=u.date; renderEdit(); } toast("Completa el monto con lo que dice el correo y toca Agregar"); },300); renderAlerts(); return } });
   document.addEventListener("visibilitychange",()=>{ if(!document.hidden) inboxSync(false); });

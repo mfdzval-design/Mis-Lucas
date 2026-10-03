@@ -217,4 +217,3 @@ function htmlATexto(h) {
   return h.replace(/<(style|script|head)[\s\S]*?<\/\1>/gi, " ").replace(/<br\s*\/?>|<\/(p|div|tr|td|th|li|h\d)>/gi, " ").replace(/<[^>]+>/g, " ")
     .replace(/&#x([0-9a-f]+);/gi, (_, x) => String.fromCodePoint(parseInt(x, 16))).replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(+d)).replace(/&([a-z]+);/gi, (m, n) => ent[n] ?? m);
 }
-export { leerCorreo, htmlATexto };

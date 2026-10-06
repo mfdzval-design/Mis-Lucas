@@ -6,8 +6,8 @@ self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c =>
 self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
 self.addEventListener("fetch", e => {
   const req = e.request; if (req.method !== "GET") return;
-  // Los indicadores (mindicador.cl) y el buzón (Google) van directo a internet; no se guardan aquí.
-  const host = new URL(req.url).hostname; if (host.endsWith("mindicador.cl") || host.endsWith("script.google.com") || host.endsWith("googleusercontent.com")) return;
+  // Los indicadores (mindicador.cl) y el buzón van directo a internet; no se guardan aquí.
+  const host = new URL(req.url).hostname; if (host.endsWith("mindicador.cl") || host.startsWith("buzon.") || host.endsWith("script.google.com") || host.endsWith("googleusercontent.com")) return;
   // Red primero (para recibir actualizaciones); si no hay internet, usa la copia guardada.
   e.respondWith(fetch(req).then(res => { const copy = res.clone(); if (res.ok || res.type === "opaque") caches.open(CACHE).then(c => c.put(req, copy)); return res; })
     .catch(() => caches.match(req).then(r => r || (req.mode === "navigate" ? caches.match("./index.html") : undefined))));

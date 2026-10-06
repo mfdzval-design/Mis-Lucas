@@ -1827,8 +1827,9 @@ async function thumbOf(file){ const url=URL.createObjectURL(file); try{ const im
   const sc=Math.min(1,1100/img.naturalWidth,1600/img.naturalHeight); const cv=document.createElement("canvas"); cv.width=Math.round(img.naturalWidth*sc); cv.height=Math.round(img.naturalHeight*sc); cv.getContext("2d").drawImage(img,0,0,cv.width,cv.height);
   return await new Promise(r=>cv.toBlob(r,"image/jpeg",0.7)); } catch(e){ return null; } finally{ URL.revokeObjectURL(url); } }
 const BRANDS=["JUMBO","LIDER","UNIMARC","SANTA ISABEL","TOTTUS","ACUENTA","ALVI","MAYORISTA 10","OK MARKET","OXXO","COPEC","SHELL","PETROBRAS","ARAMCO","CRUZ VERDE","SALCOBRAND","AHUMADA","DR SIMI","FALABELLA","PARIS","RIPLEY","HITES","LA POLAR","SODIMAC","EASY","CONSTRUMART","IKEA","H&M","ZARA","STARBUCKS","JUAN VALDEZ","MCDONALDS","BURGER KING","KFC","DOMINOS","PIZZA HUT","DOGGIS","TELEPIZZA","PRE UNIC","MAICAO","DBS","LIVERPOOL","PETCO","SUPERZOO","MERCADO LIBRE","DECATHLON","ADIDAS","NIKE","PARIS"];
-function looksReceipt(t){ const T=norm(t); return /BOLETA|R\.?U\.?T|\bSII\b|\bIVA\b|VUELTO|TOTAL A PAGAR|\bSUBTOTAL\b|TIMBRE|N[°º] ?BOLETA|CAJA|CAJERO|TRANSBANK|COMPROBANTE DE VENTA/.test(T)&&/TOTAL/.test(T); }
-function parseReceipt(text){
+function rcptFix(t){ return String(t||"").replace(/\bT[O0][TI1]A[LI1|]\b/gi,"TOTAL").replace(/\bB[O0]LETA\b/gi,"BOLETA"); }
+function looksReceipt(t){ const T=norm(rcptFix(t)); return /BOLETA|R\.?U\.?T|\bSII\b|\bIVA\b|VUELTO|TOTAL A PAGAR|\bSUBTOTAL\b|TIMBRE|N[°º] ?BOLETA|CAJA|CAJERO|TRANSBANK|COMPROBANTE DE VENTA/.test(T)&&/TOTAL/.test(T); }
+function parseReceipt(text){ text=rcptFix(text);
   const lines=String(text||"").split(/\n/).map(l=>l.replace(/\s+/g," ").trim()).filter(Boolean); const T=norm(text);
   const amtIn=l=>[...l.matchAll(/\$?\s?(\d{1,3}(?:[.,]\d{3})+|\d{3,7})(?![.,]?\d)/g)].map(m=>Math.round(Math.abs(parseAmount(m[1])))).filter(v=>v>0);
   let total=0;
@@ -1837,7 +1838,8 @@ function parseReceipt(text){
     if(total)break; }
   if(!total){ const all=lines.filter(l=>!/R\.?U\.?T|FOLIO|N[°º]|TEL|FONO|CAJA|BOLETA/i.test(l)).flatMap(amtIn).filter(v=>v<5e6); total=all.length?Math.max(...all):0; }
   let desc=BRANDS.find(b=>new RegExp("\\b"+b.replace(/[&]/g,"\\$&")+"\\b").test(T))||"";
-  if(!desc){ for(const l of lines.slice(0,7)){ const n=norm(l); if(n.replace(/[^A-Z]/g,"").length<3)continue; if(/R\.?U\.?T|BOLETA|ELECTRONICA|\bSII\b|FECHA|DIRECCION|CASA MATRIZ|GIRO|SUCURSAL|FONO|TELEFONO|WWW|HTTP|@|LOCAL|CAJA|COMUNA|AV\.|AVENIDA|CALLE/.test(n))continue; desc=n.replace(/\b(S\.?A\.?|SPA|LTDA|EIRL|Y CIA|COMERCIAL|COMERCIALIZADORA)\b\.?/g,"").replace(/[^A-Z0-9& ]/g," ").replace(/\s+/g," ").trim(); if(desc.length>=3)break; desc=""; } }
+  const LEGAL=/\b(SOCIEDAD|INVERSIONES|COMERCIALIZADORA|COMERCIAL|RETAIL|SERVICIOS|DISTRIBUIDORA|IMPORTADORA|EMPRESAS?|HOLDING)\b/; // razón social: mejor el nombre de fantasía de la línea siguiente
+  for(const pass of [0,1]){ if(desc)break; for(const l of lines.slice(0,7)){ if(!pass&&LEGAL.test(norm(l)))continue; const n=norm(l); if(n.replace(/[^A-Z]/g,"").length<3)continue; if(/R\.?U\.?T|BOLETA|ELECTRONICA|\bSII\b|FECHA|DIRECCION|CASA MATRIZ|GIRO|SUCURSAL|FONO|TELEFONO|WWW|HTTP|@|LOCAL|CAJA|COMUNA|AV\.|AVENIDA|CALLE/.test(n))continue; desc=n.replace(/\b(S\.?A\.?|SPA|LTDA|EIRL|Y CIA|COMERCIAL|COMERCIALIZADORA)\b\.?/g,"").replace(/[^A-Z0-9& ]/g," ").replace(/\s+/g," ").trim(); if(desc.length>=3)break; desc=""; } }
   desc=desc?desc.toLowerCase().replace(/(^|\s)\S/g,c=>c.toUpperCase()).slice(0,40):"Compra con boleta";
   let date=null; const dm=String(text).match(/\b(\d{1,2}[\/\-.]\d{1,2}[\/\-.](?:20)?\d{2})\b/); if(dm) date=parseDate(dm[1],new Date().getFullYear());
   const today=new Date(); const tIso=today.getFullYear()+"-"+pad(today.getMonth()+1)+"-"+pad(today.getDate()); if(!date||date>tIso||date<shiftYM(todayYM(),-3)+"-01") date=tIso;
@@ -1869,13 +1871,15 @@ async function getOcr(onPct){
   const opt={logger:m=>{ if(onPct&&m&&typeof m.progress==="number") onPct(m.status,m.progress); }};
   if(O.workerPath)opt.workerPath=O.workerPath; if(O.corePath)opt.corePath=O.corePath; if(O.langPath)opt.langPath=O.langPath;
   ocrWorker=await Tesseract.createWorker("spa",1,opt); return ocrWorker; }
-async function prepImage(file){
+async function prepImage(file,alt){
   const url=URL.createObjectURL(file); try{
     const img=await new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=url; });
     const sc=img.naturalWidth<900?2:img.naturalWidth>2400?2400/img.naturalWidth:1; const w=Math.round(img.naturalWidth*sc), h=Math.round(img.naturalHeight*sc);
     const cv=document.createElement("canvas"); cv.width=w; cv.height=h; const cx=cv.getContext("2d"); cx.drawImage(img,0,0,w,h);
-    const d=cx.getImageData(0,0,w,h), p=d.data; let sum=0; for(let i=0;i<p.length;i+=16) sum+=0.299*p[i]+0.587*p[i+1]+0.114*p[i+2]; const dark=sum/(p.length/16)<110;
-    for(let i=0;i<p.length;i+=4){ let g=0.299*p[i]+0.587*p[i+1]+0.114*p[i+2]; if(dark)g=255-g; p[i]=p[i+1]=p[i+2]=g; } cx.putImageData(d,0,0); return cv;
+    const d=cx.getImageData(0,0,w,h), p=d.data; let sum=0; for(let i=0;i<p.length;i+=16) sum+=0.299*p[i]+0.587*p[i+1]+0.114*p[i+2]; let dark=sum/(p.length/16)<110; if(alt)dark=!dark;
+    // segundo intento: invierte y estira el contraste (notificaciones translúcidas, boletas desteñidas)
+    let lo=0,hi=255; if(alt){ const H=new Array(256).fill(0); let n=0; for(let i=0;i<p.length;i+=16){ H[Math.round(0.299*p[i]+0.587*p[i+1]+0.114*p[i+2])]++; n++; } let c=0; for(lo=0;lo<255&&(c+=H[lo])<n*.02;lo++); c=0; for(hi=255;hi>0&&(c+=H[hi])<n*.02;hi--); if(hi-lo<20){lo=0;hi=255;} }
+    for(let i=0;i<p.length;i+=4){ let g=0.299*p[i]+0.587*p[i+1]+0.114*p[i+2]; if(alt)g=Math.max(0,Math.min(255,(g-lo)*255/(hi-lo))); if(dark)g=255-g; p[i]=p[i+1]=p[i+2]=g; } cx.putImageData(d,0,0); return cv;
   } finally { URL.revokeObjectURL(url); } }
 const MESES={ene:1,feb:2,mar:3,abr:4,may:5,jun:6,jul:7,ago:8,sep:9,set:9,oct:10,nov:11,dic:12};
 function ocrDate(s,ref){ const t=norm(s); const today=new Date(ref||Date.now()); const iso=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
@@ -1883,31 +1887,45 @@ function ocrDate(s,ref){ const t=norm(s); const today=new Date(ref||Date.now());
   let m=t.match(/\b(\d{1,2})[\/\-.](\d{1,2})(?:[\/\-.](\d{2,4}))?\b/); if(m&&+m[2]>=1&&+m[2]<=12&&+m[1]>=1&&+m[1]<=31){ let y=m[3]?+m[3]:today.getFullYear(); if(y<100)y+=2000; if(!m[3]&&+m[2]>today.getMonth()+1)y--; return y+"-"+pad(m[2])+"-"+pad(m[1]); }
   m=t.match(/\b(\d{1,2})\s*(?:DE\s+)?(ENE|FEB|MAR|ABR|MAY|JUN|JUL|AGO|SEP|SET|OCT|NOV|DIC)[A-Z]*\.?(?:\s*(?:DE\s+)?(\d{4}))?/); if(m){ const mo=MESES[m[2].toLowerCase()]; let y=m[3]?+m[3]:today.getFullYear(); if(!m[3]&&mo>today.getMonth()+1)y--; return y+"-"+pad(mo)+"-"+pad(m[1]); }
   return null; }
+/* Arregla cómo el lector ve los montos: «CLP 4.500», «4.500 CLP», «S12.990» (la $ leída como S), «$35.000,00». */
+function ocrMoney(s){ return String(s||"")
+  .replace(/\bCLP\s?\$?\s?(\d)/gi,"$$$1")
+  .replace(/(\d{1,3}(?:\.\d{3})+|\d{3,7})(?:,\d{1,2})?\s?(?:CLP|\$)(?![\w$])/gi,"$$$1")
+  .replace(/(^|[\s(:])[S§]\s?(\d{1,3}(?:\.\d{3})+)(?![.,]?\d)/g,"$1$$$2")
+  .replace(/(\$\s?\d{1,3}(?:\.\d{3})+),\d{1,2}(?!\d)/g,"$1"); }
+const OCR_L4=/(?:terminad[ao] en|termina en|\*{2,}|X{3,}|[•·*+][•·*+e.]{1,6}|\be[+*][•·*+e]{0,5})\s*(\d{4})\b/i;
+const OCR_NAV=/^(ATRAS|VOLVER|LISTO|CERRAR|OK|WALLET|APPLE PAY|APPLE WALLET|NOTIFICACIONES?|CENTRO DE NOTIFICACIONES|DETALLES?|TRANSACCION(ES)?|MOVIMIENTOS?|BUSCAR|CANCELAR|EDITAR|COMPARTIR)$/;
 const OCR_AMT=/([-+−–]\s?)?\$\s?(\d{1,3}(?:[.,]\d{3})+|\d{1,7})(?![.,]?\d)/g;
 const OCR_SKIP=/SALDO|DISPONIBLE|CUPO|TOTAL|PAGO MINIMO|MONTO FACTURADO|DEUDA|FACTURAD|VENCIMIENTO|ULTIMOS MOVIMIENTOS|MOVIMIENTOS NO|LINEA DE CREDITO|ESTADO DE CUENTA|RETENIDO/;
-function ocrRows(lines){ const L=lines.map(l=>({t:String(l.text||"").replace(/\s+/g," ").trim(),y0:l.bbox.y0,y1:l.bbox.y1,x0:l.bbox.x0})).filter(l=>l.t);
+function ocrRows(lines){ const L=lines.map(l=>({t:ocrMoney(String(l.text||"")).replace(/\s+/g," ").trim(),y0:l.bbox.y0,y1:l.bbox.y1,x0:l.bbox.x0})).filter(l=>l.t);
   L.sort((a,b)=>(a.y0+a.y1)-(b.y0+b.y1)); const rows=[];
   L.forEach(l=>{ const c=(l.y0+l.y1)/2, h=l.y1-l.y0; const r=rows.find(r=>Math.abs(r.c-c)<Math.max(6,Math.min(h,r.h)*.55)); if(r){ r.parts.push(l); r.h=Math.max(r.h,h); } else rows.push({c,h,parts:[l]}); });
   return rows.map(r=>r.parts.sort((a,b)=>a.x0-b.x0).map(p=>p.t).join("  ")); }
 function parseOCR(lines,fullText,ref){
-  const rows=ocrRows(lines); const T=norm(fullText);
+  fullText=ocrMoney(fullText); const rows=ocrRows(lines); const T=norm(fullText);
   const kind=/TARJETA DE CREDITO|CUPO|FACTURAD|MASTERCARD|VISA/.test(T)?"tc":/CUENTA CORRIENTE/.test(T)?"cc":/CUENTA ?VISTA|CUENTA ?RUT/.test(T)?"vista":"";
   const BK=[["BancoEstado",/BANCOESTADO|BANCO ESTADO|CUENTARUT/],["Santander",/SANTANDER/],["Itaú",/ITAU/],["BCI",/\bBCI\b/],["Banco de Chile",/BANCO DE CHILE|BANCOCHILE/],["Scotiabank",/SCOTIA/],["Banco Falabella",/FALABELLA|CMR/],["Tenpo",/TENPO/],["MACH",/\bMACH\b/],["Mercado Pago",/MERCADO ?PAGO/]];
   const bk=(BK.find(([n,re])=>re.test(T))||[""])[0];
-  const out=[]; let ctx=ocrDate("hoy",ref), pend=[], prevItem=null, prevWasItem=false;
+  const out=[]; let ctx=ocrDate("hoy",ref), pend=[], prevItem=null, prevWasItem=false, waitDesc=null;
   rows.forEach(row=>{ const n=norm(row);
     const amts=[...row.matchAll(OCR_AMT)];
     const d=ocrDate(row,ref);
-    const rest=norm(row.replace(OCR_AMT," ").replace(/\b\d{1,2}:\d{2}\b/g," ")).replace(/\b(HOY|AYER|LUNES|MARTES|MIERCOLES|JUEVES|VIERNES|SABADO|DOMINGO)\b/g," ").replace(/\b\d{1,2}[\/\-.]\d{1,2}([\/\-.]\d{2,4})?\b/g," ").replace(/\b\d{1,2}\s*(DE\s+)?(ENE|FEB|MAR|ABR|MAY|JUN|JUL|AGO|SEP|SET|OCT|NOV|DIC)[A-Z]*\.?(\s*(DE\s+)?\d{4})?/g," ").replace(/[^A-Z0-9*&ÑÁÉÍÓÚ ]/g," ").replace(/\s+/g," ").trim();
+    const rest=norm(row.replace(OCR_AMT," ").replace(/\b\d{1,2}:\d{2}\b/g," ")).replace(/\b(HOY|AYER|LUNES|MARTES|MIERCOLES|JUEVES|VIERNES|SABADO|DOMINGO)\b/g," ").replace(/\b\d{1,2}[\/\-.]\d{1,2}([\/\-.]\d{2,4})?\b/g," ").replace(/\b\d{1,2}\s*(DE\s+)?(ENE|FEB|MAR|ABR|MAY|JUN|JUL|AGO|SEP|SET|OCT|NOV|DIC)[A-Z]*\.?(\s*(DE\s+)?\d{4})?/g," ").replace(/[^A-Z0-9*&ÑÁÉÍÓÚ ]/g," ").replace(/\s+/g," ").trim()
+      .replace(/\b(AHORA|HACE \d+ ?(MIN|MINUTOS?|H|HORAS?|SEG)?|\d+ ?MIN)\b/g," ").replace(/\s+/g," ").trim().replace(/^(?:[A-Z0-9] )+(?=\S{2})/,"");
+    if(OCR_NAV.test(rest)&&!amts.length){ prevWasItem=false; return; }
     if(OCR_SKIP.test(n)){ pend=[]; prevWasItem=false; return; }
     if(!amts.length){
       if(d&&rest.length<3){ const header=/\b(HOY|AYER|LUNES|MARTES|MIERCOLES|JUEVES|VIERNES|SABADO|DOMINGO)\b/.test(n);
         if(!header&&prevWasItem&&prevItem&&!prevItem.explicit){ prevItem.date=d; prevItem.explicit=true; } else ctx=d; prevWasItem=false; return; }
+      if(rest.length>=3&&waitDesc){ const it={...waitDesc,desc:rest.slice(0,60)}; out.push(it); prevItem=it; waitDesc=null; prevWasItem=false; return; }
       if(rest.length>=3){ pend.push({t:rest,d}); if(pend.length>3)pend.shift(); } prevWasItem=false; return; }
     const a=amts[amts.length-1]; const amount=Math.round(Math.abs(parseAmount(a[2]))); if(!amount){ prevWasItem=false; return; }
     let desc=rest; let date=d; let explicit=!!d;
+    // «$12.990 con Visa Santander» / «Compra de $35.000 en Copec con Visa»: el comercio va después de «en» o en la línea de arriba
+    if(/\bCON\b|^COMPRA\b/.test(desc)){ const en=desc.match(/\bEN\s+(?!(?:TU|SU|LA|EL|LINEA|CUOTAS?)\b)(.+?)(?=\s+CON\b|$)/); if(en&&en[1].length>=3) desc=en[1];
+      desc=desc.replace(/\b(CON|USANDO|MEDIANTE)\b.*$/,"").replace(/^COMPRA\s+(DE|POR|APROBADA)?\s*/,"").trim(); }
     if(desc.length<3&&pend.length){ const p=pend[0]; desc=p.t; if(!date&&p.d){date=p.d;explicit=true} }
-    if(!desc||desc.length<2){ prevWasItem=false; pend=[]; return; }
+    if(!desc||desc.length<2){ if(!out.length&&!waitDesc){ waitDesc={date:date||ctx,amount,explicit,type:(a[1]||"").trim()==="+"?"ingreso":"gasto"}; } prevWasItem=false; pend=[]; return; }
     const sg=(a[1]||"").trim(); const inc=sg==="+"||(!sg&&kind!=="tc"&&/ABONO|DEPOSITO|RECIBID|TRANSFERENCIA DE|TRANSF DE|REMUNERACION|SUELDO|DEVOLUCION/.test(n+" "+desc));
     const it={date:date||ctx,desc:desc.slice(0,60),amount,type:inc?"ingreso":"gasto",explicit}; out.push(it); prevItem=it; prevWasItem=true; pend=[];
   });
@@ -1919,15 +1937,52 @@ async function readScreens(files){
   let w; try{ w=await getOcr((st,p)=>{ if(/load|init/i.test(st))say(`Preparando el lector… ${Math.round(p*100)}%`); }); }catch(e){ console.error(e); toast("No pude cargar el lector de capturas. Revisa tu conexión."); return; }
   let all=[], bank="", kind="", txt="";
   for(let i=0;i<files.length;i++){ say(`Leyendo captura ${i+1} de ${files.length}…`);
-    try{ const cv=await prepImage(files[i]); const {data}=await w.recognize(cv,{},{text:true,blocks:true}); const lines=(data.lines&&data.lines.length?data.lines:(data.blocks||[]).flatMap(b=>(b.paragraphs||[]).flatMap(p=>p.lines||[]))); txt+="\n"+data.text;
-      const r=parseOCR(lines,data.text); all=all.concat(r.items); bank=bank||r.bank; kind=kind||r.kind; }
+    try{ let r=null, t="";
+      for(const alt of [false,true]){ const cv=await prepImage(files[i],alt); const {data}=await w.recognize(cv,{},{text:true,blocks:true}); const lines=(data.lines&&data.lines.length?data.lines:(data.blocks||[]).flatMap(b=>(b.paragraphs||[]).flatMap(p=>p.lines||[])));
+        const r2=parseOCR(lines,data.text); if(!r||(!walletShot(t)&&walletShot(data.text))||r2.items.length>r.items.length||(!r.items.length&&looksReceipt(data.text)&&!looksReceipt(t))){ r=r2; t=data.text; }
+        if(r.items.length||looksReceipt(t)||walletShot(t)) break; if(!alt) say(`Leyendo captura ${i+1} de ${files.length}… (otra pasada)`); }
+      txt+="\n"+ocrMoney(t); all=all.concat(r.items); bank=bank||r.bank; kind=kind||r.kind; }
     catch(e){ console.error(e); } }
   toast._t=setTimeout(()=>$("#toast").classList.remove("show"),10);
   return {items:all,bank,kind,text:txt}; }
+/* Detalle de una compra en la app Wallet (en inglés o español): «$10.880 · Comercio, dirección · 02-10-26, 20:58 · Status: Approved · VISA · Total». */
+function walletShot(text){
+  const L=String(text||"").split(/\n/).map(l=>l.replace(/\s+/g," ").trim()).filter(Boolean), T=norm(text);
+  if(!/REPORT INCORRECT MERCHANT|WALLET USES MAPS|WALLET USA (APPLE )?MAPAS|INFORMAR (SOBRE )?(DATOS|INFORMACION) (DEL COMERCIO )?INCORRECT|STATUS ?: ?(APPROVED|PENDING|DECLINED)|ESTADO ?: ?(APROBAD|PENDIENTE|RECHAZAD)|CONTACT(AR)? (A )?BANCO/.test(T)) return null;
+  const amtRe=/(US\$|USD|CLP|\$)\s?(\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{1,2})?|\d+)/i;
+  const tl=L.find(l=>/^(TOTAL|IMPORTE|MONTO)\b/i.test(l)&&amtRe.test(l)); const m=(tl||L.find(l=>amtRe.test(l))||"").match(amtRe); if(!m) return null;
+  const usd=/US|USD/i.test(m[1]); let raw=m[2]; if(!usd&&/^\d{1,3}(,\d{3})+$/.test(raw)) raw=raw.replace(/,/g,".");
+  const xval=Math.abs(parseAmount(raw)); const amount=Math.round(xval); if(!xval) return null;
+  const di=L.findIndex(l=>/\b\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{2,4}\b/.test(l)||/\b\d{1,2} (DE )?[A-Z]{3,}/i.test(l)&&/\d{1,2}:\d{2}/.test(l));
+  const date=di>=0?ocrDate(L[di]):null;
+  let desc=""; for(const l of L.slice(0,di>0?di:4)){ if(/^\d{1,2}:\d{2}\b/.test(l)||amtRe.test(l)||/^[<‹]|^(ATRAS|BACK|VOLVER)$/i.test(l))continue; const t=l.split(",")[0].replace(/[^\wÁÉÍÓÚÑáéíóúñ&'. -]/g," ").replace(/\s+/g," ").trim(); if(t.replace(/[^A-Za-zÁÉÍÓÚÑáéíóúñ]/g,"").length>=3){ desc=t; break; } }
+  if(!desc){ const g=L.find(l=>/[>›]\s*$/.test(l)&&!/\.(com|cl|net|org)\b/i.test(l)); if(g) desc=g.replace(/[>›]\s*$/,"").trim(); }
+  const si=L.findIndex(l=>/^(STATUS|ESTADO)\b/i.test(l)); const card=si>=0&&L[si+1]&&!amtRe.test(L[si+1])?L[si+1]:"";
+  const bank=((text.match(/(?:Contact|Contactar(?: a)?|Contacta(?: a)?)\s+(Banco [^\n.]+|[A-Z][^\n.]+)/i)||[])[1]||"").trim();
+  const declined=/STATUS ?: ?DECLINED|ESTADO ?: ?RECHAZAD/.test(T);
+  return {amount,usd,xval,desc:desc.slice(0,60)||"Apple Pay",date:date||isoToday(),card,bank,declined}; }
+function walletToEditor(w){
+  if(w.declined){ toast("Esa compra aparece rechazada en Wallet: no la agrego."); return; }
+  if(!ed||!ed.isNew||$("#edit").hidden||!$("#edit").classList.contains("show")) openEdit(null);
+  const v=ed.v, c=catFor(w.desc,"gasto"); v.amount=w.amount; delete v.fx; let conv=false, usd=w.usd;
+  if(usd){ const r=fxRate("USD"); if(r){ v.amount=Math.round(w.xval*r); v.fx=`US$${fmtN(w.xval,w.xval%1?2:0)} × ${fmtP(r)}`; conv=true; usd=false; } }
+  v.desc=w.desc; v.date=w.date; v.type=c.type; v.cat=c.cat; v.nature=FIXED_CATS.has(c.cat)?"fijo":"variable"; v.source="applepay";
+  const acc=accForCard(null,(w.card+" "+w.bank).trim()); if(acc)v.account=acc;
+  ed.fromAlert={usd,last4:null,matched:!!acc}; renderEdit(); markDirty($("#eSave"));
+  okToast(usd?"Leído de Wallet: el monto viene en dólares, revisa cuánto fue en pesos":conv?`Leído de Wallet y pasado a pesos: ${v.fx}`:acc?"Leído de Wallet: revisa y toca Agregar":"Leído de Wallet: elige la tarjeta y toca Agregar"); }
+// Una sola compra en la captura (notificación de Apple Pay, detalle en Wallet, aviso del banco): se abre lista para Agregar.
+function shotToEditor(it,r){
+  if(!ed||!ed.isNew||$("#edit").hidden||!$("#edit").classList.contains("show")) openEdit(null);
+  const v=ed.v, desc=it.desc.toLowerCase().replace(/(^|\s)\S/g,c=>c.toUpperCase()).slice(0,60), c=catFor(desc,it.type);
+  v.amount=it.amount; delete v.fx; v.desc=desc; v.date=it.date||isoToday(); v.type=c.type; v.cat=c.cat; v.nature=FIXED_CATS.has(c.cat)?"fijo":"variable"; v.source="aviso";
+  const l4=(r.text.match(OCR_L4)||[])[1]; const acc=accForCard(l4,r.text.replace(/\n/g," ")); if(acc)v.account=acc;
+  ed.fromAlert={last4:l4||null,matched:!!acc}; renderEdit(); markDirty($("#eSave"));
+  okToast(acc?"Leído de la captura: revisa y toca Agregar":"Leído de la captura: elige la cuenta y toca Agregar"); }
 async function screensToImport(files){ const r=await readScreens(files); if(!r)return;
+  if(files.length===1){ const w=walletShot(r.text); if(w){ walletToEditor(w); return; } }
   if(files.length===1&&looksReceipt(r.text)){ if(await receiptFlow(files[0],r.text)) return; }
   if(!r.items.length){ toast("No encontré montos en la captura. Prueba con una donde se vean los movimientos y sus montos."); return; }
-  if(r.items.length===1&&files.length===1){ const a=parseAlert(r.text.replace(/\n/g," ")); if(a&&a.amount===r.items[0].amount&&a.desc!=="Compra"){ pasteAlert(r.text.replace(/\n/g," ")); return; } }
+  if(r.items.length===1&&files.length===1){ const a=parseAlert(r.text.replace(/\n/g," ")); if(a&&a.amount===r.items[0].amount&&a.desc!=="Compra"&&!/\bCON\b/i.test(a.desc)&&a.desc.length<=40){ pasteAlert(r.text.replace(/\n/g," ")); return; } shotToEditor(r.items[0],r); return; }
   if(!$("#edit").hidden){ hideSheet("#edit"); ed=null; }
   setTab("import"); const l4=(r.text.match(/(?:\*{2,}|X{3,}|terminad[ao] en)\s*(\d{4})\b/i)||[])[1]; const byCard=accForCard(l4,r.bank?r.bank+" "+(r.kind==="tc"?"credito":"cuenta"):"");
   if(byCard){ refreshSelects(); $("#impAcct").value=byCard; } else if(r.bank){ const acc=matchAccount(r.bank,r.kind||"tc"); refreshSelects(); $("#impAcct").value=acc.name; if(acc.created) okToast("Creé la cuenta "+acc.name); }

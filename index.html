@@ -1589,7 +1589,7 @@ function parseAlert(txt){
 function catFor(desc,type){ const r=classifyRule(desc); let cat=r?normCat(r.cat):null; const t2=cat?typeOfCat(cat):null; if(t2==="traspaso")return {type:"traspaso",cat};
   if(!cat||t2!==type) cat=type==="ingreso"?"Otros ingresos":"Otros gastos"; return {type,cat}; }
 function parseMLLines(txt){ return String(txt||"").split(/\r?\n/).map(l=>l.trim()).filter(l=>/^ML\s*\|/.test(l)).map(l=>{ const p=l.split("|").map(x=>x.trim());
-  const when=p[1]||""; const date=parseDate(when.slice(0,10),new Date().getFullYear())||isoToday(); const amount=Math.round(Math.abs(parseAmount(p[2]))); const desc=(p[3]||"Apple Pay").slice(0,60);
+  const when=p[1]||""; const date=parseDate(when.slice(0,10),new Date().getFullYear())||isoToday(); const usd=/US\$|USD|U\$S/i.test(p[2]||""); const xv=Math.abs(parseAmount(String(p[2]||"").replace(/US\$|USD|U\$S|CLP|\$/gi,"").trim())); const r=usd?fxRate("USD"):0; const amount=usd?(r?Math.round(xv*r):0):Math.round(xv); const desc=(p[3]||"Apple Pay").slice(0,60)+(usd?` (US$${fmtN(xv,xv%1?2:0)})`:"");
   return amount?{date,amount,desc,card:p[4]||"",ext:"ap|"+when+"|"+amount+"|"+norm(desc)}:null; }).filter(Boolean); }
 function importML(list){ const have=new Set(allRefs().map(r=>r.t.extId).filter(Boolean)); let add=0,skip=0; const byYm={};
   list.forEach(x=>{ if(have.has(x.ext)){skip++;return} have.add(x.ext); const c=catFor(x.desc,"gasto");

@@ -2,7 +2,7 @@
 
 Cada versión publicada queda anotada aquí. El número de versión se ve al pie de la app.
 
-## Próxima versión · (sin publicar)
+## 1.11.0 beta · 6-oct-2026
 - Botón «📲 Traer Apple Pay» al tocar +: lee lo que copió el atajo «Pasar a Mis Lucas» y agrega las compras nuevas de una vez (sin pegar a mano). Guía actualizada.
 - 📬 Buzón automático (en «Anotar gastos al instante»): con un toque cada persona activa su buzón y recibe una dirección de correo propia de Mis Lucas. Su Gmail le reenvía los avisos del banco (compras, transferencias, abonos) y el atajo de Apple Pay manda cada compra; al abrir la app todo entra solo, con categoría y cuenta. El código de confirmación de Gmail aparece dentro de la app. El servidor guarda cada aviso solo hasta que la app lo recoge. Los correos que no logra leer quedan en una lista para anotarlos a mano.
 - 📷 Lector de capturas mejorado: ahora entiende el detalle de una compra en Wallet (en inglés o español: comercio, fecha, tarjeta y monto; si es en dólares lo pasa a pesos), las notificaciones de Apple Pay («$12.990 con Visa…», con el comercio en el título) y montos escritos como «CLP 4.500» o «$35.000,00». Cuando la captura trae una sola compra, se abre lista para Agregar en vez de pasar por la importación. Si la primera lectura no encuentra nada, hace una segunda pasada con más contraste (sirve para notificaciones translúcidas y boletas desteñidas). En boletas prefiere el nombre del local al de la razón social.

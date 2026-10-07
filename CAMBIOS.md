@@ -2,6 +2,9 @@
 
 Cada versión publicada queda anotada aquí. El número de versión se ve al pie de la app.
 
+## Próxima versión · (sin publicar)
+- Apple Pay: si el atajo no manda la fecha, la compra toma la hora en que llegó al buzón; y dos compras iguales sin fecha ya no se confunden como repetidas.
+
 ## 1.11.0 beta · 6-oct-2026
 - Botón «📲 Traer Apple Pay» al tocar +: lee lo que copió el atajo «Pasar a Mis Lucas» y agrega las compras nuevas de una vez (sin pegar a mano). Guía actualizada.
 - 📬 Buzón automático (en «Anotar gastos al instante»): con un toque cada persona activa su buzón y recibe una dirección de correo propia de Mis Lucas. Su Gmail le reenvía los avisos del banco (compras, transferencias, abonos) y el atajo de Apple Pay manda cada compra; al abrir la app todo entra solo, con categoría y cuenta. El código de confirmación de Gmail aparece dentro de la app. El servidor guarda cada aviso solo hasta que la app lo recoge. Los correos que no logra leer quedan en una lista para anotarlos a mano.

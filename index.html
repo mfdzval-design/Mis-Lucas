@@ -1588,9 +1588,9 @@ function parseAlert(txt){
 }
 function catFor(desc,type){ const r=classifyRule(desc); let cat=r?normCat(r.cat):null; const t2=cat?typeOfCat(cat):null; if(t2==="traspaso")return {type:"traspaso",cat};
   if(!cat||t2!==type) cat=type==="ingreso"?"Otros ingresos":"Otros gastos"; return {type,cat}; }
-function parseMLLines(txt){ return String(txt||"").split(/\r?\n/).map(l=>l.trim()).filter(l=>/^ML\s*\|/.test(l)).map(l=>{ const p=l.split("|").map(x=>x.trim());
+function parseMLLines(txt){ return String(txt||"").split(/\r?\n/).map(l=>l.trim()).filter(l=>/^ML\s*\|/.test(l)).map((l,i)=>{ const p=l.split("|").map(x=>x.trim());
   const when=p[1]||""; const date=parseDate(when.slice(0,10),new Date().getFullYear())||isoToday(); const usd=/US\$|USD|U\$S/i.test(p[2]||""); const xv=Math.abs(parseAmount(String(p[2]||"").replace(/US\$|USD|U\$S|CLP|\$/gi,"").trim())); const r=usd?fxRate("USD"):0; const amount=usd?(r?Math.round(xv*r):0):Math.round(xv); const desc=(p[3]||"Apple Pay").slice(0,60)+(usd?` (US$${fmtN(xv,xv%1?2:0)})`:"");
-  return amount?{date,amount,desc,card:p[4]||"",ext:"ap|"+when+"|"+amount+"|"+norm(desc)}:null; }).filter(Boolean); }
+  return amount?{date,amount,desc,card:p[4]||"",ext:"ap|"+(when||"#"+i)+"|"+amount+"|"+norm(desc)}:null; }).filter(Boolean); }
 function importML(list){ const have=new Set(allRefs().map(r=>r.t.extId).filter(Boolean)); let add=0,skip=0; const byYm={};
   list.forEach(x=>{ if(have.has(x.ext)){skip++;return} have.add(x.ext); const c=catFor(x.desc,"gasto");
     const acc=accForCard(null,x.card)||state.lastAcct||(accList().find(a=>a.type==="tc")||accList()[0]).name;
@@ -1718,7 +1718,8 @@ let inboxBusy=false;
 const inboxCfg=()=>((state.config||{}).inbox)||null;
 const INBOX_RX=/compra|cargo|transfer|abono|pago|giro|recib|dep[oó]sito|comprobante/i;
 function inboxImport(items){ const have=new Set(allRefs().map(r=>r.t.extId).filter(Boolean)); let add=0,skip=0; const unread=[]; const byYm={}; const lines=[];
-  items.forEach(it=>{ if(it.kind==="ap"||it.kind==="voz"||it.kind==="texto"){ lines.push(String(it.text||"")); return }
+  items.forEach(it=>{ if(it.kind==="ap"||it.kind==="voz"||it.kind==="texto"){ let t=String(it.text||""); const w=new Date(+it.date||+it.rec||Date.now()); // si el atajo no mandó la fecha, usa la hora en que llegó al buzón
+      t=t.replace(/^(ML\s*\|)\s*(?=\|)/,`$1${w.getFullYear()}-${pad(w.getMonth()+1)}-${pad(w.getDate())} ${pad(w.getHours())}:${pad(w.getMinutes())}`); lines.push(t); return }
     if(it.kind!=="mail")return; const ext="bz|"+it.id; if(have.has(ext)){skip++;return} have.add(ext);
     const full=`${it.subject||""} · ${it.text||""}`; const when=new Date(+it.date||Date.now()); const d0=`${when.getFullYear()}-${pad(when.getMonth()+1)}-${pad(when.getDate())}`;
     const a=INBOX_RX.test(full)?parseAlert(full):null;

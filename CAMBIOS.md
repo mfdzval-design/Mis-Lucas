@@ -3,6 +3,7 @@
 Cada versión publicada queda anotada aquí. El número de versión se ve al pie de la app.
 
 ## Próxima versión · (sin publicar)
+- Lector de capturas: entiende las notificaciones de Wallet de cualquier banco en la pantalla bloqueada (comercio en la línea de arriba del monto, sin la dirección), aunque haya otras notificaciones alrededor.
 - Apple Pay: si el atajo no manda la fecha, la compra toma la hora en que llegó al buzón; y dos compras iguales sin fecha ya no se confunden como repetidas.
 
 ## 1.11.0 beta · 6-oct-2026

@@ -2073,11 +2073,13 @@ function parseOCR(lines,fullText,ref){
   const BK=[["BancoEstado",/BANCOESTADO|BANCO ESTADO|CUENTARUT/],["Santander",/SANTANDER/],["Itaú",/ITAU/],["BCI",/\bBCI\b/],["Banco de Chile",/BANCO DE CHILE|BANCOCHILE/],["Scotiabank",/SCOTIA/],["Banco Falabella",/FALABELLA|CMR/],["Tenpo",/TENPO/],["MACH",/\bMACH\b/],["Mercado Pago",/MERCADO ?PAGO/]];
   const bk=(BK.find(([n,re])=>re.test(T))||[""])[0];
   const out=[]; let ctx=ocrDate("hoy",ref), pend=[], prevItem=null, prevWasItem=false, waitDesc=null;
-  rows.forEach(row=>{ const n=norm(row);
+  rows.forEach(row=>{ row=row.split(" ").filter(w=>!/[!|“”»«]/.test(w)).join(" ");
+    if(/METROPOLIT|REGION|REGIÓN/i.test(row)&&!/\$/.test(row)) row=row.split(/[.,](?:\s|$)/)[0]; // «Mamut Maipu. Maipú, Santiago Metropolitan Region» → comercio
+    const n=norm(row);
     const amts=[...row.matchAll(OCR_AMT)];
     const d=ocrDate(row,ref);
     const rest=norm(row.replace(OCR_AMT," ").replace(/\b\d{1,2}:\d{2}\b/g," ")).replace(/\b(HOY|AYER|LUNES|MARTES|MIERCOLES|JUEVES|VIERNES|SABADO|DOMINGO)\b/g," ").replace(/\b\d{1,2}[\/\-.]\d{1,2}([\/\-.]\d{2,4})?\b/g," ").replace(/\b\d{1,2}\s*(DE\s+)?(ENE|FEB|MAR|ABR|MAY|JUN|JUL|AGO|SEP|SET|OCT|NOV|DIC)[A-Z]*\.?(\s*(DE\s+)?\d{4})?/g," ").replace(/[^A-Z0-9*&ÑÁÉÍÓÚ ]/g," ").replace(/\s+/g," ").trim()
-      .replace(/\b(AHORA|HACE \d+ ?(MIN|MINUTOS?|H|HORAS?|SEG)?|\d+ ?MIN)\b/g," ").replace(/\s+/g," ").trim().replace(/^(?:[A-Z0-9] )+(?=\S{2})/,"");
+      .replace(/\b(AHORA|NOW|HACE \d+ ?(MIN|MINUTOS?|H|HORAS?|SEG)?|\d+ ?(MIN|M|H) ?AGO|\d+ ?MIN|\d+MAGO|\d+HAGO)\b/g," ").replace(/\s+/g," ").trim().replace(/^(?:[A-Z0-9] )+(?=\S{2})/,"").replace(/(^| )[A-Z](?= |$)/g," ").replace(/\s+/g," ").trim();
     if(OCR_NAV.test(rest)&&!amts.length){ prevWasItem=false; return; }
     if(OCR_SKIP.test(n)){ pend=[]; prevWasItem=false; return; }
     if(!amts.length){
@@ -2090,7 +2092,7 @@ function parseOCR(lines,fullText,ref){
     // «$12.990 con Visa Santander» / «Compra de $35.000 en Copec con Visa»: el comercio va después de «en» o en la línea de arriba
     if(/\bCON\b|^COMPRA\b/.test(desc)){ const en=desc.match(/\bEN\s+(?!(?:TU|SU|LA|EL|LINEA|CUOTAS?)\b)(.+?)(?=\s+CON\b|$)/); if(en&&en[1].length>=3) desc=en[1];
       desc=desc.replace(/\b(CON|USANDO|MEDIANTE)\b.*$/,"").replace(/^COMPRA\s+(DE|POR|APROBADA)?\s*/,"").trim(); }
-    if(desc.length<3&&pend.length){ const p=pend[0]; desc=p.t; if(!date&&p.d){date=p.d;explicit=true} }
+    if(desc.length<3&&pend.length){ const P=pend.filter(x=>!/^(ITAU|SANTANDER|BCI|BANCO\w*|BANCOESTADO|SCOTIABANK|TENPO|MACH|WALLET|SHORTCUTS|ATAJOS|MERCADO PAGO|FALABELLA|CMR)\b/.test(x.t)); const p=(rest.length?pend[0]:P[P.length-1])||pend[0]; desc=p.t; if(!date&&p.d){date=p.d;explicit=true} }
     if(!desc||desc.length<2){ if(!out.length&&!waitDesc){ waitDesc={date:date||ctx,amount,explicit,type:(a[1]||"").trim()==="+"?"ingreso":"gasto"}; } prevWasItem=false; pend=[]; return; }
     const sg=(a[1]||"").trim(); const inc=sg==="+"||(!sg&&kind!=="tc"&&/ABONO|DEPOSITO|RECIBID|TRANSFERENCIA DE|TRANSF DE|REMUNERACION|SUELDO|DEVOLUCION/.test(n+" "+desc));
     const it={date:date||ctx,desc:desc.slice(0,60),amount,type:inc?"ingreso":"gasto",explicit}; out.push(it); prevItem=it; prevWasItem=true; pend=[];

@@ -1865,7 +1865,7 @@ function parseFree(txt){
   if(!cat) cat=inc?"Otros ingresos":"Otros gastos";
   return {amount:a.v,date,desc,type,cat,account:accHint,fx:fxInfo,approx:/\b(LUCAS|LUCA|MIL|K|PALO|PALOS|MILLON|MILLONES|APROX)\b/.test(T)}; }
 /* ---------- Buzón automático (servidor de Mis Lucas: cada persona tiene su dirección propia) ---------- */
-const BUZON_API="https://buzon.mislucasapp.com";
+const BUZON_API="https://buzon.mislucasapp.com", BUZON_ADDR="buzon@mislucasapp.com";
 const BANCOS_Q="from:(santander.cl OR bancochile.cl OR bancoedwards.cl OR bancoestado.cl OR bci.cl OR itau.cl OR scotiabank.cl OR bancofalabella.cl OR bancoripley.cl OR security.cl OR bice.cl OR bancointernacional.cl OR consorcio.cl OR tenpo.cl OR machbank.cl OR mercadopago.com OR mercadopago.cl OR coopeuch.cl OR cmrfalabella.com OR lider.cl OR tapp.cl)";
 let inboxBusy=false;
 const inboxCfg=()=>((state.config||{}).inbox)||null;
@@ -1913,32 +1913,42 @@ async function inboxOpen(it,privJwk){ if(!it.enc)return it; if(!privJwk) throw n
   const o={...it,...d}; delete o.enc; return o; }
 async function inboxActivate(){ if(state.example){ toast("Primero crea tu espacio (o restaura tu respaldo) para activar el buzón."); return }
   const b=$("#ibGo"); if(b){ b.disabled=true; b.textContent="Activando…"; }
+  const em=String(($("#ibMail")||{}).value||"").trim();
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){ toast("Escribe el correo donde te llegan los avisos del banco (tu Gmail)."); const i=$("#ibMail"); if(i)i.focus(); if(b){ b.disabled=false; b.textContent="Activar mi buzón"; } return }
   try{ let ks=null; try{ ks=await inboxKeys(); }catch(e){ ks=null; }
-    const r=await fetch(`${BUZON_API}/api/registro`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(ks?{pub:ks.pub}:{})}); const j=await r.json();
+    const r=await fetch(`${BUZON_API}/api/registro`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(ks?{pub:ks.pub,correos:[em]}:{correos:[em]})}); const j=await r.json();
     if(!j.ok){ toast(j.error?`No pude activarlo: ${j.error}`:"No pude activarlo."); return }
-    mutateConfig(c=>{ c.inbox={api:BUZON_API,code:j.code,key:j.key,addr:j.address,n:0,at:0}; if(ks&&j.cifrado) c.inbox.priv=ks.priv; }); okToast("📬 Buzón activado"); renderAlerts();
+    mutateConfig(c=>{ c.inbox={api:BUZON_API,code:j.code,key:j.key,addr:j.address,comun:!!j.comun,correos:j.comun?[em]:[],n:0,at:0}; if(ks&&j.cifrado) c.inbox.priv=ks.priv; }); okToast("📬 Buzón activado"); renderAlerts();
   }catch(e){ toast("No pude conectarme al servidor del buzón. Revisa tu conexión."); }
   finally{ renderInbox(); } }
+async function inboxSetMail(){ const ib=inboxCfg(); if(!ib)return; const em=String(($("#ibMail")||{}).value||"").trim();
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){ toast("Escribe el correo desde el que reenvías (tu Gmail)."); return }
+  try{ const r=await fetch(`${ib.api||BUZON_API}/api/correos`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({c:ib.code,k:ib.key,correos:[em]})}); const j=await r.json();
+    if(!j.ok){ toast(j.error==="clave"?"Tu buzón ya no existe en el servidor: desactívalo y vuelve a activarlo.":j.error?`No pude guardarlo: ${j.error}`:"No pude guardarlo."); return }
+    mutateConfig(c=>{ if(!c.inbox)return; c.inbox.correos=[em]; if(j.comun){ if(!c.inbox.comun) c.inbox.addrOld=c.inbox.addr; c.inbox.comun=true; c.inbox.addr=j.address; } delete c.inbox.editMail; }); okToast(`📬 Listo: reconozco los avisos que reenvíes desde ${em}`); renderInbox(); }
+  catch(e){ toast("No pude conectarme al servidor del buzón. Revisa tu conexión."); } }
 const copyTxt=async(t,ok)=>{ try{ await navigator.clipboard.writeText(t); okToast(ok); }catch(e){ toast("No pude copiarlo: mantén presionado el texto para copiarlo a mano."); } };
 function renderInbox(busy){ const box=$("#inboxBox"); if(!box)return; const ib=inboxCfg();
   if(!ib||!ib.code){ box.innerHTML=`<div class="guide ibx"><h3>📬 Buzón automático <small>recomendado</small></h3>
-    <p class="note">Tus compras con <b>Apple Pay</b> y los <b>correos de tu banco</b> (compras, transferencias, abonos) entran solos a Mis Lucas, sin copiar ni pegar. Te damos una dirección de correo propia: tu Gmail le reenvía los avisos del banco y la app los lee. Todo viaja <b>cifrado con una llave que solo tiene tu teléfono</b>: ni el servidor ni quien lo administra pueden leer tus correos. Cada aviso se borra apenas tu app lo recoge.</p>
+    <p class="note">Tus compras con <b>Apple Pay</b> y los <b>correos de tu banco</b> (compras con tarjeta, transferencias, abonos) entran solos a Mis Lucas, sin copiar ni pegar. Tu Gmail le reenvía los avisos del banco a <b>${esc(BUZON_ADDR)}</b> y la app los lee. Reconocemos que son tuyos porque llegan desde tu correo. Todo viaja <b>cifrado con una llave que solo tiene tu teléfono</b>: ni el servidor ni quien lo administra pueden leer tus correos. Cada aviso se borra apenas tu app lo recoge.</p>
+    <label class="field" style="margin:4px 0 10px">¿En qué correo te llegan los avisos del banco?<input id="ibMail" type="email" inputmode="email" autocomplete="email" placeholder="tucorreo@gmail.com" value="${esc((state.prof||{}).email||"")}"></label>
     <button type="button" class="btn primary" id="ibGo">Activar mi buzón</button></div>`; return }
   const ago=ib.at?(()=>{ const m=Math.round((Date.now()-ib.at)/6e4); return m<1?"recién":m<60?`hace ${m} min`:m<1440?`hace ${Math.round(m/60)} h`:`hace ${Math.round(m/1440)} días`; })():"todavía no";
   const U=ib.unread||[], G=ib.gconf, apUrl=`${ib.api||BUZON_API}/api/ap?c=${ib.code}&k=${ib.key}`; const st=(ok,t)=>`<span class="ibst${ok?" ok":""}">${ok?"✓":"○"} ${t}</span>`;
   box.innerHTML=`<div class="guide ibx on"><h3>📬 Buzón automático <small>${ib.err?"⚠️ con problema":"✓ activo"}</small></h3>
-    <p class="note" style="margin:0 0 8px">Tu dirección${ib.priv?" · 🔒 cifrado: solo este teléfono puede leerlo":""}:</p>
+    <p class="note" style="margin:0 0 8px">Reenvía tus avisos a${ib.priv?" · 🔒 cifrado: solo este teléfono puede leerlos":""}:</p>
     <div class="ibaddr"><code>${esc(ib.addr)}</code><button type="button" class="btn sm" data-copy="addr">📋 Copiar</button></div>
+    ${ib.comun&&!ib.editMail?`<p class="note" style="margin:8px 0 0">Reconozco los que lleguen desde <b>${esc((ib.correos||[])[0]||"tu correo")}</b> · <button type="button" class="linkbtn" id="ibMailEdit">Cambiar</button></p>`:`<div class="ibun" style="margin:10px 0 0">${ib.comun?"":`<b>Nuevo: una sola dirección para todos</b><p class="note" style="margin:2px 0 8px">Ahora todos reenvían a ${esc(BUZON_ADDR)}. Dinos desde qué correo reenvías y listo (tu dirección anterior sigue funcionando).</p>`}<div class="ibrow"><input id="ibMail" type="email" inputmode="email" autocomplete="email" placeholder="tucorreo@gmail.com" value="${esc((ib.correos||[])[0]||(state.prof||{}).email||"")}"><button type="button" class="btn sm primary" id="ibMailGo">Guardar</button></div></div>`}
     <p class="note" style="margin:8px 0 10px">${busy?"Revisando…":`Última revisión ${ago} · ${ib.n||0} movimiento${ib.n===1?"":"s"} traídos. Se revisa solo cada vez que abres la app.`}${ib.err?`<br><span style="color:var(--crit)">${esc(ib.err)}</span>`:""}</p>
     <div class="ibsts">${st(ib.mailOk,"Correos del banco")}${st(ib.apOk,"Apple Pay")}</div>
     <div class="abtns"><button type="button" class="btn primary sm" id="ibSync"${busy?" disabled":""}>Revisar ahora</button></div>
     ${G&&G.code&&!ib.mailOk?`<div class="ibcode"><div>Código de confirmación de Gmail</div><b class="num">${esc(G.code)}</b><button type="button" class="btn sm" data-copy="gcode">📋 Copiar</button></div>`:""}
     ${U.length?`<div class="ibun"><b>Correos que no pude leer (${U.length})</b><p class="note" style="margin:2px 0 6px">Anótalos a mano o descártalos si no son movimientos.</p>${U.slice().reverse().map(u=>`<div class="ibu"><div><div class="t">${esc(u.subject)}</div><div class="m">${esc(dmy(u.date))}</div></div><button type="button" class="btn sm" data-ibadd="${esc(u.id)}">Anotar</button><button type="button" class="iconbtn" data-ibdel="${esc(u.id)}" aria-label="Descartar">✕</button></div>`).join("")}</div>`:""}
     <details class="ibdet"${ib.mailOk?"":" open"}><summary>Conectar tu Gmail <small>(una vez, desde el computador)</small></summary>
-    <ol><li>Abre <b>Gmail en el computador</b> → ⚙️ → <b>Ver toda la configuración</b> → pestaña <b>Reenvío y correo POP/IMAP</b> → <b>Agregar una dirección de reenvío</b>. Pega tu dirección (arriba) → <b>Siguiente</b> → <b>Continuar</b>.</li>
+    <ol><li>Abre <b>Gmail en el computador</b> (con la cuenta ${esc((ib.correos||[])[0]||"que conectaste")}) → ⚙️ → <b>Ver toda la configuración</b> → pestaña <b>Reenvío y correo POP/IMAP</b> → <b>Agregar una dirección de reenvío</b>. Pega <b>${esc(ib.addr)}</b> → <b>Siguiente</b> → <b>Continuar</b>.</li>
     <li>Gmail le manda un código a tu buzón: <b>aparece aquí arriba en unos segundos</b> (toca «Revisar ahora»). Escríbelo en Gmail y toca <b>Verificar</b>. Deja marcado «Inhabilitar reenvío»: solo vamos a reenviar los del banco.</li>
     <li>Arriba en Gmail, en la búsqueda, pega esto: <button type="button" class="btn sm" data-copy="q">📋 Copiar búsqueda</button> Luego toca el ícono de filtros (a la derecha de la búsqueda) → <b>Crear filtro</b> → marca <b>Reenviarlo a</b> y elige tu dirección → <b>Crear filtro</b>.</li>
-    <li>Listo: desde ahora los avisos de tu banco llegan solos a la app. También puedes reenviar cualquier correo a tu dirección desde el teléfono.</li></ol></details>
+    <li>Listo: desde ahora los avisos de tu banco llegan solos a la app. También puedes reenviar cualquier correo a ${esc(ib.addr)} desde el teléfono, siempre desde ${esc((ib.correos||[])[0]||"el correo que conectaste")}.</li></ol></details>
     <details class="ibdet"${ib.apOk?"":" open"}><summary>Conectar Apple Pay <small>(una vez, en el iPhone)</small></summary>
     <ol><li>En <b>Atajos</b> abre tu automatización de Wallet. Al final agrega <b>Get Contents of URL</b> (Obtener contenido de URL).</li>
     <li>En la URL pega tu dirección de Apple Pay: <button type="button" class="btn sm" data-copy="ap">📋 Copiar dirección</button></li>
@@ -1949,6 +1959,8 @@ function renderInbox(busy){ const box=$("#inboxBox"); if(!box)return; const ib=i
 function bindInbox(){ const box=$("#inboxBox"); if(!box)return;
   box.addEventListener("click",async e=>{ const b=e.target.closest("button"); if(!b)return;
     if(b.id==="ibGo"){ inboxActivate(); return }
+    if(b.id==="ibMailGo"){ inboxSetMail(); return }
+    if(b.id==="ibMailEdit"){ mutateConfig(c=>{ if(c.inbox) c.inbox.editMail=true; }); renderInbox(); setTimeout(()=>{ const i=$("#ibMail"); if(i){ i.focus(); i.select&&i.select(); } },50); return }
     if(b.id==="ibSync"){ inboxSync(true); return }
     if(b.dataset.copy){ const v=(box._copy||{})[b.dataset.copy]||""; copyTxt(v,{addr:"Dirección copiada",gcode:"Código copiado: pégalo en Gmail",q:"Búsqueda copiada: pégala en Gmail",ap:"Dirección copiada: pégala en el atajo"}[b.dataset.copy]); return }
     if(b.id==="ibOff"){ if(!b.dataset.armed){ b.dataset.armed="1"; b.textContent="¿Desactivar? Toca de nuevo"; setTimeout(()=>{ if(b.isConnected){ delete b.dataset.armed; b.textContent="Desactivar buzón"; } },3500); return }

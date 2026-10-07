@@ -5,10 +5,14 @@
  * se guarda cifrada con esa llave (AES-GCM + RSA-OAEP): solo la app de
  * esa persona puede leerla. Ni el administrador del servidor puede.
  *
- * Cada persona activa su buzón desde la app y recibe una dirección
- * propia (código@DOMINIO). Lo que llega ahí —correos del banco
- * reenviados desde Gmail, o compras con Apple Pay que manda el atajo—
- * queda guardado SOLO hasta que la app lo recoge, y luego se borra.
+ * Todas las personas reenvían a la MISMA dirección (buzon@DOMINIO).
+ * Al activar, la app registra el o los correos desde los que la persona
+ * reenvía; el servidor guarda solo una huella (SHA-256) de cada correo
+ * y con ella reconoce de quién es cada aviso. Internamente cada buzón
+ * sigue teniendo su código (también acepta código@DOMINIO, para quienes
+ * lo activaron antes). Lo que llega —correos del banco reenviados desde
+ * Gmail, o compras con Apple Pay que manda el atajo— queda guardado SOLO
+ * hasta que la app lo recoge, y luego se borra.
  *
  * Necesita:
  *  - Un espacio KV enlazado como BUZON.
@@ -31,6 +35,33 @@ const json = (o, status = 200) => new Response(JSON.stringify(o), { status, head
 function azar(n, alfa = ALFA) { const b = crypto.getRandomValues(new Uint8Array(n)); let s = ""; for (const x of b) s += alfa[x % alfa.length]; return s; }
 async function sha(s) { const h = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)); return [...new Uint8Array(h)].map(b => b.toString(16).padStart(2, "0")).join(""); }
 const codigoOk = c => /^[a-z0-9]{8}$/.test(c || "");
+const BUZON_COMUN = "buzon";
+const MAX_CORREOS = 3;
+/* Normaliza un correo para reconocerlo: minúsculas, sin «+etiqueta»; en Gmail además sin puntos. */
+function normCorreo(e) {
+  let m = String(e || "").trim().toLowerCase().match(/[a-z0-9._%+'-]+@[a-z0-9.-]+\.[a-z]{2,}/);
+  if (!m) return "";
+  let [u, d] = m[0].split("@");
+  u = u.replace(/\+.*$/, "");
+  if (d === "googlemail.com") d = "gmail.com";
+  if (d === "gmail.com") u = u.replace(/\./g, "");
+  return u && d ? u + "@" + d : "";
+}
+const huella = async e => "e:" + await sha("mislucas|" + e);
+async function fijarCorreos(env, c, u, lista) {
+  const nuevos = [...new Set((lista || []).map(normCorreo).filter(Boolean))].slice(0, MAX_CORREOS);
+  const hs = await Promise.all(nuevos.map(huella));
+  for (const h of hs) { const otro = await env.BUZON.get(h); if (otro && otro !== c) return { ok: false, error: "ese correo ya está conectado a otro Mis Lucas" }; }
+  for (const h of (u.eh || [])) if (!hs.includes(h)) await env.BUZON.delete(h);
+  for (const h of hs) await env.BUZON.put(h, c);
+  u.eh = hs; await env.BUZON.put("u:" + c, JSON.stringify(u));
+  return { ok: true, n: hs.length };
+}
+/* ¿De quién es este correo? Prueba: X-Forwarded-For (Gmail), remitente del sobre (Gmail usa usuario+caf_=…@gmail.com) y From. */
+async function duenoDe(env, cands) {
+  for (const x of cands) { const e = normCorreo(x); if (!e) continue; const c = await env.BUZON.get(await huella(e)); if (c) return c; }
+  return null;
+}
 
 async function autoriza(env, c, k) {
   if (!codigoOk(c) || !k) return null;
@@ -85,8 +116,19 @@ export default {
         if (body && body.pub && body.pub.kty === "RSA" && body.pub.n && body.pub.e) {
           try { await crypto.subtle.importKey("jwk", body.pub, { name: "RSA-OAEP", hash: "SHA-256" }, false, ["encrypt"]); pub = { kty: "RSA", n: body.pub.n, e: body.pub.e, alg: "RSA-OAEP-256", ext: true }; } catch (e) { pub = null; }
         }
-        await env.BUZON.put("u:" + c, JSON.stringify({ h: await sha(k), at: Date.now(), pub }));
-        return json({ ok: true, code: c, key: k, address: `${c}@${env.DOMINIO}`, cifrado: !!pub });
+        const u = { h: await sha(k), at: Date.now(), pub };
+        await env.BUZON.put("u:" + c, JSON.stringify(u));
+        let correos = 0;
+        if (Array.isArray(body.correos) && body.correos.length) { const r = await fijarCorreos(env, c, u, body.correos); if (!r.ok) { await env.BUZON.delete("u:" + c); return json(r, 409); } correos = r.n; }
+        return json({ ok: true, code: c, key: k, address: `${BUZON_COMUN}@${env.DOMINIO}`, comun: true, correos, cifrado: !!pub });
+      }
+      // 1b. Cambiar los correos desde los que la persona reenvía
+      if (p === "/api/correos" && req.method === "POST") {
+        const b = await req.json().catch(() => ({}));
+        const u = await autoriza(env, b.c, b.k);
+        if (!u) return json({ ok: false, error: "clave" }, 403);
+        const r = await fijarCorreos(env, b.c, u, b.correos || []);
+        return json(r.ok ? { ...r, address: `${BUZON_COMUN}@${env.DOMINIO}`, comun: true } : r, r.ok ? 200 : 409);
       }
       // 2. La app pide lo nuevo
       if (p === "/api/buzon" && req.method === "GET") {
@@ -129,6 +171,8 @@ export default {
         if (!(await autoriza(env, b.c, b.k))) return json({ ok: false, error: "clave" }, 403);
         const L = await env.BUZON.list({ prefix: `m:${b.c}:`, limit: 1000 });
         await Promise.all(L.keys.map(x => env.BUZON.delete(x.name)));
+        const u = await env.BUZON.get("u:" + b.c, "json");
+        await Promise.all(((u && u.eh) || []).map(h => env.BUZON.delete(h)));
         await env.BUZON.delete("u:" + b.c);
         return json({ ok: true });
       }
@@ -139,20 +183,31 @@ export default {
     }
   },
 
-  // Correos que llegan a código@DOMINIO
+  // Correos que llegan a buzon@DOMINIO (dirección común) o a código@DOMINIO (buzones antiguos)
   async email(message, env) {
-    const c = String(message.to || "").split("@")[0].toLowerCase().replace(/\+.*$/, "");
-    const u = codigoOk(c) ? await env.BUZON.get("u:" + c, "json") : null;
-    if (!u) { message.setReject("Buzón no existe"); return; }
-    if (!(await limite(env, "mail:" + c, 500, 86400))) { message.setReject("Límite diario"); return; }
+    const local = String(message.to || "").split("@")[0].toLowerCase().replace(/\+.*$/, "");
     const raw = new Uint8Array(await new Response(message.raw).arrayBuffer());
     const m = leerCorreo(raw);
     const from = m.headers["from"] || message.from || "";
     const subject = m.headers["subject"] || "";
     const fecha = Date.parse(m.headers["date"] || "") || Date.now();
     const texto = (m.text || htmlATexto(m.html) || "").replace(/\s+/g, " ").trim();
+    const esConfirmacion = /forwarding-noreply@google\.com/i.test(from) || /gmail.*(forwarding|reenv[ií]o)/i.test(subject);
+    let c = null;
+    if (codigoOk(local) && local !== BUZON_COMUN) c = local;
+    else if (esConfirmacion) {
+      // «tucorreo@gmail.com ha solicitado reenviar…»: el correo de la persona viene en el texto
+      const mails = (subject + " " + texto).match(/[a-z0-9._%+'-]+@[a-z0-9.-]+\.[a-z]{2,}/gi) || [];
+      c = await duenoDe(env, mails.filter(x => !/@(google\.com|googlemail\.com)$/i.test(x) && !new RegExp("@" + String(env.DOMINIO).replace(/\./g, "\\.") + "$", "i").test(x)));
+    } else {
+      const xf = String(m.headers["x-forwarded-for"] || "").split(/[\s,]+/)[0];
+      c = await duenoDe(env, [xf, String(message.from || "").replace(/\+caf_=.*@/i, "@"), from]);
+    }
+    const u = c ? await env.BUZON.get("u:" + c, "json") : null;
+    if (!u) { message.setReject(local === BUZON_COMUN ? "Este correo no está conectado a ningún Mis Lucas. Abre la app → Anotar gastos al instante → Buzón y agrega el correo desde el que reenvías." : "Buzón no existe"); return; }
+    if (!(await limite(env, "mail:" + c, 500, 86400))) { message.setReject("Límite diario"); return; }
     // Confirmación de reenvío de Gmail: mostrar el código dentro de la app
-    if (/forwarding-noreply@google\.com/i.test(from) || /gmail.*(forwarding|reenv[ií]o)/i.test(subject)) {
+    if (esConfirmacion) {
       const cod = (subject.match(/#\s?(\d{6,12})/) || texto.match(/(?:c[oó]digo de confirmaci[oó]n|confirmation code)[^\d]{0,20}(\d{6,12})/i) || [])[1] || "";
       const link = (texto.match(/https:\/\/mail(?:-settings)?\.google\.com\/mail\/[^\s"'<>]+/) || [])[0] || "";
       await guardar(env, c, { kind: "confirm", subject, from, date: fecha, text: cod ? `Código ${cod}` : texto.slice(0, 300), extra: { code: cod, link } }, u);

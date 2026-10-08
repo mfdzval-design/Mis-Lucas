@@ -3,6 +3,9 @@
 Cada versión publicada queda anotada aquí. El número de versión se ve al pie de la app.
 
 ## Próxima versión · (sin publicar)
+- Sueldo a mes vencido: la app aprende qué día suele llegar tu sueldo (y otros ingresos que se repiten). Mientras no llega, lo cuenta como «por llegar» en «Te queda este mes», en el anillo y en «¿A dónde se fue lo que entró?», así el mes no se ve en rojo antes de tiempo.
+- El cierre de mes aparece solo cuando el mes terminó: mirando octubre ves el «Cierre de septiembre» (si falta algo) y nada de octubre. «Lo destacado» del mes en curso ya no compara contra meses completos.
+- Menú más corto (6 opciones): Perfil y apariencia · Cuentas y tarjetas · Categorías y reglas · Conectar Apple Pay y correo · Seguridad y respaldo · Bloquear ahora. «Acerca de» quedó al pie del menú.
 - Lector de capturas: entiende las notificaciones de Wallet de cualquier banco en la pantalla bloqueada (comercio en la línea de arriba del monto, sin la dirección), aunque haya otras notificaciones alrededor.
 - Apple Pay: si el atajo no manda la fecha, la compra toma la hora en que llegó al buzón; y dos compras iguales sin fecha ya no se confunden como repetidas.
 

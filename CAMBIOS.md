@@ -9,7 +9,7 @@ Cada versión publicada queda anotada aquí. El número de versión se ve al pie
 - Gráfico «Gasto del mes vs. lo que puedes gastar»: tu gasto acumulado día a día, el del mes anterior y la línea de tu límite.
 - En Movimientos, «Próximos movimientos»: pagos fijos, ingresos y cuotas que todavía no llegan este mes.
 - Buzón con una sola dirección para todos (buzon@mislucasapp.com): la app reconoce tus correos por la dirección desde la que reenvías. Los buzones anteriores siguen funcionando.
-- Sueldo a mes vencido: la app aprende qué día suele llegar tu sueldo (y otros ingresos que se repiten). Mientras no llega, lo cuenta como «por llegar» en «Te queda este mes», en el anillo y en «¿A dónde se fue lo que entró?», así el mes no se ve en rojo antes de tiempo.
+- Sueldo a mes vencido: la app aprende qué día suele llegar tu sueldo (y otros ingresos que se repiten). Los números del mes usan solo lo que ya entró; el sueldo que viene aparece aparte como supuesto («Supuesto: cuando llegue tu sueldo (~el 29), te quedarían $X»), y mientras no llega el título dice «Llevas este mes (aún sin tu sueldo)» en vez de «Te pasaste».
 - El cierre de mes aparece solo cuando el mes terminó: mirando octubre ves el «Cierre de septiembre» (si falta algo) y nada de octubre. «Lo destacado» del mes en curso ya no compara contra meses completos.
 - Menú más corto: Perfil y apariencia · Cuentas y tarjetas · Plan de ahorro · Categorías y reglas · Conectar Apple Pay y correo · Seguridad y respaldo · Bloquear ahora. «Acerca de» quedó al pie del menú.
 - Lector de capturas: entiende las notificaciones de Wallet de cualquier banco en la pantalla bloqueada (comercio en la línea de arriba del monto, sin la dirección), aunque haya otras notificaciones alrededor.

@@ -2463,7 +2463,9 @@ function renderTodo(){ const box=$("#todo"); if(!box)return; if(state.example){b
     html=`<div class="tdh"><div><h2>Primeros pasos</h2><div class="sub">${nDone} de ${steps.length} listos</div></div><button class="linkbtn" type="button" id="todoHide">Ocultar</button></div><div class="tdbar"><i style="width:${nDone/steps.length*100}%"></i></div>${steps.map(row).join("")}`;
   } else {
     // El cierre es del mes que ya terminó: mirando el mes en curso se muestra el del mes anterior (y nada si ya está cerrado).
-    const cym=state.ym>=todayYM()?shiftYM(todayYM(),-1):state.ym, ctx=monthTx(cym);
+    // En el mes en curso no se muestra nada de cierre: aparece solo al mirar un mes que ya terminó (los pendientes siguen en 🔔 Avisos).
+    if(state.ym>=todayYM()){ box.hidden=true; box.innerHTML=""; return; }
+    const cym=state.ym, ctx=monthTx(cym);
     const items=accs.map(a=>({done:ctx.some(t=>t.account===a.name&&fromBank(t)),t:`Cartola de ${a.name}`,act:`data-goto="import" data-impacc="${esc(a.name)}"`}));
     const rev=ctx.filter(needsReview).length; items.push({done:ctx.length>0&&!rev,t:"Todo categorizado",act:cym===state.ym?'data-review="1"':`data-gomonth="${cym}"`,n:rev});
     const nd=items.filter(x=>x.done).length; const closed=nd===items.length&&items.length>1;

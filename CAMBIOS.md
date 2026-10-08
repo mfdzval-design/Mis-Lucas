@@ -3,9 +3,13 @@
 Cada versión publicada queda anotada aquí. El número de versión se ve al pie de la app.
 
 ## Próxima versión · (sin publicar)
+- 🎯 Plan de ahorro: al crear tu espacio (o desde el menú y el Inicio) pones tu ingreso aproximado y cuánto quieres ahorrar (10, 20, 30 % o lo que elijas). Con plan, el Inicio muestra «Te quedan para gastar» y el avance de tu meta de ahorro.
+- Gráfico «Gasto del mes vs. lo que puedes gastar»: tu gasto acumulado día a día, el del mes anterior y la línea de tu límite.
+- En Movimientos, «Próximos movimientos»: pagos fijos, ingresos y cuotas que todavía no llegan este mes.
+- Buzón con una sola dirección para todos (buzon@mislucasapp.com): la app reconoce tus correos por la dirección desde la que reenvías. Los buzones anteriores siguen funcionando.
 - Sueldo a mes vencido: la app aprende qué día suele llegar tu sueldo (y otros ingresos que se repiten). Mientras no llega, lo cuenta como «por llegar» en «Te queda este mes», en el anillo y en «¿A dónde se fue lo que entró?», así el mes no se ve en rojo antes de tiempo.
 - El cierre de mes aparece solo cuando el mes terminó: mirando octubre ves el «Cierre de septiembre» (si falta algo) y nada de octubre. «Lo destacado» del mes en curso ya no compara contra meses completos.
-- Menú más corto (6 opciones): Perfil y apariencia · Cuentas y tarjetas · Categorías y reglas · Conectar Apple Pay y correo · Seguridad y respaldo · Bloquear ahora. «Acerca de» quedó al pie del menú.
+- Menú más corto: Perfil y apariencia · Cuentas y tarjetas · Plan de ahorro · Categorías y reglas · Conectar Apple Pay y correo · Seguridad y respaldo · Bloquear ahora. «Acerca de» quedó al pie del menú.
 - Lector de capturas: entiende las notificaciones de Wallet de cualquier banco en la pantalla bloqueada (comercio en la línea de arriba del monto, sin la dirección), aunque haya otras notificaciones alrededor.
 - Apple Pay: si el atajo no manda la fecha, la compra toma la hora en que llegó al buzón; y dos compras iguales sin fecha ya no se confunden como repetidas.
 

@@ -3,6 +3,8 @@
 Cada versión publicada queda anotada aquí. El número de versión se ve al pie de la app.
 
 ## Próxima versión · (sin publicar)
+- Inicio más limpio (inspirado en Save Money): arriba el número principal, el aviso «Tienes N movimientos sin categorizar», el gráfico del mes, en qué se fue la plata y una tarjeta «Movimientos» con los próximos (sueldo, pagos fijos, cuotas) y los últimos 5. Lo destacado, a dónde se fue lo que entró, por cuenta y la evolución quedaron en «📊 Más del mes».
+- Movimientos: buscador por comercio o por monto (ej. «30.000»), filtro compacto y, en lo que falta categorizar, un «?» que abre la hoja de categorías con un toque. Si eliges «recordar», se aplica también a los demás movimientos iguales.
 - 🎯 Plan de ahorro: al crear tu espacio (o desde el menú y el Inicio) pones tu ingreso aproximado y cuánto quieres ahorrar (10, 20, 30 % o lo que elijas). Con plan, el Inicio muestra «Te quedan para gastar» y el avance de tu meta de ahorro.
 - Gráfico «Gasto del mes vs. lo que puedes gastar»: tu gasto acumulado día a día, el del mes anterior y la línea de tu límite.
 - En Movimientos, «Próximos movimientos»: pagos fijos, ingresos y cuotas que todavía no llegan este mes.

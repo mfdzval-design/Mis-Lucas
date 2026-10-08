@@ -14,6 +14,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <script src="vendor/xlsx.full.min.js" defer></script>
+<script src="conecta-demo.js" defer></script>
 <style>
 @font-face{font-family:"Plus Jakarta Sans";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/plus-jakarta-sans-400.woff2) format("woff2")}
 @font-face{font-family:"Plus Jakarta Sans";font-style:normal;font-weight:500;font-display:swap;src:url(fonts/plus-jakarta-sans-500.woff2) format("woff2")}
@@ -3191,6 +3192,463 @@ $("#drillClose").addEventListener("click",closeDrill); $("#drillScrim").addEvent
     tip.innerHTML=t.dataset.tip; tip.classList.add("show"); const w=tip.offsetWidth,h=tip.offsetHeight; tip.style.left=Math.max(8,Math.min(innerWidth-w-8,e.clientX-w/2))+"px"; tip.style.top=Math.max(8,e.clientY-h-16)+"px"; clearTimeout(tip._t); tip._t=setTimeout(()=>tip.classList.remove("show"),2600); });
 }
 
+/* ==== MIS LUCAS CONECTA (inicio) ==== */
+/**
+ * Mis Lucas Conecta · conexión con bancos (lado de la app)
+ * ------------------------------------------------------------
+ * Conecta tus cuentas y tarjetas para ver al instante saldos, cupos, deudas
+ * y cada compra o transferencia, sin subir cartolas.
+ *
+ *  - Proveedores (en el servidor): Fintoc (cuentas corrientes y vista),
+ *    Khipu (tarjetas de crédito) y Banco Demo (pruebas). Ver servidor/conecta.
+ *  - Todo llega CIFRADO con una llave que solo tiene este teléfono.
+ *  - Los movimientos entran a la lista normal de Mis Lucas, con categoría, y se
+ *    juntan solos con lo que ya anotaste (buzón, Apple Pay, capturas, a mano)
+ *    y con las cartolas que subas después, sin duplicar.
+ *  - Si el servidor todavía no tiene la conexión activa, se puede probar con
+ *    el Banco Demo funcionando dentro del teléfono (modo local).
+ *
+ * Vive dentro del script principal (justo antes de boot()) y se engancha a
+ * sus funciones: menú, inicio, avisos e importación de cartolas.
+ */
+(function () {
+  "use strict";
+
+  const CX_V = "2026-10-08"; // versión del texto de autorización (debe calzar con el servidor)
+  const CX_API = (() => { try { const x = localStorage.getItem("ml_conecta_api"); if (x) return x.replace(/\/+$/, ""); } catch (e) {} return /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? location.origin : BUZON_API; })();
+  const BANK_NAME = { santander: "Santander", chile: "Banco de Chile", itau: "Itaú", bci: "BCI", estado: "BancoEstado", scotiabank: "Scotiabank", bice: "BICE", consorcio: "Banco Consorcio", demo: "Banco Demo" };
+  const PROV_NAME = { fintoc: "Fintoc", khipu: "Khipu", demo: "Banco Demo" };
+  const SYNC_EVERY = 20 * 60e3;   // pedir datos frescos al banco con la app abierta
+  const PULL_EVERY = 3 * 60e3;    // revisar si el servidor tiene algo nuevo
+  const LOCAL_BANKS = [{ id: "demo", name: "Banco Demo (prueba)", cuentas: "demo", tarjetas: "demo" }];
+
+  const cxCfg = () => (cfg().bank) || null;
+  let estado = null, estadoAt = 0, busy = false, ui = { step: "list" };
+
+  /* ---------- servidor ---------- */
+  async function api(path, body, timeout = 45000) {
+    const ctl = new AbortController(); const tm = setTimeout(() => ctl.abort(), timeout);
+    try {
+      const r = await fetch(CX_API + "/api/conecta" + path, body ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: ctl.signal, cache: "no-store" } : { signal: ctl.signal, cache: "no-store" });
+      const j = await r.json().catch(() => ({ ok: false, error: `respuesta ${r.status}` }));
+      if (!j.ok && !j.error) j.error = `error ${r.status}`; j.status = r.status; return j;
+    } finally { clearTimeout(tm); }
+  }
+  async function cxEstado(force) {
+    if (estado && !force && Date.now() - estadoAt < 10 * 60e3) return estado;
+    try { const j = await api("/estado", null, 8000); if (!j.ok || !j.bancos) throw new Error("sin servicio"); estado = { ...j, local: false }; }
+    catch (e) { estado = { ok: true, local: true, bancos: LOCAL_BANKS, proveedores: [{ id: "demo" }] }; }
+    estadoAt = Date.now(); return estado;
+  }
+  async function cxUsuario() {
+    const B = cxCfg(); if (B && B.u && B.k && B.priv) return B;
+    const ks = await inboxKeys();
+    const j = await api("/registro", { pub: ks.pub });
+    if (!j.ok) throw new Error(j.error || "No pude registrarte en el servidor");
+    mutateConfig(c => { c.bank = Object.assign(c.bank || { conns: [], accs: {} }, { u: j.u, k: j.k, priv: ks.priv, api: CX_API }); });
+    return cxCfg();
+  }
+
+  /* ---------- aplicar lo que llega del banco ---------- */
+  const SOFT = ["aviso", "applepay", "captura", "voz", "manual"];
+  const PAGO_TC = /PAGO (DE )?(TARJETA|TARJ|TC|T\.? ?CREDITO)|PAGO RECIBIDO|PAGO TARJETA|ABONO TARJETA|PAGO TOTAL TARJETA/;
+  const ddays = (a, b) => Math.abs((new Date(a) - new Date(b)) / 864e5);
+  const limpiar = d => String(d || "").replace(/^(COMPRA (DEBITO|NAC(IONAL)?|INT(ERNACIONAL)?|CON TARJETA)|COMPRA|CARGO POR COMPRA|PAGO EN)\s+/i, "").replace(/\s+/g, " ").trim().slice(0, 60) || "Movimiento";
+
+  function cuentaApp(c, snapAcc, conn) {
+    const bankName = BANK_NAME[conn.banco] || (conn.inst && conn.inst.name) || "Banco";
+    const key = conn.cid + "|" + snapAcc.id;
+    const L = accList();
+    let a = L.find(x => x.cx === key);
+    if (!a && snapAcc.last4) a = L.find(x => x.last4 === snapAcc.last4 && (x.type === snapAcc.type || (snapAcc.type !== "tc" && x.type !== "tc")));
+    if (!a) a = L.find(x => !x.cx && x.type === snapAcc.type && norm(x.bank || x.name).includes(norm(bankName).split(" ").pop()));
+    if (a) { const real = (c.accounts || []).find(x => x.id === a.id); if (real) { real.cx = key; if (!real.last4 && snapAcc.last4) real.last4 = snapAcc.last4; if (!real.bank) real.bank = bankName; } return a.name; }
+    const name0 = accDefaultName(bankName, snapAcc.type, snapAcc.last4); let name = name0, i = 2; while (L.some(x => x.name === name)) name = name0 + " " + (i++);
+    if (!c.accounts || !c.accounts.length) c.accounts = accList().slice();
+    c.accounts.push({ id: uid(), name, bank: bankName, type: snapAcc.type, last4: snapAcc.last4 || "", cx: key });
+    return name;
+  }
+
+  function aplicar(snap, connMeta) {
+    const B = cxCfg() || {}; const conn = (B.conns || []).find(x => x.cid === snap.cid) || connMeta || { cid: snap.cid, banco: snap.banco, prov: snap.prov, inst: snap.inst };
+    const desde = conn.from || "0000";
+    const accName = {}, accTyp = {};
+    let nuevos = 0, juntados = 0, actualizados = 0;
+    mutateConfig(c => {
+      c.bank = c.bank || { conns: [], accs: {} }; c.bank.accs = c.bank.accs || {};
+      (snap.accounts || []).forEach(a => {
+        const n = cuentaApp(c, a, conn); accName[a.id] = n; accTyp[a.id] = a.type;
+        c.bank.accs[conn.cid + "|" + a.id] = { name: n, type: a.type, last4: a.last4 || "", label: a.name || "", balance: a.balance || null, credit: a.credit || null, creditLine: a.creditLine || null, currency: a.currency || "CLP", at: snap.at, cid: conn.cid, banco: conn.banco };
+      });
+      if (connMeta && !(c.bank.conns || []).some(x => x.cid === conn.cid)) c.bank.conns = (c.bank.conns || []).concat({ estado: "ok", ...connMeta });
+      const k = (c.bank.conns || []).find(x => x.cid === snap.cid); if (k) { k.ultima = snap.at; k.estado = "ok"; delete k.err; k.n = (k.n || 0) + 1; }
+    });
+    // Movimientos
+    const M = allMonths(); const have = new Map(); allRefs().forEach(({ t, ym }) => { if (t.extId) have.set(t.extId, { t, ym }); });
+    const byYm = {}, upd = {};
+    (snap.movements || []).filter(m => m.date && m.date >= desde && accName[m.accountId]).sort((a, b) => a.date < b.date ? -1 : 1).forEach(m => {
+      const ext = `bk|${snap.prov}|${m.id}`;
+      let amount = Math.abs(Math.round(m.amount)); let fx = null;
+      if (m.currency && m.currency !== "CLP") { const r = typeof fxRate === "function" ? fxRate(m.currency) : 0; if (!r) return; fx = `${m.currency} ${fmtN(Math.abs(m.amount), 2)} × ${fmtP(r)}`; amount = Math.round(Math.abs(m.amount) * r); }
+      else if (m.original && m.original.currency === "USD") fx = `US$${fmtN(m.original.amount, 0)}`;
+      if (!amount) return;
+      const acc = accName[m.accountId], raw = String(m.desc || "").trim(), desc = limpiar(raw);
+      let type = m.amount < 0 ? "gasto" : "ingreso", cat;
+      if (m.kind === "pago" || PAGO_TC.test(norm(raw))) { type = "traspaso"; cat = "Entre mis cuentas"; }
+      else { const x = catFor(desc, type); type = x.type; cat = x.cat;
+        if (/^Otros /.test(cat)) { const T = norm(raw), hit = (type === "ingreso" ? NL_INC : NL_CATS).find(([re]) => re.test(T)); if (hit) cat = normCat(hit[1]); } }
+      const old = have.get(ext);
+      if (old) { // ya estaba: si pasó de pendiente a confirmado, actualizarlo
+        if (old.t.pending && !m.pending) { (upd[old.ym] = upd[old.ym] || []).push({ id: old.t.id, set: { pending: false, checked: true, amount, date: m.date } }); actualizados++; }
+        return;
+      }
+      have.set(ext, { t: { extId: ext }, ym: ymOf(m.date) });
+      // ¿ya lo anotaste (buzón, Apple Pay, captura, a mano) o venía pendiente con otro id?
+      const pool = [shiftYM(ymOf(m.date), -1), ymOf(m.date), shiftYM(ymOf(m.date), 1)].flatMap(k => ((M[k] && M[k].tx) || []).map(t => ({ t, ym: k })));
+      const usados = new Set(Object.values(upd).flat().map(x => x.id));
+      const okAcc = t => !t.account || t.account === acc || (SOFT.includes(t.source) && accTypeGlobal(t.account) === accTyp[m.accountId]);
+      const cand = ({ t }) => !usados.has(t.id) && ((SOFT.includes(t.source) && !t.checked) || (t.source === "banco" && t.pending && t.extId !== ext)) && (t.type === type || (type === "traspaso" && t.type === "gasto")) && okAcc(t) && ddays(t.date, m.date) <= 5;
+      const near = ({ t }) => { const tol = Math.max(1000, amount * .06); if (Math.abs(t.amount - amount) > tol) return false; const wb = norm(raw); return norm(t.desc).split(" ").filter(w => w.length >= 4).some(w => wb.includes(w)); };
+      const hit = pool.find(x => cand(x) && x.t.amount === amount) || pool.find(x => cand(x) && near(x));
+      const bk = `${m.date}|${amount}|${norm(raw)}`;
+      if (hit) {
+        const set = { checked: !m.pending, pending: !!m.pending, bankDesc: raw, bk, extId: ext, account: acc };
+        if (hit.t.amount !== amount) { set.origAmount = hit.t.amount; set.amount = amount; }
+        if (type === "traspaso") { set.type = "traspaso"; set.cat = "Entre mis cuentas"; }
+        (upd[hit.ym] = upd[hit.ym] || []).push({ id: hit.t.id, set, unapprox: true }); juntados++; return;
+      }
+      const t = { id: uid(), date: m.date, desc, amount, type, cat, account: acc, nature: FIXED_CATS.has(cat) ? "fijo" : "variable", source: "banco", extId: ext, bk, bankDesc: raw, checked: !m.pending };
+      if (m.pending) t.pending = true; if (fx) t.fx = fx;
+      if (m.installments && m.installments.total > 1) t.cuotas = `${m.installments.n}/${m.installments.total}`;
+      if (m.counterpart && !/^TRANSF/i.test(desc) && m.kind === "transferencia") t.desc = (m.amount < 0 ? "Transf. a " : "Transf. de ") + m.counterpart;
+      (byYm[ymOf(m.date)] = byYm[ymOf(m.date)] || []).push(t); nuevos++;
+    });
+    const yms = new Set([...Object.keys(byYm), ...Object.keys(upd)]);
+    yms.forEach(ym => mutateMonth(ym, cur => {
+      (upd[ym] || []).forEach(u => { const t = cur.tx.find(x => x.id === u.id); if (!t) return; Object.assign(t, u.set); if (!u.set.pending) delete t.pending; if (u.unapprox) delete t.approx; });
+      cur.tx.push(...(byYm[ym] || []));
+    }));
+    return { nuevos, juntados, actualizados };
+  }
+  const accTypeGlobal = n => accType(n);
+
+  /* ---------- traer datos ---------- */
+  let _pk = null;
+  async function abrirItem(it, priv) { // mismo esquema que el buzón (RSA-OAEP + AES-GCM)
+    if (!_pk || _pk.n !== priv.n) _pk = { n: priv.n, k: await crypto.subtle.importKey("jwk", priv, { name: "RSA-OAEP", hash: "SHA-256" }, false, ["decrypt"]) };
+    const raw = await crypto.subtle.decrypt({ name: "RSA-OAEP" }, _pk.k, unb64(it.enc.k));
+    const aes = await crypto.subtle.importKey("raw", raw, { name: "AES-GCM" }, false, ["decrypt"]);
+    return JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({ name: "AES-GCM", iv: unb64(it.enc.iv) }, aes, unb64(it.enc.ct))));
+  }
+  async function cxPull(silencioso) {
+    const B = cxCfg(); if (!B || !B.u || state.example) return { nuevos: 0 };
+    const j = await api(`/datos?u=${encodeURIComponent(B.u)}&k=${encodeURIComponent(B.k)}`, null, 20000);
+    if (!j.ok) { if (j.status === 403) mutateConfig(c => { if (c.bank) c.bank.err = "Tu conexión ya no existe en el servidor: vuelve a conectar tus bancos."; }); throw new Error(j.error || "sin respuesta"); }
+    if (j.conexiones) mutateConfig(c => { if (!c.bank) return; const prev = c.bank.conns || []; c.bank.conns = j.conexiones.map(s => Object.assign({}, prev.find(x => x.cid === s.cid) || {}, s)).concat(prev.filter(x => x.local)); delete c.bank.err; });
+    let tot = { nuevos: 0, juntados: 0, actualizados: 0 }; const ids = [];
+    for (const it of j.items || []) {
+      try { const s = await abrirItem(it, B.priv); if (s.kind === "snapshot") { const r = aplicar(s); tot.nuevos += r.nuevos; tot.juntados += r.juntados; tot.actualizados += r.actualizados; } ids.push(it.id); }
+      catch (e) { console.warn("conecta: no pude abrir", it.id, e); }
+    }
+    if (ids.length) await api("/ok", { u: B.u, k: B.k, ids }).catch(() => {});
+    if (!silencioso || tot.nuevos || tot.juntados) avisar(tot);
+    return tot;
+  }
+  function avisar(t) {
+    if (t.nuevos || t.juntados) okToast(`🏦 ${t.nuevos ? `${t.nuevos} movimiento${t.nuevos === 1 ? "" : "s"} nuevo${t.nuevos === 1 ? "" : "s"}` : ""}${t.nuevos && t.juntados ? " · " : ""}${t.juntados ? `${t.juntados} confirmado${t.juntados === 1 ? "" : "s"} con el banco` : ""}`);
+  }
+  async function cxSync(manual, cid) {
+    const B = cxCfg(); if (!B || busy || state.example) return;
+    const conns = B.conns || []; if (!conns.length) return;
+    busy = true; if (manual) renderPanel();
+    try {
+      let tot = { nuevos: 0, juntados: 0, actualizados: 0 };
+      const locales = conns.filter(x => x.local && (!cid || x.cid === cid));
+      for (const c of locales) { const s = MLDemoBank.snapshot(c.seed, c.creada, Date.now(), c.ultima ? c.ultima - 10 * 864e5 : Date.now() - 90 * 864e5); const r = aplicar({ ...s, cid: c.cid, prov: "demo", banco: "demo", kind: "snapshot" }, c); tot.nuevos += r.nuevos; tot.juntados += r.juntados; }
+      if (B.u && conns.some(x => !x.local)) {
+        const r = await api("/sincronizar", { u: B.u, k: B.k, cid: cid || undefined });
+        if (!r.ok && r.status === 403) throw new Error("Tu conexión ya no existe en el servidor: vuelve a conectar tus bancos.");
+        (r.resultados || []).filter(x => !x.ok).forEach(x => mutateConfig(c => { const k = ((c.bank || {}).conns || []).find(y => y.cid === x.cid); if (k) { k.estado = "error"; k.err = x.error; } }));
+        const p = await cxPull(true); tot.nuevos += p.nuevos; tot.juntados += p.juntados;
+      }
+      mutateConfig(c => { if (c.bank) { c.bank.at = Date.now(); delete c.bank.err; } });
+      if (manual) { if (tot.nuevos || tot.juntados) avisar(tot); else okToast("🏦 Todo al día: nada nuevo en tus bancos"); }
+      else if (tot.nuevos || tot.juntados) avisar(tot);
+    } catch (e) {
+      mutateConfig(c => { if (c.bank) c.bank.err = String(e && e.message || e).slice(0, 160); });
+      if (manual) toast(/conexión|servidor/.test(String(e && e.message)) ? e.message : "No pude actualizar tus bancos. Revisa tu conexión a internet.");
+    } finally { busy = false; renderPanel(); render(); }
+  }
+  function cxTick() { const B = cxCfg(); if (!B || document.hidden || state.example || !(B.conns || []).length) return; if (!B.at || Date.now() - B.at > SYNC_EVERY) cxSync(false); else if (B.u) cxPull(true).catch(() => {}); }
+
+  /* ---------- conectar ---------- */
+  async function conectar(datos) {
+    const est = await cxEstado(); const b = ui.banco, prov = ui.prov;
+    ui.step = "espera"; renderPanel();
+    try {
+      if (est.local) {
+        if (!MLDemoBank.login(datos.rut, datos.clave)) throw new Error("RUT o clave incorrectos (la clave de prueba es «demo»)");
+        const seed = [...crypto.getRandomValues(new Uint8Array(8))].map(x => x.toString(16).padStart(2, "0")).join("");
+        const conn = { cid: "L" + uid().slice(0, 9), prov: "demo", banco: "demo", inst: { id: "demo", name: "Banco Demo" }, estado: "ok", creada: Date.now(), ultima: 0, local: true, seed, from: ui.from, cubre: { cuentas: true, tarjetas: true }, consentimiento: { v: CX_V, at: Date.now() } };
+        mutateConfig(c => { c.bank = c.bank || { conns: [], accs: {} }; c.bank.conns = (c.bank.conns || []).concat(conn); });
+        const s = MLDemoBank.snapshot(seed, conn.creada, Date.now(), Date.now() - 90 * 864e5);
+        const r = aplicar({ ...s, cid: conn.cid, prov: "demo", banco: "demo", kind: "snapshot" }, conn);
+        terminado(r, conn); return;
+      }
+      const B = await cxUsuario();
+      const body = { u: B.u, k: B.k, prov, banco: b.id, consentimiento: { acepto: true, v: est.consentimiento || CX_V, plazo: "hasta que la revoques" }, ...datos };
+      const j = await api("/completar", body, 90000);
+      if (!j.ok) throw new Error(j.error || "No pude conectar");
+      const conn = { ...j.conexion, from: ui.from };
+      mutateConfig(c => { c.bank.conns = (c.bank.conns || []).filter(x => x.cid !== conn.cid).concat(conn); });
+      const r = await cxPull(true);
+      if (j.sync && !j.sync.ok) toast("Quedó conectado, pero el banco no respondió todavía: lo intento de nuevo en unos minutos.");
+      terminado(r, conn);
+    } catch (e) {
+      ui.step = ui.prov === "fintoc" ? "permiso" : "clave"; ui.err = String(e && e.message || e).slice(0, 200); renderPanel();
+    }
+  }
+  function terminado(r, conn) {
+    ui = { step: "list", fresh: conn.cid };
+    mutateConfig(c => { if (c.bank) c.bank.at = Date.now(); });
+    okToast(`🏦 ${BANK_NAME[conn.banco] || "Banco"} conectado${r && r.nuevos ? ` · ${r.nuevos} movimientos` : ""}`);
+    renderPanel(); render();
+  }
+  async function abrirFintoc() {
+    const B = await cxUsuario();
+    const j = await api("/iniciar", { u: B.u, k: B.k, prov: "fintoc", banco: ui.banco.id });
+    if (!j.ok) throw new Error(j.error || "No pude abrir la conexión");
+    await cargarScript("https://js.fintoc.com/v1/");
+    if (!window.Fintoc) throw new Error("No pude cargar la ventana segura de Fintoc");
+    const w = window.Fintoc.create({ publicKey: j.publicKey, widgetToken: j.widgetToken, holderType: "individual", product: "movements", country: "cl", institutionId: j.institutionId || undefined,
+      onSuccess: li => { const ex = li && (li.exchangeToken || li.exchange_token); if (!ex) { toast("Fintoc no devolvió el permiso. Inténtalo de nuevo."); return; } conectar({ exchangeToken: ex }); },
+      onExit: () => { if (ui.step === "widget") { ui.step = "permiso"; renderPanel(); } } });
+    ui.step = "widget"; renderPanel(); w.open();
+  }
+  function cargarScript(src) { return new Promise((ok, no) => { if (document.querySelector(`script[src="${src}"]`)) return ok(); const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = () => no(new Error("sin conexión con Fintoc")); document.head.appendChild(s); }); }
+  async function desconectar(cid) {
+    const B = cxCfg(); const conn = ((B || {}).conns || []).find(x => x.cid === cid); if (!conn) return;
+    if (!conn.local && B.u) { const j = await api("/desconectar", { u: B.u, k: B.k, cid }).catch(() => ({ ok: false })); if (!j.ok) { toast("No pude avisar al servidor. Revisa tu conexión e inténtalo de nuevo."); return; } }
+    mutateConfig(c => { c.bank.conns = c.bank.conns.filter(x => x.cid !== cid); Object.keys(c.bank.accs || {}).forEach(k => { if (k.startsWith(cid + "|")) delete c.bank.accs[k]; }); (c.accounts || []).forEach(a => { if (a.cx && a.cx.startsWith(cid + "|")) delete a.cx; }); if (!c.bank.conns.length && c.bank.u) { /* deja la identidad para reconectar */ } });
+    okToast("Banco desconectado: se revocó el acceso y se borró del servidor. Tus movimientos ya traídos siguen en la app.");
+    renderPanel(); render();
+  }
+
+  /* ---------- números para el Inicio y los avisos ---------- */
+  function resumen() {
+    const B = cxCfg(); if (!B || !(B.conns || []).length) return null;
+    const vivos = new Set((B.conns || []).map(c => c.cid));
+    const A = Object.values(B.accs || {}).filter(a => vivos.has(a.cid));
+    let tienes = 0, debes = 0, cupoDisp = 0;
+    A.forEach(a => {
+      if (a.type === "tc" && a.credit) { debes += +a.credit.used || 0; cupoDisp += +a.credit.available || 0; }
+      else if (a.balance) { const v = +a.balance.current || 0; if (v >= 0) tienes += v; else debes += -v; if (a.creditLine && a.creditLine.used) debes += 0; }
+    });
+    return { A, tienes, debes, cupoDisp };
+  }
+  const fechaCorta = d => { if (!d) return ""; const x = new Date(d + "T12:00:00"); return x.toLocaleDateString("es-CL", { day: "numeric", month: "short" }).replace(".", ""); };
+  const diasA = d => Math.round((new Date(d + "T12:00:00") - new Date(new Date().toDateString() + " 12:00")) / 864e5);
+  const hace = t => { if (!t) return "todavía no"; const m = Math.round((Date.now() - t) / 6e4); return m < 1 ? "recién" : m < 60 ? `hace ${m} min` : m < 1440 ? `hace ${Math.round(m / 60)} h` : `hace ${Math.round(m / 1440)} días`; };
+
+  function filaCuenta(a, compacta) {
+    if (a.type === "tc" && a.credit) {
+      const C = a.credit, lim = +C.limit || 0, used = +C.used || 0, pct = lim ? Math.min(100, Math.round(used / lim * 100)) : 0;
+      const due = C.billed > 0 && C.dueDate ? diasA(C.dueDate) : null;
+      const est = C.billed > 0 ? `Facturado ${money(C.billed)}${C.minPayment ? ` · mínimo ${money(C.minPayment)}` : ""}${C.dueDate ? ` · vence ${fechaCorta(C.dueDate)}${due != null && due >= 0 && due <= 7 ? ` (${due === 0 ? "hoy" : due === 1 ? "mañana" : `en ${due} días`})` : ""}` : ""}` : `Estado de cuenta pagado ✓${C.nextCloseDate ? ` · cierra el ${fechaCorta(C.nextCloseDate)}` : ""}`;
+      return `<div class="cx-acc"><div class="cx-r1"><span>💳 <b>${esc(a.name)}</b></span><span class="num">${money(C.available)} <small>disponible</small></span></div>
+        <div class="cx-bar${pct >= 80 ? " hi" : ""}" role="img" aria-label="Cupo usado ${pct}%"><i style="width:${pct}%"></i></div>
+        <div class="cx-r2"><span>Usado ${money(used)} de ${money(lim)}</span>${C.unbilled ? `<span>Por facturar ${money(C.unbilled)}</span>` : ""}</div>
+        ${compacta ? "" : `<div class="cx-r2 ${due != null && due <= 5 && due >= 0 ? "warn" : ""}"><span>${est}</span></div>${C.installmentsPending ? `<div class="cx-r2"><span>Cuotas por pagar ${money(C.installmentsPending)}</span></div>` : ""}`}</div>`;
+    }
+    const b = a.balance || {}; const ln = a.creditLine;
+    return `<div class="cx-acc"><div class="cx-r1"><span>${(ACC_TYPES[a.type] || ACC_TYPES.otra)[1]} <b>${esc(a.name)}</b></span><span class="num${(+b.current || 0) < 0 ? " neg" : ""}">${money(b.current != null ? b.current : b.available)}</span></div>
+      ${!compacta && (b.available != null && b.available !== b.current || ln) ? `<div class="cx-r2">${b.available != null && b.available !== b.current ? `<span>Disponible ${money(b.available)}</span>` : ""}${ln ? `<span>Línea de crédito: usada ${money(ln.used || 0)} de ${money(ln.limit)}</span>` : ""}</div>` : ""}</div>`;
+  }
+  function renderHome() {
+    let box = $("#cxHome");
+    if (!box) { const hm = $("#homeMovs"); if (!hm) return; box = document.createElement("div"); box.className = "card"; box.id = "cxHome"; box.hidden = true; hm.parentNode.insertBefore(box, hm); }
+    const R = resumen(); const cur = state.ym === todayYM();
+    if (!R || !R.A.length || state.example || !cur) { box.hidden = true; return; }
+    const B = cxCfg();
+    box.hidden = false;
+    box.innerHTML = `<div class="card-head"><div><h2>🏦 Tus cuentas y tarjetas</h2><div class="sub">Actualizado ${hace(B.at)}${B.err ? ` · <span style="color:var(--crit)">con problema</span>` : ""}</div></div><button type="button" class="btn sm" id="cxHomeSync"${busy ? " disabled" : ""}>${busy ? "…" : "↻ Actualizar"}</button></div>
+      <div class="cx-tot"><div><small>Tienes</small><b class="num">${money(R.tienes)}</b></div><div><small>Debes</small><b class="num neg">${money(R.debes)}</b></div>${R.cupoDisp ? `<div><small>Cupo disponible</small><b class="num">${money(R.cupoDisp)}</b></div>` : ""}</div>
+      ${R.A.map(a => filaCuenta(a, true)).join("")}
+      <button type="button" class="linkbtn" data-acct="bancos" style="margin-top:8px">Ver detalle y bancos conectados ›</button>`;
+  }
+
+  /* ---------- pantalla «Bancos conectados» ---------- */
+  function seccion() {
+    const body = $("#acctBody"); if (!body || $('#acctBody [data-sec="bancos"]')) return;
+    const s = document.createElement("section"); s.dataset.sec = "bancos"; s.hidden = true;
+    s.innerHTML = `<div id="cxBox"></div>`; body.insertBefore(s, body.firstChild);
+  }
+  async function renderPanel() {
+    const box = $("#cxBox"); if (!box || box.closest("[data-sec]").hidden) return;
+    const B = cxCfg() || {}; const conns = B.conns || [];
+    if (state.example) { box.innerHTML = `<div class="ainfo">Primero crea tu espacio (o restaura tu respaldo) para conectar tus bancos.</div>`; return; }
+    if (ui.step === "list") {
+      const R = resumen();
+      box.innerHTML = `<div class="ainfo">Conecta tus bancos y Mis Lucas se actualiza solo: <b>saldos, cupos de tus tarjetas, lo que debes, cuándo vence</b> y cada compra o transferencia, sin subir cartolas. Es <b>solo lectura</b>: la app no puede mover tu plata.</div>
+        ${B.err ? `<div class="cx-err">${esc(B.err)}</div>` : ""}
+        ${R && R.A.length ? `<div class="cx-tot"><div><small>Tienes</small><b class="num">${money(R.tienes)}</b></div><div><small>Debes</small><b class="num neg">${money(R.debes)}</b></div>${R.cupoDisp ? `<div><small>Cupo disponible</small><b class="num">${money(R.cupoDisp)}</b></div>` : ""}</div>` : ""}
+        ${conns.map(c => {
+          const A = Object.values(B.accs || {}).filter(a => a.cid === c.cid);
+          const st = c.estado === "ok" ? `<span class="cx-chip ok">✓ Conectado</span>` : c.estado === "requiere_accion" ? `<span class="cx-chip warn">Reconectar</span>` : `<span class="cx-chip warn">Con problema</span>`;
+          return `<div class="cx-conn${ui.fresh === c.cid ? " fresh" : ""}"><div class="cx-ch"><div><b>${esc(BANK_NAME[c.banco] || (c.inst || {}).name || "Banco")}</b><small>${c.local ? "Banco de prueba en este teléfono" : `vía ${esc(PROV_NAME[c.prov] || c.prov)}`} · ${(c.cubre || {}).tarjetas && (c.cubre || {}).cuentas ? "cuentas y tarjetas" : (c.cubre || {}).tarjetas ? "tarjetas de crédito" : "cuentas"} · actualizado ${hace(c.ultima)}</small></div>${st}</div>
+            ${c.err && c.estado !== "ok" ? `<div class="cx-err">${esc(c.err)}${c.estado === "requiere_accion" ? " — desconéctalo y vuelve a conectarlo (¿cambiaste tu clave?)." : ""}</div>` : ""}
+            ${A.map(a => filaCuenta(a, false)).join("") || `<p class="note">Todavía sin datos: toca Actualizar.</p>`}
+            <div class="abtns"><button type="button" class="btn sm" data-cxsync="${esc(c.cid)}"${busy ? " disabled" : ""}>${busy ? "Actualizando…" : "↻ Actualizar"}</button><button type="button" class="btn sm" data-cxoff="${esc(c.cid)}" style="color:var(--crit);margin-left:auto">Desconectar</button></div></div>`;
+        }).join("")}
+        <div class="abtns"><button type="button" class="btn primary" id="cxAdd">＋ ${conns.length ? "Conectar otro banco o tarjeta" : "Conectar un banco"}</button></div>
+        <p class="note" style="margin-top:10px">Se actualiza solo cada vez que abres la app${conns.some(c => !c.local) ? " y varias veces al día aunque no la abras" : ""}. Lo que llega se junta con lo que ya anotaste (buzón, Apple Pay, capturas) y con tus cartolas, sin duplicar.</p>
+        <details class="ibdet"><summary>🔒 Cómo cuidamos tus datos</summary><ul class="cx-ul">
+          <li><b>Solo lectura.</b> Nadie puede hacer pagos ni transferencias con esta conexión.</li>
+          <li><b>Tu clave del banco no se guarda.</b> Con Fintoc la escribes en su ventana segura y Mis Lucas nunca la ve. Con Khipu (tarjetas) pasa una sola vez, cifrada, para obtener un permiso de acceso, y se descarta.</li>
+          <li><b>Cifrado de punta a punta.</b> Tus saldos y movimientos viajan cifrados con una llave que solo tiene este teléfono; el servidor los borra apenas la app los recoge.</li>
+          <li><b>Tú decides.</b> Autorizas cada banco por separado y puedes desconectarlo cuando quieras: se revoca el acceso y se borra todo del servidor.</li>
+          <li>Proveedores: Fintoc y Khipu, empresas chilenas que hoy conectan apps con bancos. Desde 2027 se sumará el Sistema de Finanzas Abiertas de la CMF (Ley Fintec).</li></ul></details>`;
+      return;
+    }
+    const est = await cxEstado();
+    if (ui.step === "banco") {
+      box.innerHTML = `<button type="button" class="linkbtn" data-cxback="list">‹ Volver</button><div class="eflabel" style="margin-top:8px">¿Qué banco quieres conectar?</div>
+        ${est.local ? `<div class="ainfo">El servidor de Mis Lucas todavía no tiene activa la conexión con bancos reales. Puedes probar todo con el <b>Banco Demo</b>, que funciona dentro de este teléfono.</div>` : ""}
+        <div class="cx-banks">${est.bancos.map(b => `<button type="button" class="cx-bank" data-cxbank="${esc(b.id)}"${!b.cuentas && !b.tarjetas ? " disabled" : ""}><b>${esc(b.name)}</b><small>${b.cuentas ? "✓ Cuentas" : "— Cuentas"} · ${b.tarjetas ? "✓ Tarjetas" : "— Tarjetas"}</small></button>`).join("")}</div>
+        <p class="note" style="margin-top:10px">¿Tu banco no trae tarjetas? Sus compras igual entran solas con el <button type="button" class="linkbtn" data-acct="captura">buzón de correos</button>, y el cupo con la cartola PDF de la tarjeta.</p>`;
+      return;
+    }
+    if (ui.step === "que") {
+      const b = ui.banco;
+      box.innerHTML = `<button type="button" class="linkbtn" data-cxback="banco">‹ Volver</button><div class="eflabel" style="margin-top:8px">${esc(b.name)}: ¿qué quieres conectar?</div>
+        <div class="cx-banks">${b.cuentas ? `<button type="button" class="cx-bank" data-cxprov="${esc(b.cuentas)}"><b>🏦 Cuentas corriente y vista</b><small>Saldos, transferencias, sueldo, compras con débito · vía ${esc(PROV_NAME[b.cuentas])}</small></button>` : ""}
+        ${b.tarjetas && b.tarjetas !== b.cuentas ? `<button type="button" class="cx-bank" data-cxprov="${esc(b.tarjetas)}"><b>💳 Tarjetas de crédito</b><small>Cupo, compras facturadas y por facturar, cuotas, vencimiento · vía ${esc(PROV_NAME[b.tarjetas])}</small></button>` : ""}</div>
+        <p class="note">Puedes conectar las dos: vuelve aquí cuando termines la primera.</p>`;
+      return;
+    }
+    if (ui.step === "permiso") {
+      const b = ui.banco, p = ui.prov, cub = p === "demo" ? "cuentas y tarjetas" : b.tarjetas === p && b.cuentas !== p ? "tarjetas de crédito" : "cuentas corriente y vista";
+      box.innerHTML = `<button type="button" class="linkbtn" data-cxback="${b.cuentas && b.tarjetas && b.cuentas !== b.tarjetas ? "que" : "banco"}">‹ Volver</button>
+        <div class="cx-perm"><h3>Autorización para conectar ${esc(b.name)}</h3>
+        <dl><dt>Qué vamos a leer</dt><dd>De tus ${cub}: saldos, movimientos (compras, transferencias, abonos, cargos), ${/tarjeta/.test(cub) ? "cupo total, usado y disponible, monto facturado, pago mínimo, fechas de cierre y vencimiento, y cuotas" : "y línea de crédito"}. <b>Solo lectura</b>: no se pueden hacer pagos ni transferencias.</dd>
+        <dt>Para qué</dt><dd>Solo para mostrarte tus finanzas en Mis Lucas. No se vende, no se comparte y no se usa para publicidad.</dd>
+        <dt>Quién se conecta</dt><dd>${p === "fintoc" ? "Fintoc, agregador financiero chileno. Tu clave la escribes en la ventana segura de Fintoc: <b>Mis Lucas nunca la ve</b>." : p === "khipu" ? "Khipu, empresa chilena de servicios bancarios. Tu clave pasa <b>una sola vez</b>, cifrada, por el servidor de Mis Lucas hacia Khipu para obtener un permiso de acceso, y <b>no se guarda</b>." : "Nadie: es un banco de prueba con datos inventados."}</dd>
+        <dt>Dónde quedan tus datos</dt><dd>Llegan cifrados a este teléfono. El servidor los borra apenas la app los recoge.</dd>
+        <dt>Hasta cuándo</dt><dd>Hasta que lo desconectes. Al desconectar se revoca el acceso y se borra todo del servidor.</dd></dl>
+        <div class="eflabel">¿Desde cuándo traigo tus movimientos?</div>
+        <div class="cx-seg">${[["mes", "Desde este mes"], ["3m", "Últimos 3 meses"]].map(([k, l]) => `<button type="button" data-cxfrom="${k}" aria-pressed="${(ui.fromK || "mes") === k}">${l}</button>`).join("")}</div>
+        <p class="note">Si ya subiste cartolas de meses anteriores, deja «Desde este mes».</p>
+        <label class="cx-ok"><input type="checkbox" id="cxAcepto"> Autorizo a Mis Lucas a leer esta información de mi banco para los fines descritos. Sé que puedo revocarlo cuando quiera.</label>
+        ${ui.err ? `<div class="cx-err">${esc(ui.err)}</div>` : ""}
+        <div class="abtns"><button type="button" class="btn primary" id="cxGo" disabled>Autorizar y continuar</button></div></div>`;
+      return;
+    }
+    if (ui.step === "clave") {
+      const demo = ui.prov === "demo";
+      box.innerHTML = `<button type="button" class="linkbtn" data-cxback="permiso">‹ Volver</button><div class="eflabel" style="margin-top:8px">Entra con tu clave de ${esc(ui.banco.name)}</div>
+        ${demo ? `<div class="ainfo">Banco de prueba: escribe cualquier RUT y la clave <b>demo</b>.</div>` : `<div class="ainfo">🔒 Tu clave se usa una sola vez para pedir el permiso de acceso y no se guarda en ninguna parte.</div>`}
+        <form id="cxForm" autocomplete="off"><label class="field">RUT<input id="cxRut" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="12.345.678-9"></label>
+        <label class="field">Clave de internet<input id="cxClave" type="password" autocomplete="off" placeholder="${demo ? "demo" : "Tu clave del banco"}"></label>
+        ${ui.err ? `<div class="cx-err">${esc(ui.err)}</div>` : ""}
+        <div class="abtns"><button type="submit" class="btn primary">Conectar</button></div></form>`;
+      setTimeout(() => { const i = $("#cxRut"); if (i) i.focus(); }, 60);
+      return;
+    }
+    if (ui.step === "espera" || ui.step === "widget") {
+      box.innerHTML = `<div class="cx-wait"><div class="cx-spin" aria-hidden="true"></div><b>${ui.step === "widget" ? "Sigue los pasos en la ventana de Fintoc…" : `Conectando con ${esc(ui.banco.name)}…`}</b><p class="note">Puede tardar hasta un minuto la primera vez: estamos trayendo tus saldos y movimientos.</p></div>`;
+    }
+  }
+  function bindPanel() {
+    document.addEventListener("click", async e => {
+      const t = e.target.closest("button"); if (!t || !t.closest("#cxBox, #cxHome")) return;
+      if (t.id === "cxHomeSync") { cxSync(true); return; }
+      if (t.id === "cxAdd") { ui = { step: "banco" }; renderPanel(); return; }
+      if (t.dataset.cxback) { ui.step = t.dataset.cxback; ui.err = ""; renderPanel(); return; }
+      if (t.dataset.cxsync) { cxSync(true, t.dataset.cxsync); return; }
+      if (t.dataset.cxoff) { if (!t.dataset.armed) { t.dataset.armed = "1"; t.textContent = "¿Desconectar? Toca de nuevo"; setTimeout(() => { if (t.isConnected) { delete t.dataset.armed; t.textContent = "Desconectar"; } }, 3500); return; } desconectar(t.dataset.cxoff); return; }
+      if (t.dataset.cxbank) { const est = await cxEstado(); const b = est.bancos.find(x => x.id === t.dataset.cxbank); if (!b) return; ui = { step: b.cuentas && b.tarjetas && b.cuentas !== b.tarjetas ? "que" : "permiso", banco: b, prov: b.cuentas || b.tarjetas }; renderPanel(); return; }
+      if (t.dataset.cxprov) { ui.prov = t.dataset.cxprov; ui.step = "permiso"; ui.err = ""; renderPanel(); return; }
+      if (t.dataset.cxfrom) { ui.fromK = t.dataset.cxfrom; document.querySelectorAll("#cxBox [data-cxfrom]").forEach(x => x.setAttribute("aria-pressed", x === t)); return; }
+      if (t.id === "cxGo") {
+        const d = new Date(); ui.from = (ui.fromK || "mes") === "3m" ? `${shiftYM(todayYM(), -2)}-01` : `${todayYM()}-01`; ui.err = "";
+        if (ui.prov === "fintoc") { t.disabled = true; t.textContent = "Abriendo…"; try { await abrirFintoc(); } catch (er) { ui.err = er.message; ui.step = "permiso"; renderPanel(); } return; }
+        ui.step = "clave"; renderPanel(); return;
+      }
+    });
+    document.addEventListener("change", e => { if (e.target.id === "cxAcepto") { const g = $("#cxGo"); if (g) g.disabled = !e.target.checked; } });
+    document.addEventListener("submit", e => { if (e.target.id !== "cxForm") return; e.preventDefault(); const rut = $("#cxRut").value.trim(), clave = $("#cxClave").value; if (!rut || !clave) { ui.err = "Escribe tu RUT y tu clave."; renderPanel(); return; } $("#cxClave").value = ""; conectar({ rut, clave }); });
+  }
+
+  /* ---------- enganches con la app ---------- */
+  ACCT_TITLE.bancos = "Bancos conectados";
+  const _acctInit = acctInit;
+  acctInit = function (sec, P) { if (sec === "bancos") { if (ui.step !== "espera" && ui.step !== "widget") ui = { step: "list" }; renderPanel(); cxEstado(); return; } return _acctInit(sec, P); };
+  const _renderHomeMovs = renderHomeMovs;
+  renderHomeMovs = function () { const r = _renderHomeMovs.apply(this, arguments); try { renderHome(); } catch (e) { console.warn(e); } return r; };
+  const _alertList = alertList;
+  alertList = function () {
+    const out = _alertList(); const B = cxCfg(); if (!B || state.example) return out;
+    const off = new Set(((state.prof || {}).dismissed) || []); const add = [];
+    const R = resumen();
+    (R ? R.A : []).forEach(a => { const C = a.credit; if (a.type !== "tc" || !C) return;
+      if (C.billed > 0 && C.dueDate) { const d = diasA(C.dueDate); if (d >= 0 && d <= 5) add.push({ k: `cxdue|${a.name}|${C.dueDate}`, lvl: d <= 1 ? "crit" : "warn", i: "💳", t: `${a.name} vence ${d === 0 ? "hoy" : d === 1 ? "mañana" : `en ${d} días`}`, d: `Facturado ${money(C.billed)}${C.minPayment ? ` · pago mínimo ${money(C.minPayment)}` : ""}.`, a: 'data-acct="bancos"' }); }
+      if (C.limit && C.used / C.limit >= 0.8) add.push({ k: `cxcupo|${a.name}|${todayYM()}`, lvl: "warn", i: "💳", t: `Usaste el ${Math.round(C.used / C.limit * 100)}% del cupo de ${a.name}`, d: `Te quedan ${money(C.available)} disponibles.`, a: 'data-acct="bancos"' }); });
+    (B.conns || []).filter(c => c.estado && c.estado !== "ok").forEach(c => add.push({ k: `cxerr|${c.cid}|${todayYM()}`, lvl: "warn", i: "🏦", t: `${BANK_NAME[c.banco] || "Tu banco"} no se pudo actualizar`, d: c.estado === "requiere_accion" ? "Hay que volver a conectarlo (¿cambiaste tu clave?)." : "Lo vuelvo a intentar solo; si sigue, reconéctalo.", a: 'data-acct="bancos"' }));
+    const RK = { crit: 0, warn: 1, info: 2 }; return out.concat(add.filter(x => !off.has(x.k))).sort((a, b) => RK[a.lvl] - RK[b.lvl]);
+  };
+  // Al subir una cartola de una cuenta conectada, lo que ya trajo el banco cuenta como «ya anotado»
+  if (typeof buildPreview === "function") {
+    const _bp = buildPreview;
+    buildPreview = function () {
+      const r = _bp.apply(this, arguments); const im = state.imp; if (!im || !im.preview) return r;
+      const M = allMonths(); let n = 0;
+      im.preview.forEach(p => { if (p.status !== "new" || p.xfer) return;
+        const pool = [shiftYM(ymOf(p.date), -1), ymOf(p.date), shiftYM(ymOf(p.date), 1)].flatMap(k => (M[k] && M[k].tx) || []);
+        if (pool.some(t => t.source === "banco" && t.account === p.account && t.amount === p.amount && (t.type === p.type || t.type === "traspaso") && ddays(t.date, p.date) <= 3)) { p.status = "dup"; p.include = false; n++; } });
+      if (n) renderPreview(); return r;
+    };
+  }
+
+  function menu() {
+    const m = $("#umenu"); if (!m || m.querySelector('[data-acct="bancos"]')) return;
+    const ref = m.querySelector('[data-acct="cuentas"]'); const b = document.createElement("button");
+    b.setAttribute("role", "menuitem"); b.type = "button"; b.dataset.acct = "bancos"; b.innerHTML = `<span class="ui">🔗</span>Bancos conectados<small id="uBk"></small>`;
+    ref.parentNode.insertBefore(b, ref.nextSibling);
+    const sc = $('#acctBody [data-sec="cuentas"] .ainfo');
+    if (sc && !$("#cxHint")) sc.insertAdjacentHTML("afterend", `<button type="button" class="cx-hint" id="cxHint" data-acct="bancos">🔗 <span><b>Conecta tu banco</b> para que tus cuentas y tarjetas se actualicen solas</span> ›</button>`);
+  }
+  function css() {
+    const s = document.createElement("style"); s.textContent = `
+.cx-tot{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 8px}.cx-tot>div{flex:1 1 90px;background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:8px 10px;min-width:0}
+.cx-tot small{display:block;font-size:11.5px;color:var(--muted)}.cx-tot b{font-size:16px}.num.neg{color:var(--crit)}
+.cx-acc{border-top:1px solid var(--line);padding:9px 0}.cx-acc:first-of-type{border-top:0}
+.cx-r1{display:flex;justify-content:space-between;gap:8px;align-items:baseline;font-size:13.5px}.cx-r1 small{color:var(--muted);font-size:11.5px}
+.cx-r2{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:3px}.cx-r2.warn{color:var(--warn-text);font-weight:600}
+.cx-bar{height:7px;border-radius:99px;background:var(--surface-2);border:1px solid var(--line);overflow:hidden;margin-top:6px}.cx-bar i{display:block;height:100%;background:var(--accent);border-radius:99px}.cx-bar.hi i{background:var(--warn)}
+.cx-conn{border:1px solid var(--line);border-radius:14px;padding:12px;margin:0 0 12px;background:var(--surface)}.cx-conn.fresh{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.cx-ch{display:flex;justify-content:space-between;gap:8px;align-items:flex-start;margin-bottom:4px}.cx-ch small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+.cx-chip{font-size:11.5px;font-weight:700;border-radius:99px;padding:3px 8px;white-space:nowrap;background:var(--surface-2)}.cx-chip.ok{color:var(--good-text);background:var(--accent-soft)}.cx-chip.warn{color:var(--warn-text)}
+.cx-err{color:var(--crit);font-size:12.5px;margin:6px 0;padding:8px 10px;border:1px solid var(--crit);border-radius:10px}
+.cx-banks{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:6px}
+.cx-bank{text-align:left;border:1px solid var(--line-2);border-radius:12px;background:var(--surface);padding:11px;cursor:pointer;min-height:58px}.cx-bank:hover{border-color:var(--accent)}.cx-bank:disabled{opacity:.45;cursor:default}
+.cx-bank b{display:block;font-size:14px}.cx-bank small{display:block;color:var(--muted);font-size:11.5px;margin-top:3px}
+.cx-perm h3{font-size:15.5px;margin:8px 0 6px}.cx-perm dl{margin:0 0 12px;font-size:13px}.cx-perm dt{font-weight:700;margin-top:8px}.cx-perm dd{margin:2px 0 0;color:var(--ink-2)}
+.cx-seg{display:flex;gap:6px;margin-bottom:6px}.cx-seg button{flex:1;border:1px solid var(--line-2);background:var(--surface);border-radius:99px;padding:7px 10px;font-weight:600;font-size:13px;cursor:pointer}.cx-seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.cx-ok{display:flex;gap:8px;align-items:flex-start;font-size:13px;margin:12px 0;line-height:1.35}.cx-ok input{margin-top:2px;width:18px;height:18px;flex:none}
+.cx-wait{text-align:center;padding:28px 8px}.cx-spin{width:34px;height:34px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--accent);margin:0 auto 12px;animation:cxs 1s linear infinite}@keyframes cxs{to{transform:rotate(360deg)}}
+.cx-ul{margin:6px 0 0 18px;padding:0;font-size:12.5px;color:var(--ink-2)}.cx-ul li{margin:5px 0}
+.cx-hint{display:flex;gap:8px;align-items:center;width:100%;text-align:left;border:1px dashed var(--accent);background:var(--accent-soft);border-radius:12px;padding:10px 12px;margin:-4px 0 12px;cursor:pointer;font-size:13px;color:var(--ink)}.cx-hint span{flex:1}`;
+    document.head.appendChild(s);
+  }
+
+  css(); menu(); seccion(); bindPanel();
+  document.addEventListener("visibilitychange", cxTick);
+  setInterval(cxTick, PULL_EVERY);
+  setTimeout(cxTick, 2500);
+  // Para pruebas y para la consola
+  window.MLConecta = { sync: cxSync, pull: cxPull, estado: cxEstado, aplicar, resumen, api: CX_API };
+})();
+/* ==== MIS LUCAS CONECTA (fin) ==== */
 boot();
 })();
 </script>

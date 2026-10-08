@@ -11,3 +11,15 @@ binding = "BUZON"
 id = "6a97e415dde040deb487bf13bcbb4dd1"
 
 # Rutas: buzon.<dominio>/* → este Worker (se configura en Cloudflare)
+
+# Conexión con bancos (Mis Lucas Conecta): sincronización automática
+[triggers]
+crons = ["*/30 * * * *"]
+
+# Secretos (se cargan con `npx wrangler secret put NOMBRE`, nunca aquí):
+#   CONECTA_SECRETO        → texto largo al azar (cifra los tokens de los bancos)
+#   FINTOC_SECRET_KEY      → sk_test_… / sk_live_…   (cuentas corrientes y vista)
+#   FINTOC_WEBHOOK_SECRET  → secreto del webhook de Fintoc
+#   KHIPU_API_KEY          → llave de Khipu Open Data (tarjetas de crédito)
+# Variable pública:
+#   FINTOC_PUBLIC_KEY      → pk_test_… / pk_live_…

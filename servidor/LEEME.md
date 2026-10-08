@@ -28,6 +28,11 @@ Guarda cada cosa **solo hasta que la app la recoge** (máximo 30 días) y luego 
 - `POST /api/ap?c=&k=` (form `l=ML|…`) → compra Apple Pay
 - `POST /api/baja {c,k}` → desactiva y borra todo
 
+## Conexión con bancos
+El mismo Worker atiende `/api/conecta/*` (Fintoc, Khipu, Banco Demo) y corre un cron cada 30 min.
+Ver `conecta/LEEME.md` (puesta en marcha), `conecta/MODELO.md` y `conecta/LEGAL.md`.
+Desde que existe, se publica con `npx wrangler deploy` (son varios archivos).
+
 ## Estado actual (3-oct-2026)
 - Dominio: mislucasapp.com (Cloudflare Registrar, renovación automática).
 - Worker: `worker-lucky-mud-48f7` con dominio `buzon.mislucasapp.com`, KV `BUZON`, variable `DOMINIO`.

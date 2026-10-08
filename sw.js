@@ -1,6 +1,6 @@
 // Mis Lucas · service worker: funciona sin internet una vez abierta.
 const CACHE = "mislucas-1-11-0-beta";
-const CORE = ["./", "./index.html", "./manifest.webmanifest", "./icons/icon-192.png", "./icons/icon-512.png", "./icons/apple-touch-icon.png", "./vendor/xlsx.full.min.js", "./vendor/pdf.min.js", "./vendor/pdf.worker.min.js", "./lector-pdf.js", "./icons/icon-maskable-512.png",
+const CORE = ["./", "./index.html", "./manifest.webmanifest", "./icons/icon-192.png", "./icons/icon-512.png", "./icons/apple-touch-icon.png", "./vendor/xlsx.full.min.js", "./vendor/pdf.min.js", "./vendor/pdf.worker.min.js", "./lector-pdf.js", "./conecta-demo.js", "./icons/icon-maskable-512.png",
   "./fonts/plus-jakarta-sans-400.woff2", "./fonts/plus-jakarta-sans-500.woff2", "./fonts/plus-jakarta-sans-600.woff2", "./fonts/plus-jakarta-sans-700.woff2", "./fonts/plus-jakarta-sans-800.woff2", "./fonts/ibm-plex-mono-400.woff2", "./fonts/ibm-plex-mono-500.woff2"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });

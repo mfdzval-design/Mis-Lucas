@@ -2,6 +2,14 @@
 
 Cada versión publicada queda anotada aquí. El número de versión se ve al pie de la app.
 
+## En desarrollo · conexión con bancos (rama `conexion-bancos`, sin publicar)
+- 🔗 «Bancos conectados» en el menú: conectas tu banco una vez y Mis Lucas se actualiza solo con tus saldos, el cupo de tus tarjetas (usado, disponible, por facturar, cuotas), lo que debes, el pago mínimo y cuándo vence, y cada compra, transferencia o abono, sin subir cartolas.
+- Autorización clara por banco (qué se lee, para qué, quién se conecta, hasta cuándo), solo lectura, y «Desconectar» que revoca el acceso y borra todo del servidor.
+- Cuentas corriente y vista vía Fintoc (tu clave se escribe en la ventana de Fintoc: Mis Lucas no la ve); tarjetas de crédito vía Khipu (preparado, falta contrato). Banco Demo para probar todo.
+- Todo llega cifrado con una llave que solo tiene tu teléfono; el servidor lo borra apenas la app lo recoge. Se actualiza al abrir la app y solo varias veces al día.
+- Lo que llega del banco se junta con lo que ya anotaste (buzón, Apple Pay, capturas, a mano) y con las cartolas que subas después, sin duplicar; las compras pendientes se confirman solas.
+- Inicio: tarjeta «Tus cuentas y tarjetas» (Tienes · Debes · Cupo disponible). Campana: aviso cuando la tarjeta vence en 5 días o menos, cuando usas el 80 % del cupo o si un banco no se pudo actualizar.
+
 ## Próxima versión · (sin publicar)
 - Inicio más limpio (inspirado en Save Money): arriba el número principal, el aviso «Tienes N movimientos sin categorizar», el gráfico del mes, en qué se fue la plata y una tarjeta «Movimientos» con los próximos (sueldo, pagos fijos, cuotas) y los últimos 5. Lo destacado, a dónde se fue lo que entró, por cuenta y la evolución quedaron en «📊 Más del mes».
 - Movimientos: buscador por comercio o por monto (ej. «30.000»), filtro compacto y, en lo que falta categorizar, un «?» que abre la hoja de categorías con un toque. Si eliges «recordar», se aplica también a los demás movimientos iguales.

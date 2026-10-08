@@ -20,6 +20,8 @@
  *  - Email Routing del dominio con «catch-all» → este Worker.
  */
 
+import { conecta, conectaProgramado } from "./conecta/conecta.js";
+
 const TTL = 30 * 24 * 3600;          // lo no recogido se borra solo a los 30 días
 const MAX_TEXTO = 3000;
 const ALFA = "abcdefghjkmnpqrstuvwxyz23456789"; // sin letras que se confunden
@@ -104,6 +106,8 @@ export default {
     const url = new URL(req.url);
     if (req.method === "OPTIONS") return new Response(null, { headers: cors });
     const p = url.pathname.replace(/\/+$/, "");
+    // Conexión con bancos (Mis Lucas Conecta)
+    if (p === "/api/conecta" || p.startsWith("/api/conecta/")) return conecta(req, env, url);
     try {
       // 1. Activar un buzón nuevo
       if (p === "/api/registro" && req.method === "POST") {
@@ -181,6 +185,11 @@ export default {
     } catch (e) {
       return json({ ok: false, error: "error interno" }, 500);
     }
+  },
+
+  // Cada 30 minutos: sincroniza solas las conexiones bancarias que lo necesiten
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(conectaProgramado(env));
   },
 
   // Correos que llegan a buzon@DOMINIO (dirección común) o a código@DOMINIO (buzones antiguos)

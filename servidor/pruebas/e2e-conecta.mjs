@@ -62,6 +62,18 @@ await page.screenshot({ path: `${OUT}/08b-inicio.png`, fullPage: true });
 // Movimientos
 await page.evaluate(() => { const b = document.querySelector('nav.tabs button[data-tab="movs"]'); b && b.click(); }); await page.waitForTimeout(800);
 await page.screenshot({ path: `${OUT}/09-movimientos.png` });
+// Permiso vencido → renovar (en modo local, donde el permiso vive en el teléfono)
+if (MODO === "local") {
+  await page.evaluate(() => { const d = JSON.parse(localStorage.getItem("mislucas.data.v1")); d.config.bank.conns[0].permiso.vence = Date.now() - 1000; localStorage.setItem("mislucas.data.v1", JSON.stringify(d)); });
+  await page.reload(); await page.waitForTimeout(1500);
+  await page.click("#who"); await page.click('#umenu [data-acct="bancos"]'); await page.waitForTimeout(500);
+  if (!/Permiso vencido/.test(await page.textContent("#cxBox"))) throw new Error("debía mostrar permiso vencido");
+  await page.click("[data-cxren]"); await page.check("#cxRenOk"); await page.screenshot({ path: `${OUT}/11-renovar.png` });
+  await page.click("[data-cxrenok]"); await page.waitForTimeout(1500);
+  const txt = await page.textContent("#cxBox"); if (!/Conectado/.test(txt) || !/Renovaste/.test(txt)) throw new Error("no se renovó: " + txt.slice(0, 300));
+  log("permiso vencido → renovado, con historial");
+  await page.click("#acctClose"); await page.waitForTimeout(300);
+}
 // Desconectar
 await page.click("#who"); await page.click('#umenu [data-acct="bancos"]'); await page.waitForTimeout(500);
 await page.click("[data-cxoff]"); await page.click("[data-cxoff]"); await page.waitForTimeout(1200);

@@ -36,6 +36,7 @@ derechos de acceso, rectificación, supresión, oposición y portabilidad; y avi
 | Solo lectura | Proveedores en modo «movimientos/agregación»: no pueden pagar ni transferir. |
 | Minimización | No se guarda la clave del banco ni el RUT. El servidor guarda solo el token del proveedor (cifrado) y estado de la conexión. Movimientos: solo en tránsito, cifrados, y se borran al recogerlos (máx. 30 días). |
 | Seguridad | Tokens cifrados con AES-GCM (secreto del Worker). Datos hacia la app cifrados de punta a punta con la llave pública del teléfono (RSA-OAEP 2048 + AES-GCM 256): quien administra el servidor no puede leerlos. HTTPS, límites de intentos, firma verificada en webhooks. |
+| Plazo del permiso | Cada autorización dura 12 meses. La app avisa 15 días antes y pide renovarla con un toque; con el permiso vencido el servidor no lee nada. La persona ve su «Historial de permisos» (autorizó, renovó, revocó). |
 | Revocación y supresión | «Desconectar» revoca el acceso en el proveedor (Fintoc: borra el link) y borra todo del servidor. «Baja» borra la identidad completa. |
 | Acceso / portabilidad | Todo vive en el teléfono de la persona y sale en su respaldo (JSON) y exportaciones. |
 

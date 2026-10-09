@@ -38,6 +38,7 @@ Mientras un banco no tenga tarjetas por API, sus compras con tarjeta siguen entr
 2. **Fintoc** (cuentas): crear cuenta en https://dashboard.fintoc.com → API Keys.
    - `npx wrangler secret put FINTOC_SECRET_KEY` (sk_test_… para probar, sk_live_… en producción)
    - en `wrangler.toml` → `[vars] FINTOC_PUBLIC_KEY = "pk_test_…"`
+   - para comprobar las llaves antes de publicar: `FINTOC_SECRET_KEY=… FINTOC_PUBLIC_KEY=… node servidor/pruebas/verificar-fintoc.mjs`
    - Webhooks → nuevo endpoint `https://buzon.mislucasapp.com/api/conecta/webhook/fintoc`, evento
      `account.refresh_intent.succeeded`; copiar su secreto: `npx wrangler secret put FINTOC_WEBHOOK_SECRET`
    - Pedir a Fintoc el permiso de «refresh intents» bajo demanda (si no, se actualiza según su calendario).
@@ -51,7 +52,7 @@ Sin pasos 2 y 3, la app ofrece solo el **Banco Demo**. Sin el paso 1, el servido
 ## Probar en el computador
 
 ```
-node servidor/pruebas/prueba-conecta.mjs          # 20 pruebas del servidor (Fintoc, Khipu y Demo simulados)
+node servidor/pruebas/prueba-conecta.mjs          # 21 pruebas del servidor (Fintoc, Khipu y Demo simulados)
 node servidor/pruebas/servidor-local.mjs 8787     # app + servidor en http://localhost:8787
 node servidor/pruebas/e2e-conecta.mjs . servidor  # navegador: conectar, sincronizar, no duplicar, desconectar
 node servidor/pruebas/e2e-conecta.mjs . local     # lo mismo sin servidor (Banco Demo en el teléfono)

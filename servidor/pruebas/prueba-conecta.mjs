@@ -133,6 +133,16 @@ await t("cron: sincroniza las que están atrasadas", async () => {
   const n0 = llamadas.length; const { conectaProgramado } = await import("../conecta/conecta.js"); const n = await conectaProgramado(env);
   assert.ok(n >= 2); assert.ok(llamadas.slice(n0).some(l => l.url.includes("/refresh_intents")), "a Fintoc se le pide refrescar");
 });
+await t("permiso: vence a los 12 meses, bloquea la sincronización y se renueva", async () => {
+  const c0 = (await llamar(`/conexiones?u=${U}&k=${K}`)).j.conexiones.find(x => x.prov === "demo");
+  assert.ok(c0.permiso.vence - Date.now() > 360 * 864e5);
+  const key = `cn:${U}:${c0.cid}`; const raw = JSON.parse(await env.BUZON.get(key)); raw.consentimiento.vence = Date.now() - 1000; await env.BUZON.put(key, JSON.stringify(raw));
+  const c1 = (await llamar(`/conexiones?u=${U}&k=${K}`)).j.conexiones.find(x => x.cid === c0.cid); assert.equal(c1.estado, "vencido");
+  const s = await llamar("/sincronizar", { u: U, k: K, cid: c0.cid }); assert.ok(!s.j.resultados[0].ok); assert.match(s.j.resultados[0].error, /venci/);
+  const sin = await llamar("/renovar", { u: U, k: K, cid: c0.cid }); assert.equal(sin.st, 400);
+  const r = await llamar("/renovar", { u: U, k: K, cid: c0.cid, consentimiento: CONS }); assert.ok(r.j.ok); assert.equal(r.j.conexion.estado, "ok"); assert.ok(r.j.conexion.permiso.renovado);
+  const s2 = await llamar("/sincronizar", { u: U, k: K, cid: c0.cid }); assert.ok(s2.j.resultados[0].ok);
+});
 await t("desconectar avisa al proveedor y borra", async () => {
   const c = (await llamar(`/conexiones?u=${U}&k=${K}`)).j.conexiones.find(x => x.prov === "fintoc");
   await llamar("/desconectar", { u: U, k: K, cid: c.cid });

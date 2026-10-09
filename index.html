@@ -3363,7 +3363,7 @@ $("#drillClose").addEventListener("click",closeDrill); $("#drillScrim").addEvent
     busy = true; if (manual) renderPanel();
     try {
       let tot = { nuevos: 0, juntados: 0, actualizados: 0 };
-      const locales = conns.filter(x => x.local && (!cid || x.cid === cid));
+      const locales = conns.filter(x => x.local && (!cid || x.cid === cid) && !((x.permiso || {}).vence < Date.now()));
       for (const c of locales) { const s = MLDemoBank.snapshot(c.seed, c.creada, Date.now(), c.ultima ? c.ultima - 10 * 864e5 : Date.now() - 90 * 864e5); const r = aplicar({ ...s, cid: c.cid, prov: "demo", banco: "demo", kind: "snapshot" }, c); tot.nuevos += r.nuevos; tot.juntados += r.juntados; }
       if (B.u && conns.some(x => !x.local)) {
         const r = await api("/sincronizar", { u: B.u, k: B.k, cid: cid || undefined });
@@ -3389,7 +3389,7 @@ $("#drillClose").addEventListener("click",closeDrill); $("#drillScrim").addEvent
       if (est.local) {
         if (!MLDemoBank.login(datos.rut, datos.clave)) throw new Error("RUT o clave incorrectos (la clave de prueba es «demo»)");
         const seed = [...crypto.getRandomValues(new Uint8Array(8))].map(x => x.toString(16).padStart(2, "0")).join("");
-        const conn = { cid: "L" + uid().slice(0, 9), prov: "demo", banco: "demo", inst: { id: "demo", name: "Banco Demo" }, estado: "ok", creada: Date.now(), ultima: 0, local: true, seed, from: ui.from, cubre: { cuentas: true, tarjetas: true }, consentimiento: { v: CX_V, at: Date.now() } };
+        const conn = { cid: "L" + uid().slice(0, 9), prov: "demo", banco: "demo", inst: { id: "demo", name: "Banco Demo" }, estado: "ok", creada: Date.now(), ultima: 0, local: true, seed, from: ui.from, cubre: { cuentas: true, tarjetas: true }, permiso: { v: CX_V, otorgado: Date.now(), vence: Date.now() + 365 * 864e5 } };
         mutateConfig(c => { c.bank = c.bank || { conns: [], accs: {} }; c.bank.conns = (c.bank.conns || []).concat(conn); });
         const s = MLDemoBank.snapshot(seed, conn.creada, Date.now(), Date.now() - 90 * 864e5);
         const r = aplicar({ ...s, cid: conn.cid, prov: "demo", banco: "demo", kind: "snapshot" }, conn);
@@ -3409,6 +3409,7 @@ $("#drillClose").addEventListener("click",closeDrill); $("#drillScrim").addEvent
     }
   }
   function terminado(r, conn) {
+    anotar("conectado", conn);
     ui = { step: "list", fresh: conn.cid };
     mutateConfig(c => { if (c.bank) c.bank.at = Date.now(); });
     okToast(`🏦 ${BANK_NAME[conn.banco] || "Banco"} conectado${r && r.nuevos ? ` · ${r.nuevos} movimientos` : ""}`);
@@ -3430,8 +3431,18 @@ $("#drillClose").addEventListener("click",closeDrill); $("#drillScrim").addEvent
     const B = cxCfg(); const conn = ((B || {}).conns || []).find(x => x.cid === cid); if (!conn) return;
     if (!conn.local && B.u) { const j = await api("/desconectar", { u: B.u, k: B.k, cid }).catch(() => ({ ok: false })); if (!j.ok) { toast("No pude avisar al servidor. Revisa tu conexión e inténtalo de nuevo."); return; } }
     mutateConfig(c => { c.bank.conns = c.bank.conns.filter(x => x.cid !== cid); Object.keys(c.bank.accs || {}).forEach(k => { if (k.startsWith(cid + "|")) delete c.bank.accs[k]; }); (c.accounts || []).forEach(a => { if (a.cx && a.cx.startsWith(cid + "|")) delete a.cx; }); if (!c.bank.conns.length && c.bank.u) { /* deja la identidad para reconectar */ } });
+    anotar("desconectado", conn);
     okToast("Banco desconectado: se revocó el acceso y se borró del servidor. Tus movimientos ya traídos siguen en la app.");
     renderPanel(); render();
+  }
+
+  function anotar(tipo, conn) { mutateConfig(c => { if (!c.bank) return; c.bank.log = (c.bank.log || []).concat({ at: Date.now(), tipo, banco: conn.banco, prov: conn.prov, alcance: (conn.cubre || {}).tarjetas && (conn.cubre || {}).cuentas ? "cuentas y tarjetas" : (conn.cubre || {}).tarjetas ? "tarjetas" : "cuentas" }).slice(-60); }); }
+  async function renovar(cid) {
+    const B = cxCfg(); const conn = ((B || {}).conns || []).find(x => x.cid === cid); if (!conn) return;
+    let permiso = { v: CX_V, otorgado: (conn.permiso || {}).otorgado || conn.creada, renovado: Date.now(), vence: Date.now() + 365 * 864e5 };
+    if (!conn.local) { const j = await api("/renovar", { u: B.u, k: B.k, cid, consentimiento: { acepto: true, v: (estado && estado.consentimiento) || CX_V } }).catch(() => ({ ok: false })); if (!j.ok) { toast(j.error ? `No pude renovarlo: ${j.error}` : "No pude renovarlo. Revisa tu conexión."); return; } permiso = j.conexion.permiso; }
+    mutateConfig(c => { const k = c.bank.conns.find(x => x.cid === cid); if (k) { k.permiso = permiso; if (k.estado === "vencido") k.estado = "ok"; } });
+    anotar("renovado", conn); ui = { step: "list" }; okToast("🔐 Permiso renovado por 12 meses"); renderPanel(); cxSync(false, cid);
   }
 
   /* ---------- números para el Inicio y los avisos ---------- */
@@ -3494,11 +3505,14 @@ $("#drillClose").addEventListener("click",closeDrill); $("#drillScrim").addEvent
         ${R && R.A.length ? `<div class="cx-tot"><div><small>Tienes</small><b class="num">${money(R.tienes)}</b></div><div><small>Debes</small><b class="num neg">${money(R.debes)}</b></div>${R.cupoDisp ? `<div><small>Cupo disponible</small><b class="num">${money(R.cupoDisp)}</b></div>` : ""}</div>` : ""}
         ${conns.map(c => {
           const A = Object.values(B.accs || {}).filter(a => a.cid === c.cid);
-          const st = c.estado === "ok" ? `<span class="cx-chip ok">✓ Conectado</span>` : c.estado === "requiere_accion" ? `<span class="cx-chip warn">Reconectar</span>` : `<span class="cx-chip warn">Con problema</span>`;
+          const pv = (c.permiso || {}).vence || ((c.creada || Date.now()) + 365 * 864e5), dv = Math.ceil((pv - Date.now()) / 864e5), vencido = dv <= 0 || c.estado === "vencido";
+          const st = vencido ? `<span class="cx-chip warn">Permiso vencido</span>` : c.estado === "ok" ? `<span class="cx-chip ok">✓ Conectado</span>` : c.estado === "requiere_accion" ? `<span class="cx-chip warn">Reconectar</span>` : `<span class="cx-chip warn">Con problema</span>`;
           return `<div class="cx-conn${ui.fresh === c.cid ? " fresh" : ""}"><div class="cx-ch"><div><b>${esc(BANK_NAME[c.banco] || (c.inst || {}).name || "Banco")}</b><small>${c.local ? "Banco de prueba en este teléfono" : `vía ${esc(PROV_NAME[c.prov] || c.prov)}`} · ${(c.cubre || {}).tarjetas && (c.cubre || {}).cuentas ? "cuentas y tarjetas" : (c.cubre || {}).tarjetas ? "tarjetas de crédito" : "cuentas"} · actualizado ${hace(c.ultima)}</small></div>${st}</div>
             ${c.err && c.estado !== "ok" ? `<div class="cx-err">${esc(c.err)}${c.estado === "requiere_accion" ? " — desconéctalo y vuelve a conectarlo (¿cambiaste tu clave?)." : ""}</div>` : ""}
             ${A.map(a => filaCuenta(a, false)).join("") || `<p class="note">Todavía sin datos: toca Actualizar.</p>`}
-            <div class="abtns"><button type="button" class="btn sm" data-cxsync="${esc(c.cid)}"${busy ? " disabled" : ""}>${busy ? "Actualizando…" : "↻ Actualizar"}</button><button type="button" class="btn sm" data-cxoff="${esc(c.cid)}" style="color:var(--crit);margin-left:auto">Desconectar</button></div></div>`;
+            <p class="note cx-perm-l">🔐 Permiso ${vencido ? "vencido: renuévalo para seguir actualizando" : `vigente hasta el ${new Date(pv).toLocaleDateString("es-CL", { day: "numeric", month: "short", year: "numeric" })}${dv <= 30 ? ` (quedan ${dv} día${dv === 1 ? "" : "s"})` : ""}`}</p>
+            ${ui.renew === c.cid ? `<div class="cx-renew"><label class="cx-ok"><input type="checkbox" id="cxRenOk"> Renuevo por 12 meses mi autorización para que Mis Lucas lea esta información de ${esc(BANK_NAME[c.banco] || "mi banco")}, con los mismos fines. Puedo revocarla cuando quiera.</label><div class="abtns"><button type="button" class="btn primary sm" data-cxrenok="${esc(c.cid)}" disabled>Renovar permiso</button><button type="button" class="btn sm" data-cxrenno="1">Cancelar</button></div></div>` : ""}
+            <div class="abtns">${vencido || dv <= 30 ? `<button type="button" class="btn primary sm" data-cxren="${esc(c.cid)}">Renovar permiso</button>` : ""}<button type="button" class="btn sm" data-cxsync="${esc(c.cid)}"${busy ? " disabled" : ""}>${busy ? "Actualizando…" : "↻ Actualizar"}</button><button type="button" class="btn sm" data-cxoff="${esc(c.cid)}" style="color:var(--crit);margin-left:auto">Desconectar</button></div></div>`;
         }).join("")}
         <div class="abtns"><button type="button" class="btn primary" id="cxAdd">＋ ${conns.length ? "Conectar otro banco o tarjeta" : "Conectar un banco"}</button></div>
         <p class="note" style="margin-top:10px">Se actualiza solo cada vez que abres la app${conns.some(c => !c.local) ? " y varias veces al día aunque no la abras" : ""}. Lo que llega se junta con lo que ya anotaste (buzón, Apple Pay, capturas) y con tus cartolas, sin duplicar.</p>
@@ -3507,7 +3521,9 @@ $("#drillClose").addEventListener("click",closeDrill); $("#drillScrim").addEvent
           <li><b>Tu clave del banco no se guarda.</b> Con Fintoc la escribes en su ventana segura y Mis Lucas nunca la ve. Con Khipu (tarjetas) pasa una sola vez, cifrada, para obtener un permiso de acceso, y se descarta.</li>
           <li><b>Cifrado de punta a punta.</b> Tus saldos y movimientos viajan cifrados con una llave que solo tiene este teléfono; el servidor los borra apenas la app los recoge.</li>
           <li><b>Tú decides.</b> Autorizas cada banco por separado y puedes desconectarlo cuando quieras: se revoca el acceso y se borra todo del servidor.</li>
-          <li>Proveedores: Fintoc y Khipu, empresas chilenas que hoy conectan apps con bancos. Desde 2027 se sumará el Sistema de Finanzas Abiertas de la CMF (Ley Fintec).</li></ul></details>`;
+          <li><b>Permiso con plazo.</b> Cada autorización dura 12 meses; antes de que venza te pido renovarla. Sin permiso vigente, no se lee nada.</li>
+          <li>Proveedores: Fintoc y Khipu, empresas chilenas que hoy conectan apps con bancos. Desde 2027 se sumará el Sistema de Finanzas Abiertas de la CMF (Ley Fintec).</li></ul></details>
+        ${(B.log || []).length ? `<details class="ibdet"><summary>📜 Historial de permisos</summary><ul class="cx-ul cx-log">${B.log.slice().reverse().map(x => `<li><b>${esc({ conectado: "Autorizaste", renovado: "Renovaste", desconectado: "Revocaste", vencido: "Venció" }[x.tipo] || x.tipo)}</b> ${esc(BANK_NAME[x.banco] || x.banco || "")}${x.prov && x.prov !== "demo" ? ` vía ${esc(PROV_NAME[x.prov] || x.prov)}` : ""} · ${new Date(x.at).toLocaleDateString("es-CL", { day: "numeric", month: "short", year: "numeric" })}${x.alcance ? ` · ${esc(x.alcance)}` : ""}</li>`).join("")}</ul></details>` : ""}`;
       return;
     }
     const est = await cxEstado();
@@ -3565,6 +3581,9 @@ $("#drillClose").addEventListener("click",closeDrill); $("#drillScrim").addEvent
       if (t.id === "cxAdd") { ui = { step: "banco" }; renderPanel(); return; }
       if (t.dataset.cxback) { ui.step = t.dataset.cxback; ui.err = ""; renderPanel(); return; }
       if (t.dataset.cxsync) { cxSync(true, t.dataset.cxsync); return; }
+      if (t.dataset.cxren) { ui.renew = t.dataset.cxren; renderPanel(); return; }
+      if (t.dataset.cxrenno) { delete ui.renew; renderPanel(); return; }
+      if (t.dataset.cxrenok) { t.disabled = true; renovar(t.dataset.cxrenok); return; }
       if (t.dataset.cxoff) { if (!t.dataset.armed) { t.dataset.armed = "1"; t.textContent = "¿Desconectar? Toca de nuevo"; setTimeout(() => { if (t.isConnected) { delete t.dataset.armed; t.textContent = "Desconectar"; } }, 3500); return; } desconectar(t.dataset.cxoff); return; }
       if (t.dataset.cxbank) { const est = await cxEstado(); const b = est.bancos.find(x => x.id === t.dataset.cxbank); if (!b) return; ui = { step: b.cuentas && b.tarjetas && b.cuentas !== b.tarjetas ? "que" : "permiso", banco: b, prov: b.cuentas || b.tarjetas }; renderPanel(); return; }
       if (t.dataset.cxprov) { ui.prov = t.dataset.cxprov; ui.step = "permiso"; ui.err = ""; renderPanel(); return; }
@@ -3575,7 +3594,7 @@ $("#drillClose").addEventListener("click",closeDrill); $("#drillScrim").addEvent
         ui.step = "clave"; renderPanel(); return;
       }
     });
-    document.addEventListener("change", e => { if (e.target.id === "cxAcepto") { const g = $("#cxGo"); if (g) g.disabled = !e.target.checked; } });
+    document.addEventListener("change", e => { if (e.target.id === "cxAcepto") { const g = $("#cxGo"); if (g) g.disabled = !e.target.checked; } if (e.target.id === "cxRenOk") { const g = $("[data-cxrenok]"); if (g) g.disabled = !e.target.checked; } });
     document.addEventListener("submit", e => { if (e.target.id !== "cxForm") return; e.preventDefault(); const rut = $("#cxRut").value.trim(), clave = $("#cxClave").value; if (!rut || !clave) { ui.err = "Escribe tu RUT y tu clave."; renderPanel(); return; } $("#cxClave").value = ""; conectar({ rut, clave }); });
   }
 
@@ -3593,7 +3612,8 @@ $("#drillClose").addEventListener("click",closeDrill); $("#drillScrim").addEvent
     (R ? R.A : []).forEach(a => { const C = a.credit; if (a.type !== "tc" || !C) return;
       if (C.billed > 0 && C.dueDate) { const d = diasA(C.dueDate); if (d >= 0 && d <= 5) add.push({ k: `cxdue|${a.name}|${C.dueDate}`, lvl: d <= 1 ? "crit" : "warn", i: "💳", t: `${a.name} vence ${d === 0 ? "hoy" : d === 1 ? "mañana" : `en ${d} días`}`, d: `Facturado ${money(C.billed)}${C.minPayment ? ` · pago mínimo ${money(C.minPayment)}` : ""}.`, a: 'data-acct="bancos"' }); }
       if (C.limit && C.used / C.limit >= 0.8) add.push({ k: `cxcupo|${a.name}|${todayYM()}`, lvl: "warn", i: "💳", t: `Usaste el ${Math.round(C.used / C.limit * 100)}% del cupo de ${a.name}`, d: `Te quedan ${money(C.available)} disponibles.`, a: 'data-acct="bancos"' }); });
-    (B.conns || []).filter(c => c.estado && c.estado !== "ok").forEach(c => add.push({ k: `cxerr|${c.cid}|${todayYM()}`, lvl: "warn", i: "🏦", t: `${BANK_NAME[c.banco] || "Tu banco"} no se pudo actualizar`, d: c.estado === "requiere_accion" ? "Hay que volver a conectarlo (¿cambiaste tu clave?)." : "Lo vuelvo a intentar solo; si sigue, reconéctalo.", a: 'data-acct="bancos"' }));
+    (B.conns || []).forEach(c => { const pv = (c.permiso || {}).vence; if (!pv) return; const d = Math.ceil((pv - Date.now()) / 864e5); if (d <= 15) add.push({ k: `cxperm|${c.cid}|${pv}|${d <= 0 ? 0 : 1}`, lvl: d <= 0 ? "crit" : "warn", i: "🔐", t: d <= 0 ? `Venció tu permiso para leer ${BANK_NAME[c.banco] || "tu banco"}` : `Tu permiso para leer ${BANK_NAME[c.banco] || "tu banco"} vence en ${d} día${d === 1 ? "" : "s"}`, d: "Renuévalo con un toque para que siga actualizándose solo.", a: 'data-acct="bancos"' }); });
+    (B.conns || []).filter(c => c.estado && c.estado !== "ok" && c.estado !== "vencido").forEach(c => add.push({ k: `cxerr|${c.cid}|${todayYM()}`, lvl: "warn", i: "🏦", t: `${BANK_NAME[c.banco] || "Tu banco"} no se pudo actualizar`, d: c.estado === "requiere_accion" ? "Hay que volver a conectarlo (¿cambiaste tu clave?)." : "Lo vuelvo a intentar solo; si sigue, reconéctalo.", a: 'data-acct="bancos"' }));
     const RK = { crit: 0, warn: 1, info: 2 }; return out.concat(add.filter(x => !off.has(x.k))).sort((a, b) => RK[a.lvl] - RK[b.lvl]);
   };
   // Al subir una cartola de una cuenta conectada, lo que ya trajo el banco cuenta como «ya anotado»
@@ -3637,6 +3657,7 @@ $("#drillClose").addEventListener("click",closeDrill); $("#drillScrim").addEvent
 .cx-ok{display:flex;gap:8px;align-items:flex-start;font-size:13px;margin:12px 0;line-height:1.35}.cx-ok input{margin-top:2px;width:18px;height:18px;flex:none}
 .cx-wait{text-align:center;padding:28px 8px}.cx-spin{width:34px;height:34px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--accent);margin:0 auto 12px;animation:cxs 1s linear infinite}@keyframes cxs{to{transform:rotate(360deg)}}
 .cx-ul{margin:6px 0 0 18px;padding:0;font-size:12.5px;color:var(--ink-2)}.cx-ul li{margin:5px 0}
+.cx-perm-l{margin:6px 0 0;font-size:12px}.cx-renew{border:1px solid var(--line);border-radius:12px;padding:10px;margin-top:8px;background:var(--surface-2)}.cx-log li{list-style:none;margin-left:-18px}
 .cx-hint{display:flex;gap:8px;align-items:center;width:100%;text-align:left;border:1px dashed var(--accent);background:var(--accent-soft);border-radius:12px;padding:10px 12px;margin:-4px 0 12px;cursor:pointer;font-size:13px;color:var(--ink)}.cx-hint span{flex:1}`;
     document.head.appendChild(s);
   }

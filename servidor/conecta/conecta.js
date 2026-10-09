@@ -26,6 +26,7 @@
  *   POST /sincronizar {u,k,cid?}          → pide datos frescos
  *   GET  /datos?u&k                       → lo pendiente (cifrado)
  *   POST /ok {u,k,ids}                    → borra lo ya recogido
+ *   POST /renovar {u,k,cid,consentimiento} → renueva el permiso por 12 meses más
  *   POST /desconectar {u,k,cid}           → revoca y borra
  *   POST /baja {u,k}                      → borra todo
  *   POST /webhook/fintoc                  → avisos de Fintoc (firma verificada)
@@ -38,6 +39,7 @@ import { demo } from "./demo.js";
 export const PROVEEDORES = { fintoc, khipu, demo };
 export const CONSENTIMIENTO_V = "2026-10-08";
 const TTL_COLA = 30 * 24 * 3600;
+const VIGENCIA = 365 * 864e5;  // el permiso dura 12 meses; después hay que renovarlo (consentimiento con plazo)
 const PRIMERA_VEZ = 90;      // días de historia en la primera conexión
 const SOLAPE = 10;           // días que se vuelven a pedir en cada sincronización (pendientes que se confirman)
 const MIN_MANUAL = 60e3;     // mínimo entre sincronizaciones pedidas por la app
@@ -103,7 +105,9 @@ async function conexiones(env, u) {
   const L = await KV(env).list({ prefix: `cn:${u}:` });
   return (await Promise.all(L.keys.map(x => KV(env).get(x.name, "json")))).filter(Boolean);
 }
-const publica = c => ({ cid: c.cid, prov: c.prov, banco: c.banco, inst: c.inst, estado: c.estado, creada: c.creada, ultima: c.ultima || 0, err: c.err || null, cubre: (PROVEEDORES[c.prov] || {}).cubre || {} });
+const vence = c => (c.consentimiento && c.consentimiento.vence) || ((c.creada || Date.now()) + VIGENCIA);
+const publica = c => ({ cid: c.cid, prov: c.prov, banco: c.banco, inst: c.inst, estado: Date.now() > vence(c) ? "vencido" : c.estado, creada: c.creada, ultima: c.ultima || 0, err: c.err || null, cubre: (PROVEEDORES[c.prov] || {}).cubre || {},
+  permiso: { v: (c.consentimiento || {}).v || null, otorgado: (c.consentimiento || {}).at || c.creada, vence: vence(c), renovado: (c.consentimiento || {}).renovado || null } });
 async function limite(env, clave, max, segs) {
   const k = "rl:" + clave; const n = +(await KV(env).get(k)) || 0;
   if (n >= max) return false; await KV(env).put(k, String(n + 1), { expirationTtl: segs }); return true;
@@ -115,6 +119,7 @@ export async function sincronizar(env, u, cid, { motivo = "app" } = {}) {
   const c = await KV(env).get(key, "json"); if (!c) throw err("conexión no existe", 404);
   const usr = await KV(env).get("cu:" + u, "json"); if (!usr || !usr.pub) throw err("usuario no existe", 404);
   const P = PROVEEDORES[c.prov]; if (!P || !P.activo(env)) throw err("proveedor no disponible", 503);
+  if (Date.now() > vence(c)) throw err("Tu permiso para leer este banco venció: renuévalo en la app", 403);
   const sec = await abrir(env, c.sec, key);
   const primera = !c.ultima;
   const desde = primera ? Date.now() - PRIMERA_VEZ * 864e5 : Math.min(c.ultima, Date.now()) - SOLAPE * 864e5;
@@ -191,7 +196,7 @@ export async function conecta(req, env, url) {
       const r = await P.completar(env, { banco: banco[b.prov] || banco.id, exchangeToken: b.exchangeToken, rut: b.rut, clave: b.clave });
       const cid = azar(10), key = `cn:${u}:${cid}`;
       const c = { cid, prov: P.id, banco: banco.id, inst: r.institucion, estado: "ok", creada: Date.now(), ultima: 0, sec: await sellar(env, r.secreto, key),
-        consentimiento: { v: CONSENTIMIENTO_V, at: Date.now(), alcance: P.cubre, plazo: cons.plazo || "hasta que la revoques" } };
+        consentimiento: { v: CONSENTIMIENTO_V, at: Date.now(), vence: Date.now() + VIGENCIA, alcance: P.cubre, plazo: "12 meses o hasta que lo revoques" } };
       await KV(env).put(key, JSON.stringify(c));
       if (r.indice) await KV(env).put(`ci:${P.id}:${r.indice}`, `${u}:${cid}`);
       let sync = null; try { sync = await sincronizar(env, u, cid, { motivo: "primera" }); } catch (e) { sync = { ok: false, error: String(e.message || e) }; }
@@ -222,6 +227,16 @@ export async function conecta(req, env, url) {
       const del = L.keys.filter(x => ids.has(x.name.split(":").pop()));
       await Promise.all(del.map(x => KV(env).delete(x.name)));
       return json({ ok: true, borrados: del.length });
+    }
+    if (p === "/renovar" && req.method === "POST") {
+      if (!cidOk(b.cid)) return json({ ok: false, error: "conexión" }, 400);
+      const cons = b.consentimiento || {};
+      if (!cons.acepto || cons.v !== CONSENTIMIENTO_V) return json({ ok: false, error: "falta tu autorización" }, 400);
+      const key = `cn:${u}:${b.cid}`; const c = await KV(env).get(key, "json"); if (!c) return json({ ok: false, error: "conexión no existe" }, 404);
+      c.consentimiento = { ...(c.consentimiento || {}), v: CONSENTIMIENTO_V, renovado: Date.now(), vence: Date.now() + VIGENCIA };
+      if (c.estado === "vencido") c.estado = "ok";
+      await KV(env).put(key, JSON.stringify(c));
+      return json({ ok: true, conexion: publica(c) });
     }
     if (p === "/desconectar" && req.method === "POST") {
       if (!cidOk(b.cid)) return json({ ok: false, error: "conexión" }, 400);
@@ -255,7 +270,7 @@ export async function conectaProgramado(env) {
     const L = await KV(env).list({ prefix: "cn:", cursor, limit: 500 }); cursor = L.list_complete ? null : L.cursor;
     for (const x of L.keys) {
       if (n >= 40) return n; // tope por ejecución (límite de subpedidos del Worker)
-      const c = await KV(env).get(x.name, "json"); if (!c || c.estado === "requiere_accion") continue;
+      const c = await KV(env).get(x.name, "json"); if (!c || c.estado === "requiere_accion" || Date.now() > vence(c)) continue;
       const [, u] = x.name.split(":");
       if (Date.now() - (c.ultima || 0) < (CADA[c.prov] || 6 * 3600e3)) continue;
       if (c.intento && Date.now() - c.intento < 3600e3) continue;
